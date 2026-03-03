@@ -26,6 +26,10 @@ class AgentSystem:
         self.client = genai.Client(api_key=api_key, http_options={'timeout': 60000}) # タイムアウトを60秒に設定
         self.model_name = model_name
         
+        # S-3: SimpleSentimentAnalyzer のシングルトン生成（osetiの辞書読み込みコストを削減）
+        from engine import SimpleSentimentAnalyzer
+        self.sentiment_analyzer = SimpleSentimentAnalyzer()
+        
         # コスト計算用のトラッカー
         self.token_usage = {}
 
@@ -117,8 +121,10 @@ class AgentSystem:
             f"あなたは「{country_name}」の最高指導者（首脳）です。\n"
             f"あなたの国の体制は '{country_state.government_type.value}'、現在のペルソナ・イデオロギーは '{country_state.ideology}' です。\n"
             f"---現在のステータス---\n"
-            f"経済力(予算基盤): {country_state.economy:.1f}\n"
+            f"経済力(GDP): {country_state.economy:.1f}\n"
             f"軍事力: {country_state.military:.1f}\n"
+            f"現在の税率: {country_state.tax_rate:.1%}\n"
+            f"政府予算(税収 - 利払い): {country_state.government_budget:.1f}\n"
             f"直近の貿易収支(NX): {country_state.last_turn_nx:+.1f} (マイナスは赤字流出を意味)\n"
             f"国家債務(National Debt): {country_state.national_debt:.1f}\n"
             f"国民の支持率: {country_state.approval_rating:.1f}% (30%未満で危険)\n"
@@ -582,10 +588,8 @@ B. 外交的解決（他国への強硬手段）:
                 
                 article = data.get("article", "ニュース報道なし")
                 
-                # ローカル感情分析で支持率への影響を算出
-                from engine import SimpleSentimentAnalyzer
-                analyzer = SimpleSentimentAnalyzer()
-                scores = analyzer.analyze(article)
+                # S-3: シングルトン化された感情分析器を使用（osetiの辞書読み込みコストを削減）
+                scores = self.sentiment_analyzer.analyze(article)
                 avg_score = sum(scores) / len(scores) if scores else 0.0
                 # メディアの影響はSNSよりやや大きめ（スケール係数2.0、最大+-5.0%）
                 modifier = max(-5.0, min(5.0, avg_score * 2.0))

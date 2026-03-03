@@ -1,5 +1,15 @@
 # System Log
 
+## 2026-03-03 20:47:00 学術コードレビュー Should Fix 4件の修正
+- **S-1: コメントの学術的改善 (`engine.py`)**:
+  - 政策実行力、民間投資(I)、リチャードソン・モデル、福祉ボーナスの4箇所のコメントを「何を」ではなく「なぜ」を説明する形に改善。Harrod-Domar (1939/1946)、Richardson (1960)、Paul Kennedy (1987)、Gossen (1854) 等の学術的引用を追加。
+- **S-3: SimpleSentimentAnalyzer のシングルトン化 (`agent.py`)**:
+  - `generate_media_reports` 内でループごとに毎回インスタンス化されていた `SimpleSentimentAnalyzer`（oseti辞書読み込みを伴う重い処理）を、`AgentSystem.__init__` で1回だけ生成する方式に変更。パフォーマンスを改善。
+- **S-4: _build_prompt への税率・予算情報の追加 (`agent.py`)**:
+  - AIエージェントへのプロンプトに「現在の税率」「政府予算（税収-利払い）」を追加。LLMが前ターンの税率を認識できるようになり、増税・減税の継続的意思決定の文脈が維持される。
+- **S-6: hidden_plans の文字列長制限 (`engine.py`)**:
+  - `advance_time` 内に `hidden_plans` のトリミング処理を追加。最新1000文字のみ保持し、古い情報は「...」で省略。長期シミュレーション時のAPIコンテキストウィンドウ溢れを防止。
+
 ## 2026-03-03 20:39:00 コードレビュー乖離修正7件
 - **ARCHITECTURE.md 更新 (5件)**:
   - §2.1: 政府支出 $G_{econ}, G_{mil}, G_{wel}$ の算出式（Budget × 投資割合 × 政策実行力ε）を明記。
