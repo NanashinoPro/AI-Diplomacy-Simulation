@@ -34,6 +34,7 @@ class CountryState(BaseModel):
     turns_until_election: Optional[int] = Field(None, description="【民主主義のみ】次回の選挙までのターン数")
     rebellion_risk: float = Field(0.0, description="【専制主義等】現在の反乱発生率")
     trade_deficit_counter: int = Field(0, description="貿易赤字が継続しているターン数（産業空洞化ペナルティ用）")
+    last_turn_nx: float = Field(0.0, description="前ターンの総純輸出（NX）。負なら貿易赤字")
     
     # 秘匿情報（他国からは原則見えない真の値）
     # ※AIのプロンプト上では状況に応じて公開・非公開を制御します
