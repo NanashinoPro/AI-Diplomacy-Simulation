@@ -97,8 +97,7 @@ class WorldEngine:
         # 6. ランダムイベント（災害・技術革新）の判定
         self._process_random_events()
         
-        # 7. 時間進行とターン終了処理
-        self._advance_time()
+        # 7. 時間進行とターン終了処理は外部 (main.py) から advance_time() を呼び出すよう変更
         
         # イベントログをステートに記録
         self.state.news_events = self.events_this_turn.copy()
@@ -788,7 +787,7 @@ class WorldEngine:
         country.economy *= 0.7  # 内戦による経済ダメージ
         self.pending_rebellions.append(name)
 
-    def _advance_time(self):
+    def advance_time(self):
         self.state.turn += 1
         self.state.quarter += 1
         if self.state.quarter > 4:

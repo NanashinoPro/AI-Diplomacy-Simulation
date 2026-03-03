@@ -26,13 +26,27 @@ class AgentSystem:
             
         self.client = genai.Client(api_key=api_key, http_options={'timeout': 60000}) # タイムアウトを60秒に設定
         self.model_name = model_name
+        
+        # コスト計算用のトラッカー
+        self.token_usage = {}
 
     @retry(stop=stop_after_attempt(4), wait=wait_exponential(multiplier=2, min=4, max=30))
-    def _generate_with_retry(self, model: str, contents: str, config: types.GenerateContentConfig = None) -> Any:
+    def _generate_with_retry(self, model: str, contents: str, config: types.GenerateContentConfig = None, category: str = "default") -> Any:
         """API呼び出しのタイムアウトやレートリミットに対する自動リトライ処理"""
         if config:
-            return self.client.models.generate_content(model=model, contents=contents, config=config)
-        return self.client.models.generate_content(model=model, contents=contents)
+            response = self.client.models.generate_content(model=model, contents=contents, config=config)
+        else:
+            response = self.client.models.generate_content(model=model, contents=contents)
+            
+        # トークン使用量の記録
+        if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            meta = response.usage_metadata
+            if category not in self.token_usage:
+                self.token_usage[category] = {"prompt_tokens": 0, "candidates_token_count": 0, "model": model}
+            self.token_usage[category]["prompt_tokens"] += getattr(meta, 'prompt_token_count', 0)
+            self.token_usage[category]["candidates_token_count"] += getattr(meta, 'candidates_token_count', 0)
+            
+        return response
 
     def generate_actions(self, world_state: WorldState) -> Dict[str, AgentAction]:
         """現在の世界状況からすべての国のアクションを生成する"""
@@ -63,7 +77,8 @@ class AgentSystem:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                )
+                ),
+                category="actions"
             )
         except Exception as e:
             self.logger.sys_log(f"[{country_name}] APIエラー発生: {e}", "ERROR")
@@ -209,14 +224,17 @@ B. 外交的解決（他国への強硬手段）:
         self.logger.sys_log_detail(f"{country_name} Prompt", prompt)
         return prompt
 
-    def run_summit(self, proposal: SummitProposal, state_a: CountryState, state_b: CountryState, world_state: WorldState) -> Tuple[str, str]:
-        """2国間での首脳会談（最大10ターンの対話）を実行し、(要約, 全文ログ)のタプルを返す"""
+    def run_summit(self, proposal: SummitProposal, state_a: CountryState, state_b: CountryState, world_state: WorldState, past_news: List[str] = None) -> Tuple[str, str]:
+        """2国間での首脳会談（最大4ターンの対話）を実行し、(要約, 全文ログ)のタプルを返す"""
         self.logger.sys_log(f"[{proposal.proposer} と {proposal.target}] の首脳会談を開始 (議題: {proposal.topic})")
         
         # 世界情勢と両国のステータスの文字列化
-        news_context = "【直近の世界のニュース】\nなし\n"
-        if world_state.news_events:
-            news_context = "【直近の世界のニュース】\n" + "\n".join(world_state.news_events[-5:]) + "\n"
+        news_context = "【直近の世界のニュース(過去4ターン)】\nなし\n"
+        
+        # mainから渡された過去4ターン分のニュースを使用する
+        combined_news = past_news if past_news else world_state.news_events
+        if combined_news:
+            news_context = "【直近の世界のニュース(過去4ターン)】\n" + "\n".join(combined_news[-20:]) + "\n"
             
         status_a = f"経済力:{state_a.economy:.1f}, 軍事力:{state_a.military:.1f}, 支持率:{state_a.approval_rating:.1f}%"
         status_b = f"経済力:{state_b.economy:.1f}, 軍事力:{state_b.military:.1f}, 支持率:{state_b.approval_rating:.1f}%"
@@ -250,7 +268,7 @@ B. 外交的解決（他国への強硬手段）:
         )
         
         messages = []
-        total_turns = 10
+        total_turns = 4
         for i in range(total_turns):
             current_turn = i + 1
             turn_instruction = f"現在、全{total_turns}回の発言機会のうちの {current_turn} 回目です。\n【重要指示】毎回挨拶や締めの言葉を繰り返すのは不自然です。直前の相手の発言に直接返答し、連続した自然な議論や交渉を行ってください。\n【重要指示】新たな専門家会議やワーキンググループなどの会議体を設置する合意は行わず、議題に関する事項は全てこの首脳会談の中で決定してください。\n【文字数制限】各発言は必ず400文字以内で記述してください。"
@@ -259,21 +277,21 @@ B. 外交的解決（他国への強硬手段）:
                  
             # Aの発言 (最初はAから)
             prompt_a = base_context_a + turn_instruction + "\nこれまでの会話:\n" + "\n".join(messages) + f"\n\n{proposal.proposer}としての次の発言を入力してください:"
-            resp_a_obj = self._generate_with_retry(model="gemini-2.5-flash", contents=prompt_a)
+            resp_a_obj = self._generate_with_retry(model="gemini-2.5-pro", contents=prompt_a, category="summit")
             resp_a = resp_a_obj.text.strip() if resp_a_obj and hasattr(resp_a_obj, 'text') else "..."
             messages.append(f"{proposal.proposer}: {resp_a}")
             self.logger.sys_log(f"[Summit {current_turn}/{total_turns}] {proposal.proposer}: {resp_a}")
             
             # Bの発言
             prompt_b = base_context_b + turn_instruction + "\nこれまでの会話:\n" + "\n".join(messages) + f"\n\n{proposal.target}としての次の発言を入力してください:"
-            resp_b_obj = self._generate_with_retry(model="gemini-2.5-flash", contents=prompt_b)
+            resp_b_obj = self._generate_with_retry(model="gemini-2.5-pro", contents=prompt_b, category="summit")
             resp_b = resp_b_obj.text.strip() if resp_b_obj and hasattr(resp_b_obj, 'text') else "..."
             messages.append(f"{proposal.target}: {resp_b}")
             self.logger.sys_log(f"[Summit {current_turn}/{total_turns}] {proposal.target}: {resp_b}")
             
         # 合意の要約
         summary_prompt = "以下の首脳会談の記録から、両国の最終的な「合意事項（または物別れに終わったという結果）」を100文字程度で簡潔に要約してください。\n\n" + "\n".join(messages)
-        summary_obj = self._generate_with_retry(model="gemini-2.5-flash", contents=summary_prompt)
+        summary_obj = self._generate_with_retry(model="gemini-2.5-pro", contents=summary_prompt, category="summit_summary")
         summary = summary_obj.text.strip() if summary_obj and hasattr(summary_obj, 'text') else "会談は終了しました"
         
         full_log = chat_history + "\n".join(messages) + f"\n\n【最終結果】\n{summary}"
@@ -299,7 +317,8 @@ B. 外交的解決（他国への強硬手段）:
             response = self._generate_with_retry(
                 model="gemini-2.5-flash",
                 contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json")
+                config=types.GenerateContentConfig(response_mime_type="application/json"),
+                category="espionage"
             ).text.strip()
             
             import re
@@ -354,7 +373,8 @@ B. 外交的解決（他国への強硬手段）:
             response = self._generate_with_retry(
                 model="gemini-2.5-flash-lite-preview-09-2025", 
                 contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json")
+                config=types.GenerateContentConfig(response_mime_type="application/json"),
+                category="sns"
             ).text.strip()
             
             import re
@@ -393,7 +413,8 @@ B. 外交的解決（他国への強硬手段）:
         try:
             response = self._generate_with_retry(
                 model="gemini-2.5-flash-lite-preview-09-2025", 
-                contents=prompt
+                contents=prompt,
+                category="breakthrough"
             ).text.strip()
             self.logger.sys_log(f"[Breakthrough] {country_name}で新技術誕生: {response}")
             return response
@@ -427,7 +448,8 @@ B. 外交的解決（他国への強硬手段）:
         try:
             response = self._generate_with_retry(
                 model="gemini-2.5-flash-lite-preview-09-2025", 
-                contents=prompt
+                contents=prompt,
+                category="ideology"
             ).text.strip()
             self.logger.sys_log(f"[Ideology Change] {country_name}(Democracy): {response}")
             return response
@@ -454,7 +476,8 @@ B. 外交的解決（他国への強硬手段）:
         try:
             response = self._generate_with_retry(
                 model="gemini-2.5-flash-lite-preview-09-2025", 
-                contents=prompt
+                contents=prompt,
+                category="ideology"
             ).text.strip()
             self.logger.sys_log(f"[Ideology Change] {country_name}(Authoritarian): {response}")
             return response
@@ -529,7 +552,8 @@ B. 外交的解決（他国への強硬手段）:
                 response = self._generate_with_retry(
                     model="gemini-2.5-flash",
                     contents=prompt,
-                    config=types.GenerateContentConfig(response_mime_type="application/json")
+                    config=types.GenerateContentConfig(response_mime_type="application/json"),
+                    category="media"
                 ).text.strip()
                 
                 # clean json

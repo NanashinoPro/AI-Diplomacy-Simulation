@@ -96,6 +96,7 @@ def main():
 
     # シミュレーションループ
     MAX_TURNS = args.turns
+    past_news_queue = []
     
     for _ in range(MAX_TURNS):
         # 1. ターンの開始表示
@@ -191,7 +192,8 @@ def main():
                 ca = world_state.countries.get(proposal.proposer)
                 cb = world_state.countries.get(proposal.target)
                 if ca and cb:
-                    summit_news_result, full_summit_log = agent_system.run_summit(proposal, ca, cb, world_state)
+                    past_4_turns_news = [news for turn_news in past_news_queue for news in turn_news]
+                    summit_news_result, full_summit_log = agent_system.run_summit(proposal, ca, cb, world_state, past_news=past_4_turns_news)
                     world_state.news_events.append(summit_news_result)
                     recent_summit_logs.append(full_summit_log)
                     world_state.summit_logs.append({
@@ -257,6 +259,13 @@ def main():
         # 9. ログの保存（全ての処理が完了した後の最終状態を保存）
         logger.save_turn_log(world_state, actions)
         
+        # 10. ターン履歴の保存と時間進行
+        past_news_queue.append(world_state.news_events.copy())
+        if len(past_news_queue) > 4:
+            past_news_queue.pop(0)
+            
+        engine.advance_time()
+        
         # ターン進行のウェイト
         print("\n" + "="*50 + "\n")
         time.sleep(3) # APIのレートリミット対策も兼ねる
@@ -264,6 +273,40 @@ def main():
     print("🏁 指定ターン数のシミュレーションが終了しました。")
     print(f"シミュレーションログは {logger.sim_log_dir}/ に保存されています。")
     print(f"システムログは {logger.sys_log_dir}/ に保存されています。")
+    
+    # コスト計算と出力
+    print("\n" + "="*50)
+    print("💰 APIトークン使用量と推定コスト")
+    print("="*50)
+    total_cost = 0.0
+    cost_log_lines = ["\n💰 API Cost Report:"]
+    for category, usage in agent_system.token_usage.items():
+        model = usage["model"]
+        p_tokens = usage["prompt_tokens"]
+        c_tokens = usage["candidates_token_count"]
+        
+        # 単価 (100万トークンあたり)
+        if "pro" in model.lower():
+            p_price, c_price = 1.25, 5.00
+        else:
+            p_price, c_price = 0.075, 0.30
+            
+        cat_cost = (p_tokens / 1_000_000 * p_price) + (c_tokens / 1_000_000 * c_price)
+        total_cost += cat_cost
+        
+        report_line = f"- [{category}] {model}: Prompt {p_tokens} ({p_price}$/M), Output {c_tokens} ({c_price}$/M) -> ${cat_cost:.4f}"
+        print(report_line)
+        cost_log_lines.append(report_line)
+        
+    total_line = f"▶ Total Estimated Cost: ${total_cost:.4f}"
+    print("-" * 50)
+    print(total_line)
+    print("=" * 50 + "\n")
+    cost_log_lines.append(total_line)
+    
+    # システムログに追記
+    for line in cost_log_lines:
+        logger.sys_log(line)
     
     # 最後にシミュレーションの要約を自動生成
     try:
