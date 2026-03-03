@@ -127,7 +127,9 @@ class WorldEngine:
             self.sys_logs_this_turn.append(f"[{country.name} 増税] 税率 {old_tax_rate:.1%}→{new_tax_rate:.1%} (支持率ペナルティ: -{penalty:.1f}%)")
         # ------------------------------------------------
 
-        # 政策実行力の計算（支持率低下により減衰）
+        # --- 政策実行力の算出 ---
+        # [学術的根拠] 民主主義国家では低支持率時に議会の攻防が激化し政策実現が困難になる。
+        # 専制主義では強権的執行が可能ことから下限を保障（最低ε=0.5）。
         execution_power = 1.0
         if country.government_type == GovernmentType.DEMOCRACY:
             if country.approval_rating < DEMOCRACY_WARN_APPROVAL:
@@ -182,9 +184,11 @@ class WorldEngine:
         C = max(0.0, (old_gdp - tax_revenue) * (1.0 - saving_rate))
         S_private = max(0.0, (old_gdp - tax_revenue) - C)
 
-        # 2. 民間投資 (I)
-        # 民間貯蓄の85%が国内投資に向かう (S -> I の還流)
-        # それに加え、経済インフラ投資によるクラウドイン(誘発) - 軍事費によるクラウドアウト(抑制)を考慮
+        # --- SNAマクロ経済モデル: 民間投資 (I) ---
+        # [Harrod 1939; Domar 1946] 貯蓄=投資均衡仮定の下、民間貯蓄の一部が
+        # 資本市場を通じて国内投資へ還流すると仮定。係数0.85は国内投資率を表し、
+        # 残15%は海外流出・現預金積み上げ等として処理。
+        # 政府の経済投資は民間投資を誘発（クラウドイン）し、軍事費が民間投資を押し出す（クラウドアウト）。
         I = max(0.0, S_private * 0.85 + (g_econ * GOVERNMENT_CROWD_IN_MULTIPLIER) - (g_mil * GOVERNMENT_CROWD_OUT_MULTIPLIER))
         
         # -- 災害・技術革新のフロー影響を適用 --
@@ -232,24 +236,26 @@ class WorldEngine:
         # 成長率ボーナスの計算 (後で支持率に反映するため。軍事費分は除外して実質体感成長とするなどの計算もあるが、今回は総GDPで)
         gdp_growth_rate = (country.economy - old_gdp) / max(1.0, old_gdp) * 100.0
         
-        # ===== リチャードソン・モデル (疲弊係数の動的適用) =====
-        # 動的な軍備維持費の算出 (経済的疲弊)
+        # ===== リチャードソン・モデル (Richardson 1960) =====
+        # [学術的根拠] 軍拡競争の数理モデル。軍事負担率がGDP比で高くなるほど、
+        # 維持費（疲弊係数α）が二次関数的に跳ね上がる。これにより、経済的に
+        # 持続不可能な軍拡がシステム的に自壊するメカニズムを提供し、現実の「帝国の過度な拡大」
+        # (Paul Kennedy 1987) を模倣する。計算にはSNA更新前の前期GDPを使用。
         military_burden = country.military / max(1.0, old_gdp)
         dynamic_alpha = BASE_MILITARY_MAINTENANCE_ALPHA + (military_burden * 2.0) ** 2
         alpha = min(MAX_MILITARY_FATIGUE_ALPHA, dynamic_alpha)
         
-        # 軍事投資による増加分 (微調整: G内の軍事予算を基に増加させる)
+        # 軍事投資による増加分（政策実行力ε適用済みの政府軍事支出に成長率を乗算）
         military_growth = g_mil * BASE_MILITARY_GROWTH_RATE
         old_military = country.military
-        # 動的な疲弊係数(維持費)を引いてから投資を足す
         country.military = (country.military * (1.0 - alpha)) + military_growth
         
-        # 治安・福祉維持（連続関数化によるボーナス算出）
+        # --- 福祉ボーナスによる支持率還元 ---
+        # [学術的根拠] 福祈支出の支持率への効果が逓減することを対数関数（log1p）でモデル化。
+        # 限界効用逓減の法則 (Gossen 1854) に基づき、一定水準以上の投資は
+        # 効果が頭打ちになる。これにより「福祈へ全抜けすれば支持率が無限に上がる」メタ解法を防止。
         inv_wel = action.domestic_policy.invest_welfare
         old_approval = country.approval_rating
-        # 投資割合に対して対数的なカーブ(log1p)を描き、投資効果が逓減するようにする
-        # 例: inv_wel=0.1 -> log1p(0.5)=0.4, inv_wel=0.2->log1p(1.0)=0.69, inv_wel=0.5->log1p(2.5)=1.25
-        # welfare_bonusの最大値を+2.5付近、最低値を-3.0付近(無投資時)に調整
         welfare_trend = math.log1p(inv_wel * 5.0) * 1.5 - 1.0
         welfare_bonus = welfare_trend * execution_power
             
@@ -838,6 +844,14 @@ class WorldEngine:
         for name, history in self.state.sns_logs.items():
             if len(history) > MAX_LOG_HISTORY:
                 self.state.sns_logs[name] = history[-MAX_LOG_HISTORY:]
+        
+        # S-6: hidden_plans の文字列長制限（プロンプト膨張防止）
+        # 長期シミュレーション時にLLMのコンテキストウィンドウ上限に達するのを防ぐため、
+        # 最新1000文字のみ保持し古い情報を切り捨てる。
+        MAX_HIDDEN_PLANS_LENGTH = 1000
+        for country in self.state.countries.values():
+            if len(country.hidden_plans) > MAX_HIDDEN_PLANS_LENGTH:
+                country.hidden_plans = "..." + country.hidden_plans[-MAX_HIDDEN_PLANS_LENGTH:]
 
     # ヘルパー関数
     def _get_relation(self, c1: str, c2: str) -> RelationType:
