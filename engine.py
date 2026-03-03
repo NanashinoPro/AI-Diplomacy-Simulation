@@ -800,7 +800,7 @@ class WorldEngine:
         
         if random.random() < lose_chance:
             self.log_event(f"🔄 【政権交代】{name}の現職が選挙で敗北しました！国家の政策方針が大きく見直されます。")
-            country.approval_rating = 50.0 # 新政権へのご祝儀相場
+            country.approval_rating = max(0.0, min(100.0, 100.0 - country.approval_rating)) # 新政権へのご祝儀相場（支持率を反転）
             self.pending_elections.append(name)
         else:
             self.log_event(f"✅ {name}の現職が再選を果たしました。現状の政策が継続されます。")
@@ -823,9 +823,16 @@ class WorldEngine:
         
         self.log_event(f"🚩 【体制変化】クーデターの結果、{name}は{gov_str}新政権({new_gov.value})へと移行しました。")
         
-        country.approval_rating = 40.0
+        country.approval_rating = 70.0
         country.economy *= 0.9   # 内戦による経済ダメージ（10%減）
         country.military = country.economy * 0.1  # 軍事力をGDPの10%にリセット
+        
+        # 案C: クーデター時の「死のループ」を防ぐため、旧政権の負の遺産・基準となるペナルティをリセット
+        country.national_debt = 0.0
+        country.trade_deficit_counter = 0
+        country.last_turn_nx = 0.0
+        country.rebellion_risk = 0.0
+        
         self.pending_rebellions.append(name)
 
     def advance_time(self):
@@ -952,8 +959,10 @@ class WorldEngine:
             # Apply dynamic factors with carefully tuned weights
             growth_modifier = gdp_growth * 0.5
             if gdp_growth < -5.0:
-                # 深刻な不況（5%以上のマイナス成長）には非線形なペナルティを課す（大恐慌レベルの支持率暴落）
-                growth_modifier -= (abs(gdp_growth) - 5.0) ** 1.5
+                # 深刻な不況（5%以上のマイナス成長）には非線形なペナルティを課すが、
+                # クーデター等の直後に発生する無限死亡ループを防ぐため、1ターンのペナルティ上限を設ける
+                penalty = (abs(gdp_growth) - 5.0) ** 1.5
+                growth_modifier -= min(30.0, penalty)
                 
             new_approval = (
                 base_trend 
