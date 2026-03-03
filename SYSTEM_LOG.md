@@ -6,6 +6,7 @@
   - `agent.py` に `GeminiSentimentAnalyzer` クラスを新規追加。Gemini API に短いプロンプトで感情スコア(-1.0〜+1.0)を問い合わせる。
   - `WorldEngine.__init__` に `analyzer` 引数を追加し、外部から感情分析器を注入する設計に変更。
   - `main.py` で `AgentSystem.sentiment_analyzer` を `WorldEngine` に注入する接続を構築。
+  - **バグ修正**: `gemini-2.0-flash-lite` が利用不可（404 Not Found）だったため、有効な `gemini-2.5-flash-lite-preview-09-2025` モデルに修正し、正常に感情スコア(-1.0〜+1.0)が取得できることを確認。
   - **移行理由**: oseti は2019年以降メンテナンス停止、政治・外交ドメインの専門語に対する精度が不明。LLMベースの感情分析は文脈理解力が高く、政治文脈での判定精度向上が期待される。
 - **ARCHITECTURE.md**: §1.2 LLMタスク割り当てに感情分析モデル (`gemini-2.0-flash-lite`) の記載を追加。
 
