@@ -48,12 +48,12 @@ class AgentSystem:
             
         return response
 
-    def generate_actions(self, world_state: WorldState) -> Dict[str, AgentAction]:
+    def generate_actions(self, world_state: WorldState, past_news: List[str] = None) -> Dict[str, AgentAction]:
         """現在の世界状況からすべての国のアクションを生成する"""
         actions = {}
         for country_name, country_state in world_state.countries.items():
             try:
-                action = self._decide_country_action(country_name, country_state, world_state)
+                action = self._decide_country_action(country_name, country_state, world_state, past_news)
                 actions[country_name] = action
             except Exception as e:
                 print(f"⚠️ {country_name}のエージェント推論中にエラーが発生しました: {e}")
@@ -63,10 +63,10 @@ class AgentSystem:
                 
         return actions
 
-    def _decide_country_action(self, country_name: str, country_state: CountryState, world_state: WorldState) -> AgentAction:
+    def _decide_country_action(self, country_name: str, country_state: CountryState, world_state: WorldState, past_news: List[str] = None) -> AgentAction:
         """特定の一国の意思決定を行う"""
         
-        prompt = self._build_prompt(country_name, country_state, world_state)
+        prompt = self._build_prompt(country_name, country_state, world_state, past_news)
         self.logger.sys_log(f"[{country_name}] APIプロンプト送信開始...")
         
         start_time = time.time()
@@ -110,7 +110,7 @@ class AgentSystem:
             self.logger.sys_log(f"[{country_name}] 予期せぬエラー: {e}", "ERROR")
             return self._create_fallback_action(country_name)
 
-    def _build_prompt(self, country_name: str, country_state: CountryState, world_state: WorldState) -> str:
+    def _build_prompt(self, country_name: str, country_state: CountryState, world_state: WorldState, past_news: List[str] = None) -> str:
         """AIへ状況を説明しJSON出力を促すプロンプトを作成する"""
         
         # 自国の詳細情報
@@ -156,8 +156,15 @@ class AgentSystem:
             
         # ニュースイベント
         news_info = ""
-        if world_state.news_events:
-            news_info = "---前ターンのニュース・外交ログ---\n" + "\n".join(world_state.news_events) + "\n\n"
+        combined_news = []
+        if past_news:
+            for turn_news in past_news:
+                combined_news.extend(turn_news)
+        else:
+            combined_news = world_state.news_events
+            
+        if combined_news:
+            news_info = "---直近の世界のニュース(過去4ターン)---\n" + "\n".join(combined_news[-20:]) + "\n\n"
             
         format_instructions = """
 あなたの役目は、他国の情報や世界情勢を踏まえて、自国の利益と発展を最大化する戦略的決断をすることです。
@@ -232,7 +239,13 @@ B. 外交的解決（他国への強硬手段）:
         news_context = "【直近の世界のニュース(過去4ターン)】\nなし\n"
         
         # mainから渡された過去4ターン分のニュースを使用する
-        combined_news = past_news if past_news else world_state.news_events
+        combined_news = []
+        if past_news:
+            for turn_news in past_news:
+                combined_news.extend(turn_news)
+        else:
+            combined_news = world_state.news_events
+            
         if combined_news:
             news_context = "【直近の世界のニュース(過去4ターン)】\n" + "\n".join(combined_news[-20:]) + "\n"
             
