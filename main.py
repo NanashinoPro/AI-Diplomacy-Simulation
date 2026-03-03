@@ -88,7 +88,7 @@ def main():
     engine = WorldEngine(initial_state=world_state)
     
     try:
-        agent_system = AgentSystem(logger=logger, model_name="gemini-2.5-flash") # デフォルトの gemini-3.1-pro-preview だと時間がかかるため明示的に指定
+        agent_system = AgentSystem(logger=logger) # デフォルトで 3.1-pro-preview を使用
     except ValueError as e:
         print(f"初期化エラー: {e}")
         print("実行前に `export GEMINI_API_KEY=あなたのキー` を設定してください。")
@@ -106,7 +106,7 @@ def main():
         
         # 2. 各AIエージェントによる行動の決定（API呼び出し）
         print("\n⏳ 首脳AIが状況を分析し、行動を決定しています...")
-        actions = agent_system.generate_actions(world_state)
+        actions = agent_system.generate_actions(world_state, past_news=past_news_queue)
         
         # 思考プロセスの表示（CLI上では分かりやすさのため表示）
         print("\n--- 🧠 各国の意思決定 ---")
@@ -286,10 +286,16 @@ def main():
         c_tokens = usage["candidates_token_count"]
         
         # 単価 (100万トークンあたり)
-        if "pro" in model.lower():
-            p_price, c_price = 1.25, 5.00
-        else:
-            p_price, c_price = 0.075, 0.30
+        if "gemini-3.1-pro" in model.lower():
+            p_price, c_price = 2.00, 12.00
+        elif "gemini-2.5-pro" in model.lower():
+            p_price, c_price = 1.25, 10.00
+        elif "gemini-2.5-flash-lite" in model.lower():
+            p_price, c_price = 0.10, 0.40
+        elif "gemini-2.5-flash" in model.lower():
+            p_price, c_price = 0.30, 2.50
+        else: # 分からないモデルのフォールバック (flash扱い)
+            p_price, c_price = 0.30, 2.50
             
         cat_cost = (p_tokens / 1_000_000 * p_price) + (c_tokens / 1_000_000 * c_price)
         total_cost += cat_cost
