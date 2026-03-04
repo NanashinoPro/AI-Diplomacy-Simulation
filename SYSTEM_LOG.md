@@ -1,5 +1,19 @@
 # System Log
 
+## 2026-03-04 16:55:00 報道の自由度（Press Freedom）の動的確率・ペナルティ制御機能の導入
+- **`models.py`**:
+  - `CountryState` に `press_freedom` (0.0〜1.0) を追加。初期値は実在の国境なき記者団(RSF)スコアから算出。
+  - `DomesticAction` に `target_press_freedom` を追加し、毎ターンの目標変動を可能に。
+- **`engine.py`**:
+  - `_process_domestic` 内で、自由度の目標値引き下げに伴う**強力な支持率ペナルティ**（0.1の下げにつき-5.0%）および引き上げ時の限定ボーナスを実装。
+- **`agent.py`**:
+  - `_build_prompt` において、自由度による「スクープ確率低下」と「支持率低下」のトレードオフをLLMへ提示。
+  - `generate_media_reports` 内の `whistleblowing_scandal`（大スクープ）発生確率に報道の自由度（`press_freedom`）を乗算するよう修正し、完全に民主・専制共通の汎用的計算モデルへ統合。
+- **`main.py`**:
+  - アメリカの初期報道の自由度を `0.6549`、中国を `0.2241` に設定（RSFランキング2025年ベース）。
+- **`ARCHITECTURE.md`**:
+  - 上記の「報道の自由度の管理」ルールおよび「メディアスクープ（内部告発）モデル」の算出仕様を詳細に追記。
+
 ## 2026-03-03 20:54:00 感情分析エンジンの Gemini API への移行 (S-2)
 - **oseti → Gemini API (`gemini-2.0-flash-lite`) への移行 (`agent.py`, `engine.py`, `main.py`)**:
   - `engine.py` から `SimpleSentimentAnalyzer`（oseti依存）クラスを完全削除。
