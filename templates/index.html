@@ -246,15 +246,18 @@
             <div id="summary-section" class="card" style="margin-bottom: 20px;">
                 <h2>📊 シミュレーション全体のサマリー</h2>
 
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 300px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
                         <canvas id="economyChart"></canvas>
                     </div>
-                    <div style="flex: 1; min-width: 300px;">
+                    <div>
                         <canvas id="militaryChart"></canvas>
                     </div>
-                    <div style="flex: 1; min-width: 300px;">
+                    <div>
                         <canvas id="approvalChart"></canvas>
+                    </div>
+                    <div>
+                        <canvas id="intelligenceChart"></canvas>
                     </div>
                 </div>
 
@@ -340,6 +343,7 @@
         let economyChart = null;
         let militaryChart = null;
         let approvalChart = null;
+        let intelligenceChart = null;
         let currentSimulationFile = null;
 
         // 初期化
@@ -419,7 +423,7 @@
             if (!simulationData || simulationData.length === 0) return;
             const labels = simulationData.map(d => `T${d.turn}`);
             const countries = Object.keys(simulationData[0].world_state.countries);
-            const datasets = { economy: [], military: [], approval: [] };
+            const datasets = { economy: [], military: [], approval: [], intelligence: [] };
             const colors = ['#2c3e50', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6'];
 
             countries.forEach((country, index) => {
@@ -427,10 +431,12 @@
                 const ecoData = simulationData.map(d => d.world_state.countries[country].economy);
                 const milData = simulationData.map(d => d.world_state.countries[country].military);
                 const appData = simulationData.map(d => d.world_state.countries[country].approval_rating);
+                const intData = simulationData.map(d => d.world_state.countries[country].intelligence_level || 0);
 
                 datasets.economy.push({ label: country, data: ecoData, borderColor: color, fill: false, tension: 0.1, pointRadius: 0 });
                 datasets.military.push({ label: country, data: milData, borderColor: color, fill: false, tension: 0.1, pointRadius: 0 });
                 datasets.approval.push({ label: country, data: appData, borderColor: color, fill: false, tension: 0.1, pointRadius: 0 });
+                datasets.intelligence.push({ label: country, data: intData, borderColor: color, fill: false, tension: 0.1, pointRadius: 0 });
             });
 
             const drawChart = (canvasId, title, data, existingChart) => {
@@ -446,6 +452,7 @@
             economyChart = drawChart('economyChart', '📈 経済力推移', datasets.economy, economyChart);
             militaryChart = drawChart('militaryChart', '⚔️ 軍事力推移', datasets.military, militaryChart);
             approvalChart = drawChart('approvalChart', '👍 支持率推移 (%)', datasets.approval, approvalChart);
+            intelligenceChart = drawChart('intelligenceChart', '🕵️ 諜報力推移', datasets.intelligence, intelligenceChart);
         }
 
         async function sendChatMessage() {

@@ -22,7 +22,7 @@ def initialize_world() -> WorldState:
                 ideology="自由民主主義体制の維持、同盟国との連携による覇権維持、経済的優位の確保",
                 economy=25000.0,
                 military=850.0,
-                intelligence_level=0.0,
+                intelligence_level=100.0, # NCPI (National Cyber Power Index) 準拠
                 area=9833517.0,
                 approval_rating=55.0,
                 turns_until_election=16, 
@@ -36,7 +36,7 @@ def initialize_world() -> WorldState:
                 ideology="国家主導による急速な経済・軍事の発展、既存の世界秩序の変更と覇権の奪取",
                 economy=18000.0,
                 military=306.0,
-                intelligence_level=0.0,
+                intelligence_level=90.0, # NCPI (National Cyber Power Index) 準拠
                 area=9596960.0,
                 approval_rating=70.0,
                 rebellion_risk=5.0,
