@@ -121,10 +121,10 @@ class SimulationLogger:
         
         self.console.print(Panel(text, title=f"🧠 {country_name} 首脳の脳内", border_style="magenta"))
 
-    def display_world_events(self, world: WorldState):
+    def display_world_events(self, world: WorldState, title: str = "📰 ニュース・イベントログ"):
         """世界で起こったニュース(公開イベント)を表示"""
         if not world.news_events:
-            self.console.print("[dim]目立ったイベントは発生しませんでした。[/dim]")
+            self.console.print(f"[dim]{title}: 目立ったイベントは発生しませんでした。[/dim]")
             return
             
         text = Text()
@@ -140,7 +140,22 @@ class SimulationLogger:
             else:
                 text.append(f"{event}\n")
                 
-        self.console.print(Panel(text, title="📰 ニュース・イベントログ", border_style="yellow"))
+        self.console.print(Panel(text, title=title, border_style="yellow"))
+
+    def display_section_header(self, title: str, style: str = "bold white on blue"):
+        """セクションの区切りヘッダーを表示"""
+        self.console.print(f"\n[{style}] {title} [/]\n")
+
+    def display_category_events(self, events: list, title: str, style: str = "yellow", icon: str = "📢"):
+        """特定カテゴリのイベントをパネル表示"""
+        if not events:
+            return
+        
+        text = Text()
+        for e in events:
+            text.append(f"{e}\n")
+        
+        self.console.print(Panel(text, title=f"{icon} {title}", border_style=style))
 
     def display_sns_timeline(self, sns_timelines: dict):
         """SNS風にタイムラインを表示する"""
