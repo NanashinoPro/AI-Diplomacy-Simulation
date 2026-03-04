@@ -398,8 +398,6 @@ B. 外交的解決（他国への強硬手段）:
             report = data.get("report", "解析に失敗しました。")
             sns_post = data.get("sns_post")
             self.logger.sys_log_detail(f"Intel Report ({attacker_name} -> {target_name})", report)
-            from rich.panel import Panel
-            self.logger.console.print(Panel(report, title=f"🕵️ 諜報レポート: {attacker_name} ➡ {target_name}", border_style="red"))
             return report, sns_post
         except Exception as e:
             self.logger.sys_log(f"[Intel: {attacker_name}] レポート生成エラー: {e}", "ERROR")

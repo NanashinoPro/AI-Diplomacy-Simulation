@@ -115,31 +115,81 @@ def main():
     past_news_queue = []
     
     for _ in range(MAX_TURNS):
-        # 1. ターンの開始表示
+        # 1. 国家ステータス
         logger.display_turn_header(world_state)
+        logger.display_section_header("1. 国家ステータス")
         logger.display_country_status(world_state)
+        
+        # 2. ニュース・イベントログ (前期の結果)
+        logger.display_section_header("2. ニュース・イベントログ")
         logger.display_world_events(world_state)
         
-        # 2. 各AIエージェントによる行動の決定（API呼び出し）
+        # 3. 各AIエージェントによる行動の決定（API呼び出し）
         print("\n⏳ 首脳AIが状況を分析し、行動を決定しています...")
         actions = agent_system.generate_actions(world_state, past_news=past_news_queue)
         
-        # 思考プロセスの表示（CLI上では分かりやすさのため表示）
-        print("\n--- 🧠 各国の意思決定 ---")
+        # 3. 各国の意思決定
+        logger.display_section_header("3. 各国の意思決定")
         for country_name, action in actions.items():
             logger.display_agent_thoughts(country_name, action)
 
-        # 3. エンジンによる世界の更新（判定フェーズ：内政・外交・諜報・戦争の成否を算出）
+        # エンジンによる世界の更新（判定フェーズ）
         world_state = engine.process_turn(actions)
         
+        # 4 & 5. 災害・技術革新、経済制裁などの抽出
+        disaster_tech_events = [e for e in world_state.news_events if any(k in e for k in ["💡", "🚨", "技術"])]
+        sanctions_trade_events = [e for e in world_state.news_events if any(k in e for k in ["⛔", "✅", "🚢", "🤝", "貿易", "制裁"])]
+        
+        logger.display_section_header("4. 災害・技術革新の発生")
+        if disaster_tech_events:
+            logger.display_category_events(disaster_tech_events, "災害・技術イベント", style="bold red", icon="🆘")
+        else:
+            print("目立った災害や技術革新は発生しませんでした。")
+
+        logger.display_section_header("5. 経済制裁等")
+        if sanctions_trade_events:
+            logger.display_category_events(sanctions_trade_events, "経済・通商動向", style="bold yellow", icon="💰")
+        else:
+            print("新たな制裁や貿易の変化は検出されませんでした。")
+
         # 3.1. エンジン内での計算結果のログ出力
         for log_msg in engine.sys_logs_this_turn:
             logger.sys_log(log_msg)
         engine.sys_logs_this_turn.clear()
         
-        # 4. 諜報（情報収集）成功時の機密レポート生成と被害国への漏洩記録
+        # 6. イデオロギーの再作成
+        logger.display_section_header("6. イデオロギーの再作成")
+        affected_countries = set(getattr(engine, 'pending_rebellions', []) + getattr(engine, 'pending_elections', []))
+        ideology_updates = []
+        for country_name, country_state in world_state.countries.items():
+            is_china_periodic = (country_name == "中国" and world_state.turn % 20 == 0)
+            if country_name in affected_countries or is_china_periodic:
+                try:
+                    if country_state.government_type == GovernmentType.DEMOCRACY:
+                        print(f"🗳️ {country_name}の新しいイデオロギー策定に向けて世論を調査中...")
+                        sns_posts = agent_system.generate_citizen_sns_posts(country_name, country_state, world_state, 5)
+                        new_ideology = agent_system.generate_ideology_democracy(country_name, country_state, world_state, sns_posts)
+                    else:
+                        new_ideology = agent_system.generate_ideology_authoritarian(country_name, country_state, world_state)
+                        
+                    country_state.ideology = new_ideology
+                    reason = "新政権" if country_name in affected_countries else "定期的な国家目標見直し"
+                    msg = f"🔄 {country_name}が{reason}により新たな国家目標を発表しました: 「{new_ideology[:50]}...」"
+                    world_state.news_events.append(msg)
+                    ideology_updates.append(msg)
+                    logger.sys_log(f"[{country_name}] 新しいイデオロギーを設定: {new_ideology}")
+                except Exception as e:
+                    logger.sys_log(f"[{country_name}] イデオロギーの生成に失敗しました: {e}", "ERROR")
+        
+        if ideology_updates:
+            logger.display_category_events(ideology_updates, "イデオロギー再構築", style="bold blue", icon="🔄")
+        else:
+            print("国家目標の大きな変更はありません。")
+
+        # 7. 諜報機関のレポート作成
+        logger.display_section_header("7. 諜報機関のレポート作成")
         if hasattr(engine, 'pending_intel_requests') and engine.pending_intel_requests:
-            print("\n🕵️ 諜報機関が機密情報を解析し、レポートを作成しています...")
+            print("🕵️ 諜報機関が機密情報を解析し、レポートを作成しています...")
             for req in engine.pending_intel_requests:
                 attacker_name = req["attacker"]
                 target_name = req["target"]
@@ -152,45 +202,21 @@ def main():
                     strategy=req["strategy"]
                 )
                 
+                # コンソール表示
+                logger.display_category_events([report], f"🕵️ {attacker_name} 諜報レポート (対象: {target_name})", style="bold magenta", icon="🕵️")
+                
                 # アタッカー側の脳内に機密報告を追記
                 ca = world_state.countries.get(attacker_name)
                 ct = world_state.countries.get(target_name)
                 if ca and ct:
                     ca.hidden_plans += f" [機密報告: ターゲット国「{target_name}」について: {report}]"
-                    # 被害国（ターゲット国）側に「何が漏洩したか」の履歴を残す（裏ステータスとして保管）
                     leaked_msg = f"ターン{max(1, world_state.turn - 1)}: {attacker_name}に『{report}』相当の情報が漏洩した"
                     ct.leaked_intel.append(leaked_msg)
-                    logger.sys_log(f"[Hidden] {target_name} の漏洩履歴(leaked_intel)に追記されました: {leaked_msg}")
-                    # 被害国（ターゲット国）のプロンプトにも自国の機密情報として即時追記し、世界のズレを防ぎつつメタ推測を禁止する
                     ct.hidden_plans += f" [機密情報: {report} ※この機密情報はシステム側からランダムに入力されるものです。]"
-
-        # 5. 政権交代やクーデターが発生した場合の新しいイデオロギーの設定、定期的更新（中国）
-        # pending_rebellions, pending_elections のリストにある国を処理
-        affected_countries = set(getattr(engine, 'pending_rebellions', []) + getattr(engine, 'pending_elections', []))
-        
-        for country_name, country_state in world_state.countries.items():
-            # 中国の20ターン（5年）ごとの定期レビュー
-            is_china_periodic = (country_name == "中国" and world_state.turn % 20 == 0)
-            
-            if country_name in affected_countries or is_china_periodic:
-                try:
-                    if country_state.government_type == GovernmentType.DEMOCRACY:
-                        # 民主的な体制の場合は直前の国民感情（SNS模擬投稿）を取得してイデオロギー生成に反映
-                        print(f"🗳️ {country_name}の新しいイデオロギー策定に向けて世論を調査中...")
-                        sns_posts = agent_system.generate_citizen_sns_posts(country_name, country_state, world_state, 5)
-                        new_ideology = agent_system.generate_ideology_democracy(country_name, country_state, world_state, sns_posts)
-                    else:
-                        # 専制主義体制の場合は状況のみで生成
-                        new_ideology = agent_system.generate_ideology_authoritarian(country_name, country_state, world_state)
-                        
-                    country_state.ideology = new_ideology
-                    reason = "新政権" if country_name in affected_countries else "定期的な国家目標見直し"
-                    world_state.news_events.append(f"🔄 {country_name}が{reason}により新たな国家目標を発表しました: 「{new_ideology[:30]}...」")
-                    logger.sys_log(f"[{country_name}] 新しいイデオロギーを設定: {new_ideology}")
-                except Exception as e:
-                    logger.sys_log(f"[{country_name}] イデオロギーの生成に失敗しました: {e}", "ERROR")
+        else:
+            print("特筆すべき諜報レポートはありません。")
                     
-        # 5.5 技術革新の名称生成（待ち状態のものを処理）
+        # 5.5 技術革新の名称生成
         for bt in world_state.active_breakthroughs:
             if bt.name.startswith("（AI生成待ち"):
                 print(f"💡 {bt.origin_country}で発生した新技術の詳細を分析中...")
@@ -200,7 +226,8 @@ def main():
                 world_state.news_events.append(news_text)
                 logger.sys_log(news_text)
 
-        # 6. 首脳会談の実行（受諾されたものがあれば）
+        # 8. 首脳会談の要約
+        logger.display_section_header("8. 首脳会談の要約")
         recent_summit_logs = []
         if engine.summits_to_run_this_turn:
             print("\n🤝 首脳会談が開催されています...")
@@ -211,20 +238,26 @@ def main():
                     summit_news_result, full_summit_log = agent_system.run_summit(proposal, ca, cb, world_state, past_news=past_news_queue)
                     world_state.news_events.append(summit_news_result)
                     recent_summit_logs.append(full_summit_log)
+                    logger.display_category_events([summit_news_result], f"首脳会談: {proposal.proposer} & {proposal.target}", style="bold cyan", icon="🤝")
                     world_state.summit_logs.append({
                         "turn": world_state.turn,
                         "participants": [proposal.proposer, proposal.target],
                         "topic": proposal.topic,
                         "log": full_summit_log
                     })
+        else:
+            print("今期、首脳会談は行われませんでした。")
                     
-        # 7. メディアエージェントによる報道と支持率への影響（ローカル感情分析）
-        print("🗞️ 各国メディアがニュースを生成中...")
+        # 9. ニュースの表示
+        logger.display_section_header("9. ニュースの表示")
+        print("🗞️ 各国メディアがニュースを分析中...")
         media_reports, media_modifiers = agent_system.generate_media_reports(world_state, actions, recent_summit_logs)
         world_state.news_events.extend(media_reports)
+        logger.display_world_events(world_state, title="📰 本日のハイライト・メディア報道")
 
-        # 8. SNSタイムラインの構築・評価（最後に配置：メディア報道を踏まえた国民の反応）
-        print("\n📱 各国のSNSタイムラインを生成しています...")
+        # 10. SNSタイムライン
+        logger.display_section_header("10. SNSタイムライン")
+        print("📱 各国のSNSタイムラインを生成しています...")
         sns_timelines = {country: [] for country in world_state.countries.keys()}
         
         # 首脳の投稿
@@ -234,9 +267,8 @@ def main():
                     if post.strip():
                         sns_timelines[country].append({"author": "Leader", "text": post})
                         
-        # 破壊工作による敵国偽情報投稿
+        # 破壊工作
         if hasattr(engine, 'pending_sabotage_requests') and engine.pending_sabotage_requests:
-            print("🕵️ 敵国の破壊工作部隊がSNSへの偽情報工作を行っています...")
             for req in engine.pending_sabotage_requests:
                 attacker = req["attacker"]
                 target = req["target"]
@@ -249,7 +281,7 @@ def main():
                 if sns_post and sns_post.strip() and target in sns_timelines:
                     sns_timelines[target].append({"author": "Espionage", "text": sns_post})
                     
-        # 一般国民の投稿
+        # 一般国民
         for country, state in world_state.countries.items():
             current_posts = len(sns_timelines[country])
             needed = 5 - current_posts
@@ -259,19 +291,15 @@ def main():
                     if p and p.strip():
                          sns_timelines[country].append({"author": "Citizen", "text": p})
                          
-        # エンジンに渡して評価・支持率適用 (WMA)
         engine.evaluate_public_opinion(sns_timelines, media_modifiers)
-        
-        # コンソールログにSNSの声をわかりやすく出力
-        if hasattr(logger, 'display_sns_timeline'):
-            logger.display_sns_timeline(sns_timelines)
+        logger.display_sns_timeline(sns_timelines)
         
         # SNS評価後のエンジンログを出力
         for log_msg in engine.sys_logs_this_turn:
             logger.sys_log(log_msg)
         engine.sys_logs_this_turn.clear()
 
-        # 9. ログの保存（全ての処理が完了した後の最終状態を保存）
+        # ログの保存
         logger.save_turn_log(world_state, actions)
         
         # 10. ターン履歴の保存と時間進行
@@ -283,7 +311,7 @@ def main():
         
         # ターン進行のウェイト
         print("\n" + "="*50 + "\n")
-        time.sleep(3) # APIのレートリミット対策も兼ねる
+        time.sleep(3)
 
     print("🏁 指定ターン数のシミュレーションが終了しました。")
     print(f"シミュレーションログは {logger.sim_log_dir}/ に保存されています。")
