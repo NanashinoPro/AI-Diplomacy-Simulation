@@ -1,5 +1,12 @@
 # System Log
 
+## 2026-03-04 20:34:00 税率変動の上限制限（±10%/ターン）の追加
+- **`engine.py`**:
+  - 定数 `MAX_TAX_CHANGE_PER_TURN = 0.10` を追加。
+  - `_process_domestic` にて、AIが要求した税率を前ターンの税率±10%の範囲にクランプするガードレールを実装。超過時はシステムログに記録。
+- **`agent.py`**:
+  - プロンプトの `tax_rate` フィールドに「1ターンあたりの変動は±10%が上限」の注記を追加。
+
 ## 2026-03-04 18:20:00 諜報投資パラメータ（invest_intelligence）の新規実装と成功率キャップ撤廃
 - **`models.py`**:
   - `CountryState` に `intelligence_level: float` を追加（諜報レベルの蓄積値）。
