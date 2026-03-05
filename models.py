@@ -31,6 +31,7 @@ class CountryState(BaseModel):
     intelligence_level: float = Field(0.0, description="諜報レベル（蓄積される諜報・技術力。invest_intelligence投資により成長し、諜報活動の成功率に直結する）")
     area: float = Field(0.0, description="領土の面積（平方キロメートル）")
     approval_rating: float = Field(..., ge=0, le=100, description="国民の支持率（安定度: 0-100）")
+    education_level: float = Field(1.0, description="教育・人的資本レベル。長期的なGDP成長のマルチプライヤーとして作用する")
     
     # 内政情報
     turns_until_election: Optional[int] = Field(None, description="【民主主義のみ】次回の選挙までのターン数")
@@ -57,6 +58,7 @@ class DomesticAction(BaseModel):
     invest_military: float = Field(..., description="軍備増強への投資割合（0.0-1.0）")
     invest_welfare: float = Field(..., description="治安・福祉維持（支持率維持）への投資割合（0.0-1.0）")
     invest_intelligence: float = Field(0.0, description="諜報・技術開発への投資割合（0.0-1.0。諜報レベルを蓄積し、諜報活動の成功率を向上させる）")
+    invest_education_science: float = Field(0.0, description="教育・科学技術への投資割合（0.0-1.0）。人的資本を蓄積し、長期的な経済成長バフを生み出す")
 
 class DiplomaticAction(BaseModel):
     """特定のターゲット国へ向けた外交・軍事・諜報アクション"""

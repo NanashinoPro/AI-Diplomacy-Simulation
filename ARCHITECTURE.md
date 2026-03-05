@@ -27,6 +27,7 @@
 *   **基本属性:** 国名、政治体制 (Democracy, Authoritarian)、イデオロギー。
 *   **国力・経済指標:** 経済力 (GDPベース $Y$)、政府予算 ($G$)、軍事力 ($M$)、**諜報レベル ($IL$)**、国家累積債務 (National Debt)、税率 (Tax Rate)。
 *   **社会的指標:** 政府支持率 ($\alpha$, 0%〜100%)、潜在的反乱リスク (Rebellion Risk)、**報道の自由度 (Press Freedom)** (0.0〜1.0. RSF世界報道自由度ランキング等に準拠して初期設定される)。
+*   **教育・科学水準 ($H$):** 人的資本の蓄積レベル (Initial: 1.0)。内生的成長理論に基づき、GDP産出の効率を高める。
 *   **国土面積 (Area):** 災害等の発生確率にバイアスを与える地理的スケール値。地球の総陸地面積は $148,940,000$ km² と定義される。
 
 #### 1.3.3. Scales (スケール)
@@ -65,8 +66,8 @@ $$
 $$
 
 計算された $\epsilon$ が、政府支出の各項目 ($G_{econ}, G_{mil}, G_{wel}, G_{intel}$) に乗算され、投資の実行効果が減衰する。
-$$G_{econ} = Budget \times InvEcon \times \epsilon, \quad G_{mil} = Budget \times InvMil \times \epsilon, \quad G_{wel} = Budget \times InvWel \times \epsilon, \quad G_{intel} = Budget \times InvIntel \times \epsilon$$
-※ 上式における $Budget$ は §2.2 で算出される実質政府予算、$InvEcon, InvMil, InvWel, InvIntel$ はLLMが決定する投資割合（合計1.0に正規化済み）を表す。
+$$G_{econ} = Budget \times InvEcon \times \epsilon, \quad G_{mil} = Budget \times InvMil \times \epsilon, \quad G_{wel} = Budget \times InvWel \times \epsilon, \quad G_{intel} = Budget \times InvIntel \times \epsilon, \quad G_{edu} = Budget \times InvEdu \times \epsilon$$
+※ 上式における $Budget$ は §2.2 で算出される実質政府予算、$InvEcon, InvMil, InvWel, InvIntel, InvEdu$ はLLMが決定する投資割合（合計1.0に正規化済み）を表す。
 
 #### 増額・減税ペナルティとボーナス (Tax Penalty and Bonus)
 *   `TAX_APPROVAL_PENALTY_MULTIPLIER = 200.0`
@@ -99,7 +100,14 @@ $$ \Delta Approval = +(|\Delta TaxRate| \times 100.0) $$
     *   `GOVERNMENT_CROWD_IN_MULTIPLIER = 0.3` (インフラ投資等による民間投資誘発)
     *   `GOVERNMENT_CROWD_OUT_MULTIPLIER = 0.1` (軍事費増大による民間投資の抑制)
     *   $I = \max(0.0,\ S_{private} \times 0.85 + G_{econ} \times 0.3 - G_{mil} \times 0.1)$
-4.  **国家債務と経済ペナルティ**:
+4.  **教育・人的資本バフ (Endogenous Growth)**:
+    *   `EDUCATION_GROWTH_RATE = 0.01`
+    *   `EDUCATION_MAINTENANCE_ALPHA = 0.02`
+    *   `EDUCATION_GDP_ALPHA = 0.15`
+    *   人的資本ストック $H$ の更新: $H_{t} = (H_{t-1} \times (1 - 0.02)) + (G_{edu} \times 0.01)$
+    *   最新の人的資本レベル $H$ がGDP産出の効率を押し上げる。
+    *   $Y = (C + I + G) \times H^{0.15} + NX$
+5.  **国家債務と経済ペナルティ**:
     *   `DEBT_TO_GDP_PENALTY_THRESHOLD = 1.0` (債務の対GDP比100%)
     *   国家累積債務がGDPの100%を超過した場合、過剰な利払い負担による警告（システムログへの記録）が行われる。※以前存在したGDP成長率への直接的なマイナス補正（強制最大5%カット）は、利払いとの二重ペナルティになっていたため廃止された。
 5.  **福祉ボーナスによる支持率還元**:

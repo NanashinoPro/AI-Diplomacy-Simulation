@@ -1,5 +1,7 @@
 import math
 import random
+import numpy as np
+from scipy.stats import skewnorm
 from typing import Dict, List, Tuple
 from models import WorldState, CountryState, AgentAction, RelationType, GovernmentType, WarState, TradeState, SanctionState, SummitProposal, AllianceProposal
 
@@ -42,6 +44,11 @@ DEFENDER_ADVANTAGE_MULTIPLIER = 1.2
 # --- 諜報システム定数 ---
 INTEL_GROWTH_RATE = 0.02           # 諜報投資の成長率（軍事と同スケール）
 INTEL_MAINTENANCE_ALPHA = 0.05     # 諜報網の自然減衰率
+
+# --- 教育・科学システム定数（内生的成長理論）---
+EDUCATION_GROWTH_RATE = 0.01       # 教育投資の成長率（人的資本の蓄積速度）
+EDUCATION_MAINTENANCE_ALPHA = 0.02 # 人的資本の自然減衰率（知識の陳腐化等）
+EDUCATION_GDP_ALPHA = 0.15         # 人的資本の産出弾力性（alpha）
 
 # --- 政治・実行力モデル定数 ---
 DEMOCRACY_MIN_EXECUTION_POWER = 0.4 # 民主主義における政策実行力の最低保証値（官僚機構による基本執行分）
@@ -241,17 +248,19 @@ class WorldEngine:
         inv_mil = action.domestic_policy.invest_military
         inv_wel = action.domestic_policy.invest_welfare
         inv_intel = getattr(action.domestic_policy, 'invest_intelligence', 0.0)
+        inv_edu = getattr(action.domestic_policy, 'invest_education_science', 0.0)
         
         # 予算の総和を1.0に正規化（安全装置）
-        total_inv = inv_econ + inv_mil + inv_wel + inv_intel
+        total_inv = inv_econ + inv_mil + inv_wel + inv_intel + inv_edu
         if total_inv <= 0.0:
-            inv_econ, inv_mil, inv_wel, inv_intel = 0.33, 0.33, 0.34, 0.0 # 異常時のフォールバック
+            inv_econ, inv_mil, inv_wel, inv_intel, inv_edu = 0.25, 0.25, 0.25, 0.125, 0.125 # 異常時のフォールバック
             total_inv = 1.0
         elif total_inv > 1.0:
             inv_econ /= total_inv
             inv_mil /= total_inv
             inv_wel /= total_inv
             inv_intel /= total_inv
+            inv_edu /= total_inv
             total_inv = 1.0
 
         # 政府支出(G)のブレイクダウン
@@ -259,7 +268,8 @@ class WorldEngine:
         g_mil = budget * inv_mil * execution_power
         g_wel = budget * inv_wel * execution_power
         g_intel = budget * inv_intel * execution_power
-        G = g_econ + g_mil + g_wel + g_intel
+        g_edu = budget * inv_edu * execution_power
+        G = g_econ + g_mil + g_wel + g_intel + g_edu
 
         # 政府の未執行予算（余剰金）を算出
         S_gov = max(0.0, budget - G)
@@ -312,7 +322,8 @@ class WorldEngine:
         I *= breakthrough_multiplier
 
         # 次ターンのGDP(Y)の暫定算出 = C + I + G + NX
-        new_gdp_provisional = C + I + G + country.last_turn_nx
+        # 教育・科学投資による人的資本バフの適用 (Y = (C + I + G) * H^alpha + NX)
+        new_gdp_provisional = (C + I + G) * (country.education_level ** EDUCATION_GDP_ALPHA) + country.last_turn_nx
         
         # 災害ダメージは当期の経済から直接引く（巨大な資本破壊）
         if disaster_damage_sum > 0:
@@ -360,6 +371,11 @@ class WorldEngine:
         old_intel = country.intelligence_level
         intel_growth = g_intel * INTEL_GROWTH_RATE
         country.intelligence_level = (country.intelligence_level * (1.0 - INTEL_MAINTENANCE_ALPHA)) + intel_growth
+
+        # --- 教育・人的資本の蓄積・減衰（ルーカス・モデル）---
+        old_edu = country.education_level
+        edu_growth = g_edu * EDUCATION_GROWTH_RATE
+        country.education_level = (country.education_level * (1.0 - EDUCATION_MAINTENANCE_ALPHA)) + edu_growth
             
         self.turn_domestic_factors[country_name] = {
             "gdp_growth_rate": gdp_growth_rate,
@@ -377,6 +393,7 @@ class WorldEngine:
             f"経済力(GDP):{old_gdp:.1f} -> {country.economy:.1f} ({new_gdp_provisional - old_gdp:+.1f}), "
             f"軍事力:{old_military:.1f} -> {country.military:.1f} (+{military_growth:.1f}, 維持費: -{alpha*100:.1f}%), "
             f"諜報レベル:{old_intel:.1f} -> {country.intelligence_level:.1f} (+{intel_growth:.1f}), "
+            f"教育レベル:{old_edu:.2f} -> {country.education_level:.2f} (+{edu_growth:.2f}), "
             f"支持率:{old_approval:.1f}% -> {country.approval_rating:.1f}%"
         )
 
@@ -809,7 +826,10 @@ class WorldEngine:
         
         for name, prob, min_dmg, max_dmg in global_disasters:
             if random.random() < prob:
-                damage = random.uniform(min_dmg, max_dmg)
+                # 歪正規分布を用いてダメージを決定。a=4は正の歪み（低い値が多く、稀に高い値）
+                a = 4
+                damage = skewnorm.rvs(a, loc=min_dmg, scale=max_dmg)
+                damage = max(min_dmg, damage)
                 new_event = DisasterEvent(turn=self.state.turn, name=name, damage_percent=damage)
                 self.state.disaster_history.append(new_event)
                 self.log_event(f"🚨 【世界規模の厄災発生】{name}が発生！世界全体で推定 -{damage:.1f}% の経済ダメージによる大混乱が起きています。")
@@ -836,7 +856,10 @@ class WorldEngine:
                     actual_prob = prob * area_ratio
                     
                 if random.random() < actual_prob:
-                    damage = random.uniform(min_dmg, max_dmg)
+                    # 歪正規分布を用いてダメージを決定。a=4は正の歪み（低い値が多く、稀に高い値）
+                    a = 4
+                    damage = skewnorm.rvs(a, loc=min_dmg, scale=max_dmg)
+                    damage = max(min_dmg, damage)
                     new_event = DisasterEvent(turn=self.state.turn, country=country_name, name=name, damage_percent=damage)
                     self.state.disaster_history.append(new_event)
                     self.log_event(f"🌪️ 【国家災害発生】{country_name}で{name}が直撃し、-{damage:.1f}% に相当する経済ダメージを受けました！")
