@@ -1,5 +1,19 @@
 # System Log
 
+## 2026-03-05 20:30:00 新機能「教育・科学費（invest_education_science）」の導入
+- **学術的背景**: 内生的成長理論（Lucas Model, Romer Model）に基づき、人的資本の蓄積が長期的な経済成長を牽引するメカニズムを実装。
+- **`models.py`**:
+  - `CountryState` に `education_level` (初期値1.0) を追加。
+  - `DomesticAction` に `invest_education_science` を追加。
+- **`engine.py`**:
+  - 定数 `EDUCATION_GROWTH_RATE = 0.01`, `EDUCATION_MAINTENANCE_ALPHA = 0.02`, `EDUCATION_GDP_ALPHA = 0.15` を導入。
+  - `_process_domestic` 内で人的資本ストック $H$ の蓄積ロジックを実装。
+  - GDP算出式 $Y = (C+I+G) \times H^\alpha + NX$ を採用し、人的資本による生産性向上をモデル化。
+- **`agent.py`**:
+  - 首脳プロンプトに「教育・科学投資」の重要性と、中長期的なGDP押し上げ効果についての説明を追加。
+- **検証**: 3ターンのシミュレーションを実施。投資により `education_level` が 1.0 -> 12.23 (USA) と蓄積され、次ターンのGDPが約40%以上向上する強力な成長バフを確認。
+- **`ARCHITECTURE.md`**: 第2章に教育・人的資本バフの数理モデルを追記。
+
 ## 2026-03-04 23:20:00 経済メルトダウンおよび選挙制判定不具合の修正、コンソール出力の改善
 - **`engine.py`**:
   - 国家債務の対GDP比が100%を超えた際にかかっていた「GDP強制ペナルティ（最大5%削減）」を完全に削除。借金のペナルティは利払いで表現されるため、二重計上を解消した。

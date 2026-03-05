@@ -2,3 +2,4 @@ oseti
 mecab-python3
 unidic-lite
 emoji<2.0.0
+scipy
