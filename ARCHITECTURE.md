@@ -100,13 +100,15 @@ $$ \Delta Approval = +(|\Delta TaxRate| \times 100.0) $$
     *   `GOVERNMENT_CROWD_IN_MULTIPLIER = 0.3` (インフラ投資等による民間投資誘発)
     *   `GOVERNMENT_CROWD_OUT_MULTIPLIER = 0.1` (軍事費増大による民間投資の抑制)
     *   $I = \max(0.0,\ S_{private} \times 0.85 + G_{econ} \times 0.3 - G_{mil} \times 0.1)$
-4.  **教育・人的資本バフ (Endogenous Growth)**:
-    *   `EDUCATION_GROWTH_RATE = 0.01`
-    *   `EDUCATION_MAINTENANCE_ALPHA = 0.02`
-    *   `EDUCATION_GDP_ALPHA = 0.15`
-    *   人的資本ストック $H$ の更新: $H_{t} = (H_{t-1} \times (1 - 0.02)) + (G_{edu} \times 0.01)$
-    *   最新の人的資本レベル $H$ がGDP産出の効率を押し上げる。
-    *   $Y = (C + I + G) \times H^{0.15} + NX$
+4.  **経済成長：人的資本（教育・科学）と内生的成長**:
+    *   本シミュレーションは、教育・人的資本レベル（$H$）を経済成長の「増幅係数」として定義している。
+    *   **GDP算出式（乗数効果）**: $Y = (C + I + G) \cdot H^{0.01} + NX$
+    *   **初期値設定（R&D支出絶対額ベース）**: 最新のR&D支出統計（公称10億ドル単位）を初期 $H$ として採用。
+        *   **アメリカ**: **940.0** (2023年実績値)
+        *   **中国**: **460.0** (2023年実績値)
+    *   人的資本ストック $H$ の更新: $H_{t} = (H_{t-1} \times (1 - 0.01)) + (G_{edu} \times 0.05)$
+        *   `EDUCATION_GROWTH_RATE = 0.05`, `EDUCATION_MAINTENANCE_ALPHA = 0.01`, `EDUCATION_GDP_ALPHA = 0.01`
+        *   最新の人的資本レベル $H$ がGDP産出の効率を押し上げる。
 5.  **国家債務と経済ペナルティ**:
     *   `DEBT_TO_GDP_PENALTY_THRESHOLD = 1.0` (債務の対GDP比100%)
     *   国家累積債務がGDPの100%を超過した場合、過剰な利払い負担による警告（システムログへの記録）が行われる。※以前存在したGDP成長率への直接的なマイナス補正（強制最大5%カット）は、利払いとの二重ペナルティになっていたため廃止された。
