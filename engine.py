@@ -924,6 +924,20 @@ class WorldEngine:
         for name, history in self.state.sns_logs.items():
             if len(history) > MAX_LOG_HISTORY:
                 self.state.sns_logs[name] = history[-MAX_LOG_HISTORY:]
+                
+        # エージェントへのプロンプト注入用：主要ステータスの履歴を記録（直近4ターンまで）
+        HISTORY_MAX_LEN = 4
+        for country in self.state.countries.values():
+            snapshot = {
+                "turn": self.state.turn,
+                "economy": round(country.economy, 1),
+                "military": round(country.military, 1),
+                "intelligence_level": round(country.intelligence_level, 1),
+                "approval_rating": round(country.approval_rating, 1)
+            }
+            country.stat_history.append(snapshot)
+            if len(country.stat_history) > HISTORY_MAX_LEN:
+                country.stat_history = country.stat_history[-HISTORY_MAX_LEN:]
         
         # S-6: hidden_plans の文字列長制限（プロンプト膨張防止）
         # 長期シミュレーション時にLLMのコンテキストウィンドウ上限に達するのを防ぐため、
