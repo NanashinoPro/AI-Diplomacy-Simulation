@@ -42,6 +42,7 @@ class CountryState(BaseModel):
     # ※AIのプロンプト上では状況に応じて公開・非公開を制御します
     hidden_plans: str = Field("", description="AI自身が記録する秘密の目標や計画")
     leaked_intel: List[str] = Field(default_factory=list, description="過去に他国に漏洩した自国の機密情報の履歴（自国は気づいていない体で管理）")
+    stat_history: List[Dict[str, float]] = Field(default_factory=list, description="過去のステータス履歴（直近4ターン分程度保持）")
 
 # ---------------------------------------------------------
 # アクション定義（AIが出力するJSON構造）
