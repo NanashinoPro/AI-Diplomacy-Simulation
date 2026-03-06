@@ -32,6 +32,7 @@ class CountryState(BaseModel):
     area: float = Field(0.0, description="領土の面積（平方キロメートル）")
     approval_rating: float = Field(..., ge=0, le=100, description="国民の支持率（安定度: 0-100）")
     education_level: float = Field(1.0, description="教育・人的資本レベル。長期的なGDP成長のマルチプライヤーとして作用する")
+    initial_education_level: float = Field(1.0, description="初期の教育・人的資本レベル（規格化用）")
     
     # 内政情報
     turns_until_election: Optional[int] = Field(None, description="【民主主義のみ】次回の選挙までのターン数")
