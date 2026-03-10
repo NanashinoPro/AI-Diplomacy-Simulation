@@ -33,6 +33,10 @@ class CountryState(BaseModel):
     approval_rating: float = Field(..., ge=0, le=100, description="国民の支持率（安定度: 0-100）")
     education_level: float = Field(1.0, description="教育・人的資本レベル。長期的なGDP成長のマルチプライヤーとして作用する")
     initial_education_level: float = Field(1.0, description="初期の教育・人的資本レベル（規格化用）")
+    population: float = Field(..., description="総人口（百万人単位）")
+    initial_population: float = Field(..., description="初期の総人口（各種規格化やリセット用）")
+    working_age_ratio: float = Field(0.60, description="生産年齢人口比率（労働力計算用。初期値60%）")
+    
     
     # 内政情報
     turns_until_election: Optional[int] = Field(None, description="【民主主義のみ】次回の選挙までのターン数")
