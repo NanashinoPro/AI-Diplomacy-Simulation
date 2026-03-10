@@ -174,24 +174,28 @@ class AgentSystem:
         other_info = "---世界の状況---\n"
         other_info += f"現在は {world_state.year}年 第{world_state.quarter}四半期 です。\n"
         
-        for p_name, p_state in world_state.countries.items():
-            if p_name == country_name: continue
-            
-            # 関係や戦争を調べる
-            rel = world_state.relations.get(country_name, {}).get(p_name, "neutral")
-            
-            war_info = ""
-            for w in world_state.active_wars:
-                if (w.aggressor == country_name and w.defender == p_name) or (w.aggressor == p_name and w.defender == country_name):
-                    war_info = f" [!交戦中!] 占領進捗率: {w.target_occupation_progress:.1f}%"
-            
-            other_info += (
-                f"- {p_name} ({p_state.government_type.value}): "
-                f"経済力={p_state.economy:.1f}, "
-                f"軍事力={p_state.military:.1f}, "
-                f"諜報力={p_state.intelligence_level:.1f}, "
-                f"関係={rel.value}{war_info}\n"
-            )
+        if len(world_state.countries) <= 1:
+            other_info += "\n【重要】他国はすべて滅亡または自国に併合され、世界はあなたの国によって完全に統一されました。\n"
+            other_info += "新たな仮想敵を設定する必要はありません。以後は世界の安定と繁栄、自国民の幸福度向上に注力した内政戦略を構築してください。\n\n"
+        else:
+            for p_name, p_state in world_state.countries.items():
+                if p_name == country_name: continue
+                
+                # 関係や戦争を調べる
+                rel = world_state.relations.get(country_name, {}).get(p_name, "neutral")
+                
+                war_info = ""
+                for w in world_state.active_wars:
+                    if (w.aggressor == country_name and w.defender == p_name) or (w.aggressor == p_name and w.defender == country_name):
+                        war_info = f" [!交戦中!] 占領進捗率: {w.target_occupation_progress:.1f}%"
+                
+                other_info += (
+                    f"- {p_name} ({p_state.government_type.value}): "
+                    f"経済力={p_state.economy:.1f}, "
+                    f"軍事力={p_state.military:.1f}, "
+                    f"諜報力={p_state.intelligence_level:.1f}, "
+                    f"関係={rel.value}{war_info}\n"
+                )
             
         # ニュースイベント
         news_info = ""
