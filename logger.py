@@ -77,6 +77,8 @@ class SimulationLogger:
         
         table.add_column("国", justify="left", style="cyan", no_wrap=True)
         table.add_column("体制", style="magenta")
+        table.add_column("人口(M)", justify="right", style="cyan")
+        table.add_column("1人当GDP", justify="right", style="green")
         table.add_column("経済力", justify="right", style="green")
         table.add_column("軍事力", justify="right", style="red")
         table.add_column("教育・科学", justify="right", style="purple")
@@ -102,6 +104,8 @@ class SimulationLogger:
             table.add_row(
                 name,
                 "🗳️ 民主" if c.government_type == "democracy" else "👑 専制",
+                f"{c.population:.1f}",
+                f"{(c.economy / max(0.1, c.population)):.1f}",
                 f"{c.economy:.1f}",
                 f"{c.military:.1f}",
                 f"{c.education_level:.1f}",

@@ -4,6 +4,7 @@ import random
 import logging
 import json
 from enum import Enum
+from scipy.stats import skewnorm
 from typing import Dict, List, Any
 
 # Local imports
@@ -357,11 +358,30 @@ class WorldEngine:
         if debt_to_gdp > DEBT_TO_GDP_PENALTY_THRESHOLD and self.state.turn % 5 == 0:
             self.sys_logs_this_turn.append(f"[{country.name} 債務警告] 対GDP比{debt_to_gdp:.1%}。利払い負担が増大しています")
         
+        # ===== 人口動態モデル (人口転換理論) =====
+        old_pop = country.population
+        gdp_per_capita = old_gdp / max(0.1, old_pop)
+        
+        # 出生率: 基礎2%。1人当たりGDPと教育水準が高いほど低下 (少子化の罠)
+        base_birth_rate = 0.02
+        import math
+        birth_rate_reduction = min(0.015, (math.log10(max(1.0, gdp_per_capita)) * 0.002) + (country.education_level / 1000.0 * 0.005))
+        welfare_birth_bonus = inv_wel * 0.01 * execution_power
+        birth_rate = max(0.001, base_birth_rate - birth_rate_reduction + welfare_birth_bonus)
+        
+        # 死亡率: 通常0.5%。貧困(GDP per capita < 10000)や災害で増加
+        base_death_rate = 0.005
+        # ※初期のGDPが25000, 人口340ならgdp_per_capita = 73.5 なので、10000ではなく100程度を基準とする
+        poverty_death_increase = max(0.0, 0.01 - (gdp_per_capita / 50.0))
+        disaster_death_increase = disaster_damage_sum / 5000.0
+        death_rate = base_death_rate + poverty_death_increase + disaster_death_increase
+        
+        pop_growth_rate = birth_rate - death_rate
+        country.population = max(0.1, old_pop * (1.0 + pop_growth_rate))
+        
         # 経済力がゼロ以下になるのを防ぐ
         country.economy = max(1.0, new_gdp_provisional)
-        
-        # 成長率ボーナスの計算 (後で支持率に反映するため。軍事費分は除外して実質体感成長とするなどの計算もあるが、今回は総GDPで)
-        gdp_growth_rate = (country.economy - old_gdp) / max(1.0, old_gdp) * 100.0
+
         
         # ===== リチャードソン・モデル (Richardson 1960) =====
         # [学術的根拠] 軍拡競争の数理モデル。軍事負担率がGDP比で高くなるほど、
@@ -376,6 +396,29 @@ class WorldEngine:
         military_growth = g_mil * BASE_MILITARY_GROWTH_RATE
         old_military = country.military
         country.military = (country.military * (1.0 - alpha)) + military_growth
+        
+        # ===== 学術的に適正化された軍事動員限界ルール (10%の壁) =====
+        # Personnel = M / (GDP per capita * 定数)
+        MOBILIZATION_CONSTANT = 3.4
+        current_gdp_per_capita = country.economy / max(0.1, country.population)
+        estimated_personnel = country.military / max(0.1, current_gdp_per_capita * MOBILIZATION_CONSTANT)
+        mobilization_rate = estimated_personnel / max(0.1, country.population)
+        
+        mobilization_penalty_text = ""
+        if mobilization_rate > 0.10: # 10%超過で過剰動員ペナルティ
+            excess_mobilization = mobilization_rate - 0.10
+            # 産業空洞化によるGDP蒸発と、支持率の大幅低下
+            mobilization_penalty = min(0.5, excess_mobilization * 2.0)
+            country.economy = max(1.0, country.economy * (1.0 - mobilization_penalty))
+            rebel_penalty = min(50.0, excess_mobilization * 200.0)
+            country.approval_rating = max(0.0, country.approval_rating - rebel_penalty)
+            mobilization_penalty_text = f" | [過剰動員ペナルティ] 動員限界突破({mobilization_rate:.1%}) GDP-{mobilization_penalty*100:.1f}%, 支持率急落"
+            self.sys_logs_this_turn.append(f"[{country.name} 極限動員] 動員率{mobilization_rate:.1%}。労働力不足で経済力-{mobilization_penalty*100:.1f}%, 支持-{rebel_penalty:.1f}%")
+
+        # 成長率ボーナスの計算 (総GDPではなく1人当たりGDPの成長率を使用し、人口増による豊かさの希釈と過剰動員ペナルティを反映)
+        new_gdp_per_capita = country.economy / max(0.1, country.population)
+        gdp_growth_rate = (new_gdp_per_capita - gdp_per_capita) / max(1.0, gdp_per_capita) * 100.0
+
         
         # --- 福祉ボーナスによる支持率還元 ---
         # [学術的根拠] 福祈支出の支持率への効果が逓減することを対数関数（log1p）でモデル化。
@@ -409,10 +452,12 @@ class WorldEngine:
         self.sys_logs_this_turn.append(
             f"内政更新完了: {country.name} | "
             f"税率:{new_tax_rate:.1%} (税収:{tax_revenue:.1f}) | 予算(G):{budget:.1f} | "
-            f"経済力(GDP):{old_gdp:.1f} -> {country.economy:.1f} ({new_gdp_provisional - old_gdp:+.1f}), "
-            f"軍事力:{old_military:.1f} -> {country.military:.1f} (+{military_growth:.1f}, 維持費: -{alpha*100:.1f}%), "
-            f"諜報レベル:{old_intel:.1f} -> {country.intelligence_level:.1f} (+{intel_growth:.1f}), "
-            f"教育レベル:{old_edu:.2f} -> {country.education_level:.2f} (+{edu_growth:.2f}), "
+            f"1人当GDP:{gdp_per_capita:.1f} -> {new_gdp_per_capita:.1f} ({gdp_growth_rate:+.1f}%) | "
+            f"人口:{old_pop:.1f} -> {country.population:.1f} ({pop_growth_rate*100:+.2f}%) | "
+            f"動員率:{mobilization_rate:.1%}{mobilization_penalty_text}\n"
+            f"  > 軍事力:{old_military:.1f} -> {country.military:.1f} (+{military_growth:.1f}, 維持費: -{alpha*100:.1f}%), "
+            f"諜報:{old_intel:.1f} -> {country.intelligence_level:.1f}, "
+            f"教育:{old_edu:.2f} -> {country.education_level:.2f}, "
             f"支持率:{old_approval:.1f}% -> {country.approval_rating:.1f}%"
         )
 
@@ -1054,11 +1099,13 @@ class WorldEngine:
         new_military = max(0.5, old_country.military * split_ratio)
         new_area = max(1.0, old_country.area * split_ratio)
         new_debt = old_country.national_debt * split_ratio
+        new_population = max(0.1, old_country.population * split_ratio)
         
         old_country.economy = max(1.0, old_country.economy - new_economy)
         old_country.military = max(0.5, old_country.military - new_military)
         old_country.area = max(1.0, old_country.area - new_area)
         old_country.national_debt = max(0.0, old_country.national_debt - new_debt)
+        old_country.population = max(0.1, old_country.population - new_population)
         
         if is_overthrow:
              # 事実上の乗っ取りなので新国家が旧体制の借金を帳消し（デフォルト）にすることが多い
@@ -1079,7 +1126,9 @@ class WorldEngine:
             ideology=new_ideology,
             press_freedom=0.8 if new_gov_type == GovernmentType.DEMOCRACY else 0.2,
             target_country=old_name, # 当面は旧国を強く意識
-            area=new_area
+            area=new_area,
+            population=new_population,
+            initial_population=new_population
         )
         new_country.national_debt = new_debt
         if new_gov_type == GovernmentType.DEMOCRACY:

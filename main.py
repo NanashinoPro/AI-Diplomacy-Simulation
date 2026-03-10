@@ -35,6 +35,8 @@ def initialize_world() -> WorldState:
                 rebellion_risk=float(row["rebellion_risk"]) if row["rebellion_risk"] else 0.0,
                 press_freedom=float(row["press_freedom"]),
                 education_level=float(row["education_level"]),
+                population=float(row["population"]),
+                initial_population=float(row["population"]),
                 hidden_plans=""
             )
 
