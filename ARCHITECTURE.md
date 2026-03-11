@@ -33,6 +33,35 @@
 #### 1.3.3. Scales (スケール)
 *   **時間スケール:** シミュレーションは離散的な「ターン (Turn)」単位で進行し、1ターンは四半期（3ヶ月）に相当する。
 
+### 1.4. System Processing Flow (処理フロー)
+シミュレーションの1ターン（`main.py` および `engine.py`）は、以下の厳密なフェーズ順序で解決される。
+
+```mermaid
+flowchart TD
+    Start((ターン開始)) --> PreTurn[1. プレターン処理: 選挙・反乱・国家分裂の判定<br/>engine.process_pre_turn]
+    PreTurn --> DisplayStatus[2. 国家ステータス・ニュースの表示<br/>logger.display]
+    DisplayStatus --> Ideology[3. イデオロギーの再作成<br/>新政権・定期更新]
+    Ideology --> Decision[4. AIエージェントの意思決定<br/>agent_system.generate_actions]
+    
+    Decision --> ProcessTurn{5. ターン解決エンジン<br/>engine.process_turn}
+    ProcessTurn --> |5-1| FAid[対外援助・オランダ病判定]
+    ProcessTurn --> |5-2| Domestic[内政: 予算・税収・マクロ経済投資]
+    ProcessTurn --> |5-3| Diplomacy[外交・諜報: 工作・同盟・会談提案]
+    ProcessTurn --> |5-4| Trade[貿易・制裁: グラビティモデルと赤字計算]
+    ProcessTurn --> |5-5| War[戦争: 軍事衝突と占領判定]
+    ProcessTurn --> |5-6| RandomEvent[ランダムイベント: 災害・技術革新]
+    
+    RandomEvent --> IntelReport[6. 諜報機関レポートの作成]
+    IntelReport --> TechName[7. 技術革新の名称生成]
+    TechName --> Summit[8. 首脳会談の実行<br/>run_summit]
+    Summit --> Media[9. メディア報道と支持率補正<br/>generate_media_reports]
+    Media --> SNS[10. 国民・トップ・工作員によるSNS投稿<br/>generate_citizen_sns_posts]
+    
+    SNS --> SaveLog[11. ターン履歴の保存と出力<br/>logger.save_turn_log]
+    SaveLog --> TimeAdvance[12. 時間進行と履歴トリミング<br/>engine.advance_time]
+    TimeAdvance --> End((ターン終了 / 次ターンへ))
+```
+
 ---
 
 ## 2. Details (詳細サブモデルと数式定義)
