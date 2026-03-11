@@ -78,11 +78,14 @@ class WorldEngine:
         self.analyzer = analyzer
         self.turn_domestic_factors: Dict[str, Dict[str, float]] = {}
         self.turn_sns_logs: Dict[str, List[Dict[str, Any]]] = {} # Added for fragmentation logic
+        self.turn_dutch_disease_penalty: Dict[str, float] = {} # オランダ病（援助過剰）による政策実行力デバフ
 
         # 1ターン目のみ、各国の初期教育レベルを保存（規格化用）
         for name, country in self.state.countries.items():
             if country.initial_education_level <= 1.0 and country.education_level > 1.0:
                 country.initial_education_level = country.education_level
+            # [追加] 政権の存続期間をインクリメント
+            country.regime_duration += 1
 
     def log_event(self, message: str):
         self.events_this_turn.append(message)
@@ -1124,6 +1127,7 @@ class WorldEngine:
             new_approval = max(0.0, min(100.0, 100.0 - country.approval_rating))
             country.approval_rating = new_approval
             self.sys_logs_this_turn.append(f"[{country_name} 新政権] 新たなハネムーン期間として支持率が {new_approval:.1f}% にリセットされました。")
+            country.regime_duration = 0  # 選挙での政権交代によりリセット
 
     def _handle_rebellion(self, country_name: str, country: CountryState):
         """国家崩壊（クーデター・革命）の処理。Alesina-Spolaoreモデルに基づく分裂判定を含む"""
@@ -1176,6 +1180,7 @@ class WorldEngine:
         # 低い支持率で倒れた政府の交代劇であるほど、初期の熱狂（ハネムーン期間）が高くなる
         country.approval_rating = max(50.0, 100.0 - country.approval_rating)
         country.rebellion_risk = 0.0
+        country.regime_duration = 0 # クーデター成立によりリセット
         
         # 専制・独裁は民主化するかどうかの分岐
         if country.government_type == GovernmentType.AUTHORITARIAN:
@@ -1324,7 +1329,20 @@ class WorldEngine:
                 
         # エージェントへのプロンプト注入用：主要ステータスの履歴を記録（直近4ターンまで）
         HISTORY_MAX_LEN = 4
-        for country in self.state.countries.values():
+        for c_name, country in self.state.countries.items():
+            # 毎ターン、政権の存続期間をインクリメント
+            country.regime_duration += 1
+            
+            # 【新機能】財政規律ペナルティ
+            # 国債残高がGDPに対して大きすぎる場合、信認低下により経済成長にマイナスデバフをかける
+            debt_ratio = country.national_debt / max(1.0, country.economy)
+            if debt_ratio > 0.0:
+                # 負債比率1.0で約-1.0%の成長阻害。借金依存度が高いほど悪化する非線形ペナルティ
+                debt_penalty = min(5.0, (math.exp(debt_ratio * 1.5) - 1.0) * 0.5) 
+                if debt_penalty > 0.1:
+                    country.economy *= (1.0 - (debt_penalty / 100.0))
+                    self.sys_logs_this_turn.append(f"[{c_name} 財政ペナルティ] 累積国債がGDP比{debt_ratio:.1%}に達したため、信用収縮により経済に-{debt_penalty:.2f}%のデバフが発生しました。")
+            
             snapshot = {
                 "turn": self.state.turn,
                 "economy": round(country.economy, 1),
@@ -1435,9 +1453,14 @@ class WorldEngine:
             base_trend = (old_approval * WMA_HISTORY_WEIGHT) + (WMA_BASE_VALUE * WMA_BASE_WEIGHT)
             
             # 政治疲労 ( पॉलिटिकलフｧティーグ ) による支持率の自然減衰
-            # 現状に飽きるため、毎ターン無条件で少しずつ支持率が下がる (-0.5%)
-            # 支持率が高いほど減衰ペースを少し上げる工夫も可能
-            fatigue_decay = -0.5 - ((old_approval - 50.0) * 0.01 if old_approval > 50.0 else 0)
+            # 長期政権化するほど、国民の「飽き」や「蓄積した不満」により減衰圧力が強くなる
+            # duration 20ターンで約 -1.5、40ターンで約 -3.5 の強力なペナルティとなる
+            duration_factor = (country.regime_duration / 10.0) ** 1.2
+            
+            # 従来： -0.5 - ((old_approval - 50.0) * 0.01 if old_approval > 50.0 else 0)
+            # 変更： 基本的に-0.5をベースとし、長期政権ほど追加デバフ。支持率が高いほどさらに減衰ペースが上がる。
+            approval_factor = ((old_approval - 50.0) * 0.03 if old_approval > 50.0 else 0)
+            fatigue_decay = -0.5 - duration_factor - approval_factor
             
             # Apply dynamic factors with carefully tuned weights
             growth_modifier = gdp_growth * 0.5
