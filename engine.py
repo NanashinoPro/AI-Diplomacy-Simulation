@@ -988,6 +988,9 @@ class WorldEngine:
         # 併合ボーナス (経済力の吸収)
         winner.economy += loser.economy * 0.5
         winner.military += loser.military * 0.2
+        winner.population += loser.population
+        winner.initial_population += loser.initial_population
+        self.log_event(f"📈 {winner_name}は{loser_name}の領土と人口({loser.population:.1f}M)を併合しました。")
         
         # 敗戦国を世界から削除
         del self.state.countries[loser_name]

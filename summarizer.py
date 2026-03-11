@@ -27,7 +27,7 @@ def generate_summary(log_filepath: str) -> str:
     # すでに要約が存在する場合はスキップ（上書きしたい場合は要修正）
     if os.path.exists(summary_filepath):
         print(f"Summary already exists for {log_filepath}")
-        return
+        return None
 
     print(f"Generating summary for {log_filepath}...")
     
@@ -104,8 +104,19 @@ def generate_summary(log_filepath: str) -> str:
             
         print(f"Successfully generated summary and saved to {summary_filepath}")
         
+        # 使用トークン数を返す
+        usage = response.usage_metadata
+        return {
+            "summary": summary_data.get("summary", ""),
+            "usage": {
+                "prompt_tokens": usage.prompt_token_count if usage else 0,
+                "candidates_token_count": usage.candidates_token_count if usage else 0
+            }
+        }
+        
     except Exception as e:
         print(f"Error generating summary: {e}")
+        return None
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate summary for simulation logs.")

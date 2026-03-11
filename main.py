@@ -345,6 +345,19 @@ def main():
     print(f"シミュレーションログは {logger.sim_log_dir}/ に保存されています。")
     print(f"システムログは {logger.sys_log_dir}/ に保存されています。")
     
+    # 最後にシミュレーションの要約を自動生成 (コスト計算に含めるため先に実行)
+    try:
+        if hasattr(logger, 'sim_log_file'):
+            summary_info = summarizer.generate_summary(logger.sim_log_file)
+            if summary_info and "usage" in summary_info:
+                agent_system.token_usage["サマリー生成"] = {
+                    "model": "gemini-2.5-flash",
+                    "prompt_tokens": summary_info["usage"]["prompt_tokens"],
+                    "candidates_token_count": summary_info["usage"]["candidates_token_count"]
+                }
+    except Exception as e:
+        print(f"Failed to auto-generate summary: {e}")
+
     # コスト計算と出力
     print("\n" + "="*50)
     print("💰 APIトークン使用量と推定コスト")
@@ -384,13 +397,6 @@ def main():
     # システムログに追記
     for line in cost_log_lines:
         logger.sys_log(line)
-    
-    # 最後にシミュレーションの要約を自動生成
-    try:
-        if hasattr(logger, 'sim_log_file'):
-            summarizer.generate_summary(logger.sim_log_file)
-    except Exception as e:
-        print(f"Failed to auto-generate summary: {e}")
 
     # シミュレーション完了通知
     notifier.send_notification(
