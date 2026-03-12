@@ -309,6 +309,7 @@
                                     <th>国</th>
                                     <th>体制</th>
                                     <th>人口</th>
+                                    <th>1人当たりGDP</th>
                                     <th>経済力</th>
                                     <th>軍事力</th>
                                     <th>諜報力</th>
@@ -562,6 +563,7 @@
                     <td><strong>${name}</strong><br><small style="color:#7f8c8d; display:block; max-width: 250px; line-height:1.4; margin-top:4px;">${ideologyTxt}</small></td>
                     <td>${info.government_type === 'democracy' ? '🗳️ 民主' : '👑 専制'}</td>
                     <td>${Number(info.population || 0).toFixed(1)}</td>
+                    <td>${info.population > 0 ? Number(info.economy / info.population).toFixed(2) : '0.00'}</td>
                     <td>${Number(info.economy).toFixed(1)}</td>
                     <td>${Number(info.military).toFixed(1)}</td>
                     <td>${Number(info.intelligence_level || 0).toFixed(1)}</td>
