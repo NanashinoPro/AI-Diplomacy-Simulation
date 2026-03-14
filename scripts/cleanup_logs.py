@@ -4,6 +4,7 @@ import json
 import re
 from pathlib import Path
 import argparse
+import shutil
 
 def get_max_turn_from_jsonl(file_path):
     """.jsonlファイルの最終行からターン数を取得する"""
@@ -54,6 +55,14 @@ def cleanup_logs(threshold=3):
                     os.remove(p)
                     deleted_files.append(p)
                     print(f"Deleted: {p} (Max Turn: {max_turn})")
+            
+            # DBディレクトリの削除
+            session_id = os.path.basename(jsonl_path).replace("sim_", "").replace(".jsonl", "")
+            db_dir = f"db/collection/diplomacy_events_{session_id}"
+            if os.path.exists(db_dir):
+                shutil.rmtree(db_dir)
+                deleted_files.append(db_dir)
+                print(f"Deleted DB: {db_dir}")
                     
     # 2. システムログ (logs/system/system_*.log)
     system_logs = glob.glob("logs/system/system_*.log")
@@ -64,6 +73,14 @@ def cleanup_logs(threshold=3):
                 os.remove(log_path)
                 deleted_files.append(log_path)
                 print(f"Deleted: {log_path} (Max Turn: {max_turn})")
+            
+            # DBディレクトリの削除 (シミュレーションログ削除で漏れた場合)
+            session_id = os.path.basename(log_path).replace("system_", "").replace(".log", "")
+            db_dir = f"db/collection/diplomacy_events_{session_id}"
+            if os.path.exists(db_dir):
+                shutil.rmtree(db_dir)
+                deleted_files.append(db_dir)
+                print(f"Deleted DB: {db_dir}")
 
     if not deleted_files:
         print("削除対象のファイルは見つかりませんでした。")
