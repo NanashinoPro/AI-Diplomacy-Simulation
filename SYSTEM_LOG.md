@@ -839,3 +839,13 @@ LLMの機嫌次第で `domestic_policy` の各投資割合の合計が `1.0` を
 - **Objective**: Allow users to filter log/db deletion based on file age (days).
 - **Action**: Modified `scripts/cleanup_logs.py` to support the `--days` (`-d`) flag alongside `--threshold`. Utilized `os.path.getmtime` to evaluate the file's age against the specified days criteria using an AND logical operator when both configurations are set.
 - **Result**: Successfully verified dual-filtering parameters with local dummy tests. Confirmed correct selective deletion.
+
+## 2026-03-14: 人的資本の限界効用逓減モデル導入による経済バブル抑制
+* **バグ内容**: `engine/domestic.py`における教育・科学投資の波及効果（人的資本バフ）が、GDP増加→投資額増加→さらなるGDP増加という「超指数関数的なバブル成長」を引き起こしていた。中国の1人当たりGDPが初期の4000倍以上に急増する等の異常をログで確認。
+* **修正内容**: 
+    1. `engine/domestic.py`の`h_ratio`算出ロジックを修正。
+    2. マンキュー、ローマー、ワイルらによる「人的資本の限界効用逓減（収穫逓減）」の考えに基づき、`h_ratio`が1.0を超過した部分に対して自然対数`math.log1p()`を適用し、成長曲線を緩やかなカーブへ変換。
+* **動作確認**: 3ターンのシミュレーションテストを実施。
+    1. 中国の1人当たりGDP: 12.8 -> 11.9 -> 11.6 -> 11.6
+    2. アメリカの1人当たりGDP: 73.5 -> 69.8 -> 69.0 -> 68.8
+    3. 数値が現実的な範囲に収束し、ハイパーインフレが抑制されたことをシステムログ（`logs/system/system_20260314_213911.log`）で確認完了。
