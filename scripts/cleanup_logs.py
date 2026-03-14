@@ -2,6 +2,7 @@ import os
 import glob
 import json
 import re
+import time
 from pathlib import Path
 import argparse
 import shutil
@@ -34,17 +35,34 @@ def get_max_turn_from_system_log(file_path):
         print(f"Error reading {file_path}: {e}")
     return max_turn
 
-def cleanup_logs(threshold=3):
-    """指定したターン数以下のログファイルを削除する"""
-    print(f"--- ログのクリーンアップを開始します (閾値: {threshold}ターン) ---")
+def cleanup_logs(threshold=3, days=None):
+    """指定した条件以下のログファイルを削除する"""
+    print(f"--- ログのクリーンアップを開始します ---")
+    if threshold is not None:
+        print(f" - 閾値(ターン): {threshold} ターン以下")
+    if days is not None:
+        print(f" - 閾値(日数): {days} 日以上経過")
     
     deleted_files = []
     
+    current_time = time.time()
+    
+    def should_delete(file_path, max_turn):
+        # 両方の条件が指定されている場合は AND
+        turn_condition = threshold is None or max_turn <= threshold
+        
+        days_condition = True
+        if days is not None and os.path.exists(file_path):
+            file_age_days = (current_time - os.path.getmtime(file_path)) / 86400
+            days_condition = file_age_days >= days
+            
+        return turn_condition and days_condition
+
     # 1. シミュレーションログ (.jsonl, .summary.json)
     jsonl_files = glob.glob("logs/simulations/sim_*.jsonl")
     for jsonl_path in jsonl_files:
         max_turn = get_max_turn_from_jsonl(jsonl_path)
-        if max_turn <= threshold:
+        if should_delete(jsonl_path, max_turn):
             # 関連するファイルを特定
             base_path = jsonl_path.replace(".jsonl", "")
             summary_path = base_path + ".summary.json"
@@ -68,7 +86,7 @@ def cleanup_logs(threshold=3):
     system_logs = glob.glob("logs/system/system_*.log")
     for log_path in system_logs:
         max_turn = get_max_turn_from_system_log(log_path)
-        if max_turn <= threshold:
+        if should_delete(log_path, max_turn):
             if os.path.exists(log_path):
                 os.remove(log_path)
                 deleted_files.append(log_path)
@@ -88,7 +106,13 @@ def cleanup_logs(threshold=3):
         print(f"\n合計 {len(deleted_files)} 個のファイルを削除しました。")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="指定したターン数以下のログファイルを削除します。")
-    parser.add_argument("-t", "--threshold", type=int, default=3, help="削除するターン数の閾値 (デフォルト: 3)")
+    parser = argparse.ArgumentParser(description="指定したターン数や日数以下のログファイルを削除します。")
+    parser.add_argument("-t", "--threshold", type=int, default=None, help="削除するターン数の閾値 (例: 3ターン以下のログを削除。デフォルトは制限なし)")
+    parser.add_argument("-d", "--days", type=int, default=None, help="削除する経過日数の閾値 (例: 7日以上前のログを削除。デフォルトは制限なし)")
     args = parser.parse_args()
-    cleanup_logs(threshold=args.threshold)
+    
+    # 引数がどちらも指定されていない場合は、デフォルトで3ターン以下の削除を実行（後方互換性のため）
+    if args.threshold is None and args.days is None:
+        args.threshold = 3
+
+    cleanup_logs(threshold=args.threshold, days=args.days)

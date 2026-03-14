@@ -834,3 +834,8 @@ LLMの機嫌次第で `domestic_policy` の各投資割合の合計が `1.0` を
 - **Objective**: Include Qdrant DB collections in the target files of cleanup_logs.py.
 - **Action**: Modified `scripts/cleanup_logs.py` to parse `session_id` and execute `shutil.rmtree` on corresponding `db/collection/diplomacy_events_{session_id}` directories when matched logs are deleted.
 - **Result**: Successfully confirmed deletion of log files and their associated Qdrant directories.
+
+## 2026-03-14 16:47 - Cleanup Script Days Option Added
+- **Objective**: Allow users to filter log/db deletion based on file age (days).
+- **Action**: Modified `scripts/cleanup_logs.py` to support the `--days` (`-d`) flag alongside `--threshold`. Utilized `os.path.getmtime` to evaluate the file's age against the specified days criteria using an AND logical operator when both configurations are set.
+- **Result**: Successfully verified dual-filtering parameters with local dummy tests. Confirmed correct selective deletion.
