@@ -361,7 +361,7 @@ def main():
     # 最後にシミュレーションの要約を自動生成 (コスト計算に含めるため先に実行)
     try:
         if hasattr(logger, 'sim_log_file'):
-            summary_info = summarizer.generate_summary(logger.sim_log_file)
+            summary_info = summarizer.generate_summary(logger.sim_log_file, force=True)
             if summary_info and "usage" in summary_info:
                 agent_system.token_usage["サマリー生成"] = {
                     "model": "gemini-2.5-flash",

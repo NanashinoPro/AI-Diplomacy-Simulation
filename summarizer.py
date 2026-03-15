@@ -14,7 +14,7 @@ SIM_LOG_DIR = os.path.join(os.path.dirname(__file__), "logs", "simulations")
 class SimulationSummary(BaseModel):
     summary: str = Field(description="シミュレーション全体を通した各国の動き、戦略の変遷、主要な出来事の定性的な要約。Markdown形式で記述してください。")
 
-def generate_summary(log_filepath: str) -> str:
+def generate_summary(log_filepath: str, force: bool = False) -> dict:
     """
     シミュレーションのJSONLログを読み込み、Geminiで要約を生成して保存する
     """
@@ -24,8 +24,8 @@ def generate_summary(log_filepath: str) -> str:
 
     summary_filepath = log_filepath.replace(".jsonl", ".summary.json")
     
-    # すでに要約が存在する場合はスキップ（上書きしたい場合は要修正）
-    if os.path.exists(summary_filepath):
+    # すでに要約が存在する場合はスキップ
+    if not force and os.path.exists(summary_filepath):
         print(f"Summary already exists for {log_filepath}")
         return None
 
@@ -122,6 +122,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate summary for simulation logs.")
     parser.add_argument("--all", action="store_true", help="Generate summary for all logs in logs/simulations/")
     parser.add_argument("--file", type=str, help="Generate summary for a specific log file")
+    parser.add_argument("--force", action="store_true", help="Force regenerate summary even if it exists")
     
     args = parser.parse_args()
     
@@ -130,8 +131,8 @@ if __name__ == "__main__":
             for filename in os.listdir(SIM_LOG_DIR):
                 if filename.endswith(".jsonl"):
                     filepath = os.path.join(SIM_LOG_DIR, filename)
-                    generate_summary(filepath)
+                    generate_summary(filepath, force=args.force)
     elif args.file:
-        generate_summary(args.file)
+        generate_summary(args.file, force=args.force)
     else:
         print("Please specify --all or --file <filename>")
