@@ -14,7 +14,7 @@ def initialize_world() -> WorldState:
     """初期の歴史的状況をCSV(initial_stats.csv)から読み込んでWorldStateを返す"""
     import csv
     countries = {}
-    csv_path = os.path.join(os.path.dirname(__file__), "initial_stats.csv")
+    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "initial_stats.csv")
     
     with open(csv_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)

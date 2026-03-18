@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-SIM_LOG_DIR = os.path.join(os.path.dirname(__file__), "logs", "simulations")
+SIM_LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "logs", "simulations")
 
 @app.route("/")
 def index():

@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SIM_LOG_DIR = os.path.join(os.path.dirname(__file__), "logs", "simulations")
+SIM_LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "logs", "simulations")
 
 class SimulationSummary(BaseModel):
     summary: str = Field(description="シミュレーション全体を通した各国の動き、戦略の変遷、主要な出来事の定性的な要約。Markdown形式で記述してください。")

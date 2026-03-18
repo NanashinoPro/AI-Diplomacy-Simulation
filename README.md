@@ -34,8 +34,8 @@ cp .env.example .env
 
 本シミュレーションを構成する各エージェントの役割（首脳・国民SNS・メディア・諜報機関等）や、支持率の計算、戦争・貿易・諜報被害・災害イベントの数理的な状態遷移モデル（ODDプロトコル準拠）についての詳細な解説は、以下のドキュメントを参照してください。
 
-👉 [**ARCHITECTURE.md (システム設計と数理モデル詳細)**](./ARCHITECTURE.md)
-👉 [**あーきてくちゃ.md (子供向け解説)**](./あーきてくちゃ.md)
+👉 [**ARCHITECTURE.md (システム設計と数理モデル詳細)**](./docs/ARCHITECTURE.md)
+👉 [**あーきてくちゃ.md (子供向け解説)**](./docs/あーきてくちゃ.md)
 
 ## 5. ログ・追跡システム (Logging & Telemetry)
 
@@ -50,7 +50,7 @@ cp .env.example .env
 
 本システムには軽量なPython（Flask）ベースのローカルWebサーバーが含まれています。
 ```bash
-python web_ui.py
+python src/web_ui.py
 ```
 を実行し `http://localhost:8081` にアクセスすることで、過去のすべてのセッションの時系列推移、各国の裏側の狙い（諜報・政策）、ニュースイベントの発生状況、そして**市民や首脳、工作員によるアイコン付きのSNSタイムライン**を直感的なフロントエンド（Chart.js / Vanilla JS）から分析・閲覧可能です。
 
@@ -63,7 +63,7 @@ python web_ui.py
 ### 新規シミュレーションの開始
 新規にシミュレーションを開始する場合は、以下のように実行します。
 ```bash
-python main.py --turns 40
+python src/main.py --turns 40
 ```
 `--turns` オプションでシミュレーションを実行するターン数を指定できます（デフォルトは40ターン）。
 
@@ -72,7 +72,7 @@ python main.py --turns 40
 システムログおよびシミュレーションログは、新規ファイルを作成するのではなく、既存の該当ログファイルにそのまま追記されます。
 
 ```bash
-python main.py --resume logs/simulations/sim_YYYYMMDD_HHMMSS.jsonl --turns 10
+python src/main.py --resume logs/simulations/sim_YYYYMMDD_HHMMSS.jsonl --turns 10
 ```
 
 ## 8. ライセンス (License)
