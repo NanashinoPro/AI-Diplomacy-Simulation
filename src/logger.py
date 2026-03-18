@@ -12,13 +12,14 @@ from models import WorldState, AgentAction
 class SimulationLogger:
     """シミュレーションのログ保存と表示を担当するクラス"""
     
-    def __init__(self, log_dir: str = "logs", session_id: str = None):
+    def __init__(self, log_dir: str = None, session_id: str = None):
         self.console = Console()
+        if log_dir is None:
+            log_dir = os.path.join(os.path.dirname(__file__), "..", "logs")
         self.base_log_dir = log_dir
         self.sim_log_dir = f"{log_dir}/simulations"
         self.sys_log_dir = f"{log_dir}/system"
         self.session_id = session_id or datetime.now().strftime("%Y%m%d_%H%M%S")
-        import os
         
         for d in [self.sim_log_dir, self.sys_log_dir]:
             if not os.path.exists(d):
