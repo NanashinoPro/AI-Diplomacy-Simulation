@@ -2,7 +2,7 @@ import time
 import json
 import os
 import random
-from models import WorldState, CountryState, GovernmentType, RelationType, TradeState
+from models import WorldState, CountryState, GovernmentType, RelationType, TradeState, SanctionState, WarState
 from engine import WorldEngine
 from agent import AgentSystem
 from logger import SimulationLogger
@@ -11,7 +11,7 @@ import notifier
 from db_manager import DBManager
 
 def initialize_world() -> WorldState:
-    """初期の歴史的状況をCSV(initial_stats.csv)から読み込んでWorldStateを返す"""
+    """初期の歴史的状況をCSV(initial_stats.csv, initial_relations.csv)から読み込んでWorldStateを返す"""
     import csv
     countries = {}
     csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "initial_stats.csv")
@@ -42,7 +42,7 @@ def initialize_world() -> WorldState:
                 hidden_plans=""
             )
 
-    # 関係性の初期化（全組み合わせを中立に）
+    # 関係性の初期化（全組み合わせをデフォルトNEUTRALに）
     relations = {}
     country_names = list(countries.keys())
     for i, name_a in enumerate(country_names):
@@ -51,15 +51,68 @@ def initialize_world() -> WorldState:
             if i != j:
                 relations[name_a][name_b] = RelationType.NEUTRAL
 
+    # initial_relations.csv から初期の国家間関係を読み込む
+    active_trades = []
+    active_wars = []
+    active_sanctions = []
+    relations_csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "initial_relations.csv")
+    
+    if os.path.exists(relations_csv_path):
+        with open(relations_csv_path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                ca = row["country_a"].strip()
+                cb = row["country_b"].strip()
+                
+                # 両国が initial_stats.csv に存在するか検証
+                if ca not in countries or cb not in countries:
+                    print(f"⚠️ initial_relations.csv: 不明な国名をスキップ ({ca}, {cb})")
+                    continue
+                
+                # 関係タイプの設定（双方向）
+                rel = RelationType(row["relation_type"].strip())
+                relations[ca][cb] = rel
+                relations[cb][ca] = rel
+                
+                # 貿易協定
+                if row["trade"].strip().lower() == "true":
+                    active_trades.append(TradeState(country_a=ca, country_b=cb))
+                
+                # 経済制裁（方向あり）
+                if row["sanctions_a_to_b"].strip().lower() == "true":
+                    active_sanctions.append(SanctionState(imposer=ca, target=cb))
+                if row["sanctions_b_to_a"].strip().lower() == "true":
+                    active_sanctions.append(SanctionState(imposer=cb, target=ca))
+                
+                # 戦争状態
+                war_aggressor = row.get("war_aggressor", "").strip()
+                if war_aggressor and rel == RelationType.AT_WAR:
+                    defender = cb if war_aggressor == ca else ca
+                    active_wars.append(WarState(aggressor=war_aggressor, defender=defender))
+        
+        print(f"📋 initial_relations.csv を読み込みました: 貿易{len(active_trades)}件, 制裁{len(active_sanctions)}件, 戦争{len(active_wars)}件")
+    else:
+        print("⚠️ initial_relations.csv が見つかりません。全関係をNEUTRALで初期化します。")
+
+    # ニュースイベントの初期化（初期関係に基づく）
+    initial_news = ["世界のリーダーたちが行動を開始しています。"]
+    for war in active_wars:
+        initial_news.append(f"⚔️ {war.aggressor}と{war.defender}の間で軍事衝突が発生しています。")
+    for trade in active_trades:
+        initial_news.append(f"🤝 {trade.country_a}と{trade.country_b}は貿易協定を締結しています。")
+    for sanction in active_sanctions:
+        initial_news.append(f"⛔ {sanction.imposer}が{sanction.target}に経済制裁を発動中です。")
+
     world = WorldState(
         turn=1,
         year=2025,
         quarter=1,
         countries=countries,
         relations=relations,
-        active_wars=[],
-        active_trades=[TradeState(country_a="アメリカ", country_b="中国")], # 貿易は一旦固定
-        news_events=["世界のリーダーたちが行動を開始しています。"]
+        active_wars=active_wars,
+        active_trades=active_trades,
+        active_sanctions=active_sanctions,
+        news_events=initial_news
     )
     return world
 
