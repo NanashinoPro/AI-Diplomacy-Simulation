@@ -10,33 +10,43 @@ class GeminiSentimentAnalyzer:
     """Gemini API (gemini-2.5-flash-lite) を用いた感情分析器"""
     SENTIMENT_MODEL = "gemini-2.5-flash-lite"
     
-    def __init__(self, client):
+    def __init__(self, client, client_sub=None):
         self.client = client
+        self.client_sub = client_sub
+    
+    def _call_api(self, client, prompt: str) -> list:
+        """指定されたクライアントで感情分析APIを呼び出す"""
+        response = client.models.generate_content(
+            model=self.SENTIMENT_MODEL,
+            contents=prompt
+        )
+        raw = response.text.strip()
+        scores = []
+        for part in raw.replace(" ", "").split(","):
+            try:
+                score = float(part)
+                score = max(-1.0, min(1.0, score))
+                scores.append(score)
+            except ValueError:
+                continue
+        return scores if scores else [0.0]
     
     def analyze(self, text: str) -> list:
+        prompt = (
+            "以下のテキストの感情をスコアで評価してください。\n"
+            "スコアは -1.0（非常にネガティブ）から +1.0（非常にポジティブ）の範囲で、"
+            "小数点1桁の数値のみを返してください。複数文がある場合はカンマ区切りで返してください。\n"
+            "例: 0.3 や -0.5,0.2 のように数値のみ返してください。説明は不要です。\n\n"
+            f"テキスト: {text[:300]}"
+        )
         try:
-            prompt = (
-                "以下のテキストの感情をスコアで評価してください。\n"
-                "スコアは -1.0（非常にネガティブ）から +1.0（非常にポジティブ）の範囲で、"
-                "小数点1桁の数値のみを返してください。複数文がある場合はカンマ区切りで返してください。\n"
-                "例: 0.3 や -0.5,0.2 のように数値のみ返してください。説明は不要です。\n\n"
-                f"テキスト: {text[:300]}"
-            )
-            response = self.client.models.generate_content(
-                model=self.SENTIMENT_MODEL,
-                contents=prompt
-            )
-            raw = response.text.strip()
-            scores = []
-            for part in raw.replace(" ", "").split(","):
-                try:
-                    score = float(part)
-                    score = max(-1.0, min(1.0, score))
-                    scores.append(score)
-                except ValueError:
-                    continue
-            return scores if scores else [0.0]
+            return self._call_api(self.client, prompt)
         except Exception:
+            if self.client_sub:
+                try:
+                    return self._call_api(self.client_sub, prompt)
+                except Exception:
+                    pass
             return [0.0]
 
 def generate_citizen_sns_posts(

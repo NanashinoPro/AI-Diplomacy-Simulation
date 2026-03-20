@@ -86,8 +86,9 @@ def generate_summary(log_filepath: str, force: bool = False) -> dict:
 
     client = genai.Client(api_key=api_key)
     
-    try:
-        response = client.models.generate_content(
+    def _call_generate(target_client):
+        """指定されたクライアントでAPI呼び出しを実行"""
+        return target_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt_text,
             config=genai.types.GenerateContentConfig(
@@ -96,6 +97,18 @@ def generate_summary(log_filepath: str, force: bool = False) -> dict:
                 temperature=0.4
             ),
         )
+    
+    try:
+        try:
+            response = _call_generate(client)
+        except Exception as main_error:
+            sub_key = os.environ.get("GEMINI_API_KEY_SUB")
+            if not sub_key:
+                raise
+            print(f"⚠️ メインAPIキーでエラー発生: {main_error}。サブAPIキーで再試行します...")
+            client_sub = genai.Client(api_key=sub_key)
+            response = _call_generate(client_sub)
+            print("✅ サブAPIキーでの呼び出しに成功しました。")
         
         # 保存
         summary_data = json.loads(response.text)

@@ -1,5 +1,20 @@
 # System Log
 
+## 2026-03-21 07:30:00 - APIキーフォールバック機能の実装
+- **修正内容**: `.env`に設定された`GEMINI_API_KEY_SUB`を活用し、メインのGemini APIキーでエラーが発生した場合に自動的にサブキーで再試行するフォールバック機能を全API呼び出し箇所に実装。
+- **実装詳細**:
+    - `src/agent/core.py`: `AgentSystem.__init__`でサブAPIキーの検出・サブクライアント(`self.client_sub`)の初期化を追加。`_generate_with_retry`を`_generate_with_retry_internal`（tenacityリトライ付き内部メソッド）と`_generate_with_retry`（メイン→サブのフォールバックラッパー）に分離。メインキーで全4回のリトライが失敗した場合、サブキーのクライアントで再度4回リトライを試行する。切り替え時にシステムログに`[API Fallback]`として記録。
+    - `src/agent/modules/media.py`: `GeminiSentimentAnalyzer.__init__`に`client_sub`パラメータを追加。`analyze`メソッドでメインクライアント失敗時にサブクライアントでフォールバック。API呼び出しロジックを`_call_api`内部メソッドに分離。
+    - `src/summarizer.py`: `generate_summary`関数のAPI呼び出し部分に`_call_generate`内部関数を導入し、メインキー失敗時に`GEMINI_API_KEY_SUB`でサブクライアントを作成して再試行。
+    - `src/web_ui.py`: `chat_about_simulation`関数のAPI呼び出しにフォールバックを追加。メインキー失敗時にサブキーで再試行。
+- **設計方針**: 既存の`tenacity`リトライ（4回、指数バックオフ）はメインキーに対してそのまま維持し、全リトライ失敗後にのみサブキーへ切り替える二段構成。Ollamaルーティング（`mistral-small`系モデル）はフォールバック対象外（ローカル実行のため不要）。
+
+> **【AIからの報告】**
+> ボス、APIキーフォールバック機能を全API呼び出し箇所に実装しました。
+> メインキーで全リトライが失敗した場合、自動的にサブAPIキーに切り替えて再試行します。
+> 切り替え時にはシステムログに`[API Fallback]`として記録されるので、どのタイミングで切り替わったか追跡可能です。
+
+
 ## 2026-03-21 07:15:00 - 首脳会談モデルのFlash移行とDB検索ツール（Function Calling）追加
 - **修正内容**: 首脳会談（`summit.py`）で使用するLLMモデルを `gemini-2.5-pro` から `gemini-2.5-flash` に変更し、コスト削減。同時に、首脳会談中にLLMがDB検索ツール（Function Calling）を使って過去の外交・内政・諜報イベントを自律的に検索できる機能を追加。
 - **実装詳細**:

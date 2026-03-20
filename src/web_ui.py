@@ -98,11 +98,22 @@ def chat_about_simulation(filename):
 
     try:
         client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt,
-        )
-        return jsonify({"reply": response.text})
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt,
+            )
+            return jsonify({"reply": response.text})
+        except Exception as main_error:
+            sub_key = os.environ.get("GEMINI_API_KEY_SUB")
+            if not sub_key:
+                return jsonify({"error": f"Gemini API Error: {str(main_error)}"}), 500
+            client_sub = genai.Client(api_key=sub_key)
+            response = client_sub.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt,
+            )
+            return jsonify({"reply": response.text})
     except Exception as e:
         return jsonify({"error": f"Gemini API Error: {str(e)}"}), 500
 
