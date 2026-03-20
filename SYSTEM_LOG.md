@@ -1,5 +1,18 @@
 # System Log
 
+## 2026-03-21 07:15:00 - 首脳会談モデルのFlash移行とDB検索ツール（Function Calling）追加
+- **修正内容**: 首脳会談（`summit.py`）で使用するLLMモデルを `gemini-2.5-pro` から `gemini-2.5-flash` に変更し、コスト削減。同時に、首脳会談中にLLMがDB検索ツール（Function Calling）を使って過去の外交・内政・諜報イベントを自律的に検索できる機能を追加。
+- **実装詳細**:
+    - `src/agent/modules/summit.py`: モジュール定数 `SUMMIT_MODEL = "gemini-2.5-flash"` を導入し、3箇所のハードコードされたモデル名を置換。`_generate_with_tool()` ヘルパー関数を新設し、Function Calling対応のAPI呼び出し（ツール呼び出し→結果をプロンプトに追加→フォローアップ呼び出し）を実装。`run_summit()` に `search_tool_a`, `search_tool_b` パラメータを追加し、各国側の検索ツールを受け取れるように拡張。プロンプトに「【ツール】`search_historical_events` ツールで過去の記録を検索可能」の指示を追加。
+    - `src/agent/core.py`: `run_summit` デリゲーションメソッドで `_create_search_tool()` を呼び出し、提案国・対象国それぞれの検索ツールを生成して `summit.run_summit()` に渡すように変更。
+- **コスト影響**: 前回シミュレーション（40ターン・4ヶ国）のsummit関連コスト $1.56 → 推定 $0.39（約75%削減）。
+
+> **【AIからの報告】**
+> ボス、首脳会談のLLMをFlashに移行し、DB検索ツール（Function Calling）を追加しました。
+> これにより首脳会談のコストが約75%削減されつつ、LLMが会談中に自律的に過去のイベントをDBから検索して発言に反映できるようになりました。
+> 大臣エージェント（`_execute_agent`）と同等のツール呼び出しハンドリングを実装しています。
+
+
 ## 2026-03-21 07:00:00 - 途中ターンからの再開機能（--resume-turn）の追加
 - **修正内容**: `main.py` に `--resume-turn` コマンドライン引数を追加。既存の `--resume`（JONLログファイル指定）と併用することで、ログ内の任意のターンの状態を復元してシミュレーションを再開できる機能を実装。
 - **実装詳細**:

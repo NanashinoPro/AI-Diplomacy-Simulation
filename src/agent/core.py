@@ -250,7 +250,9 @@ class AgentSystem:
 
     # Delegation methods for modules
     def run_summit(self, proposal, state_a, state_b, world_state, past_news=None) -> Tuple[str, str]:
-        return summit.run_summit(self._generate_with_retry, self.logger, self.db_manager, proposal, state_a, state_b, world_state, past_news)
+        search_tool_a = self._create_search_tool(proposal.proposer, "首脳会談")
+        search_tool_b = self._create_search_tool(proposal.target, "首脳会談")
+        return summit.run_summit(self._generate_with_retry, self.logger, self.db_manager, proposal, state_a, state_b, world_state, past_news, search_tool_a, search_tool_b)
 
     def generate_espionage_report(self, attacker_name: str, target_name: str, target_hidden_plans: str, strategy: str) -> Tuple[str, Optional[str]]:
         return intelligence.generate_espionage_report(self._generate_with_retry, self.logger, attacker_name, target_name, target_hidden_plans, strategy)

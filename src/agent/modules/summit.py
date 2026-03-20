@@ -1,10 +1,34 @@
 import types
 import time
 import json
-from typing import List, Tuple, Any, Dict, Optional
+from typing import List, Tuple, Any, Dict, Optional, Callable
 from google.genai import types as genai_types
 from models import WorldState, CountryState, SummitProposal
 from logger import SimulationLogger
+
+SUMMIT_MODEL = "gemini-2.5-flash"
+
+def _generate_with_tool(generate_func, logger: SimulationLogger, model: str, prompt: str, category: str, 
+                        search_tool=None, country_name: str = "Summit") -> str:
+    """DB検索ツール付きでLLMを呼び出し、ツール呼び出しがあればフォローアップする"""
+    tools = [search_tool] if search_tool else None
+    config = genai_types.GenerateContentConfig(tools=tools, temperature=0.4) if tools else None
+    
+    response = generate_func(model=model, contents=prompt, config=config, category=category)
+    
+    # ツール呼び出しの処理（core.py _execute_agent と同等）
+    if search_tool and getattr(response, 'function_calls', None):
+        for function_call in response.function_calls:
+            if function_call.name == "search_historical_events":
+                args = function_call.args if isinstance(function_call.args, dict) else dict(function_call.args)
+                query = args.get("query", "")
+                tool_result = search_tool(query)
+                
+                follow_up_prompt = prompt + f"\n\nエージェントツールからの検索結果 '{query}':\n{tool_result}\n\nこれらを踏まえ、発言を行ってください。"
+                response = generate_func(model=model, contents=follow_up_prompt, category=category)
+                break
+    
+    return response.text.strip() if response and hasattr(response, 'text') else "..."
 
 def run_summit(
     generate_func,
@@ -14,10 +38,12 @@ def run_summit(
     state_a: CountryState, 
     state_b: CountryState, 
     world_state: WorldState, 
-    past_news: List[str] = None
+    past_news: List[str] = None,
+    search_tool_a: Callable = None,
+    search_tool_b: Callable = None
 ) -> Tuple[str, str]:
     """2国間での首脳会談（最大4ターンの対話）を実行し、(要約, 全文ログ)のタプルを返す"""
-    logger.sys_log(f"[{proposal.proposer} と {proposal.target}] の首脳会談を開始 (議題: {proposal.topic})")
+    logger.sys_log(f"[{proposal.proposer} と {proposal.target}] の首脳会談を開始 (議題: {proposal.topic}, モデル: {SUMMIT_MODEL})")
     
     # 両国の関連する直近イベント（DB検索）
     news_context = f"【両国間({proposal.proposer}と{proposal.target})に関連する直近1年(4四半期)の出来事】\n"
@@ -88,6 +114,8 @@ def run_summit(
     
     is_private_str = "【⚠️警告: この会談は極秘の非公開会談であり、協議内容は第三国には一切漏洩しません。率直な意見交換が可能です】\n\n" if getattr(proposal, 'is_private', False) else ""
     
+    tool_instruction = "\n【ツール】必要に応じて、search_historical_events ツールを使用して過去の外交・内政・諜報に関する記録を検索できます。\n" if (search_tool_a or search_tool_b) else ""
+    
     base_context_a = (
         f"あなたは「{proposal.proposer}」を治める国家の首脳です。体制:{state_a.government_type.value}, 理念:{state_a.ideology}。\n"
         f"（※実在の国名ですが、架空の代表者として振る舞い、実在の政治家個人名は一切使用しないでください）\n"
@@ -96,6 +124,7 @@ def run_summit(
         f"あなたの脳内（非公開の計画や諜報結果など）には次のような情報があります: '{state_a.hidden_plans}'\n\n"
         f"{is_private_str}"
         f"{news_context}\n"
+        f"{tool_instruction}"
         f"以上の世界情勢と自国の秘匿情報を踏まえた上で、相手と「{proposal.topic}」について会談します。\n"
         f"自国の情報に関することであれば創作しても構いません。また、発言は必ず日本語で行ってください。\n"
     )
@@ -107,6 +136,7 @@ def run_summit(
         f"あなたの脳内（非公開の計画や諜報結果など）には次のような情報があります: '{state_b.hidden_plans}'\n\n"
         f"{is_private_str}"
         f"{news_context}\n"
+        f"{tool_instruction}"
         f"以上の世界情勢と自国の秘匿情報を踏まえた上で、相手と「{proposal.topic}」について会談します。\n"
         f"自国の情報に関することであれば創作しても構いません。また、発言は必ず日本語で行ってください。\n"
     )
@@ -127,8 +157,7 @@ def run_summit(
         # Aの発言 (最初はAから)
         prompt_a = base_context_a + turn_instruction + "\nこれまでの会話:\n" + "\n".join(messages) + f"\n\n{proposal.proposer}としての次の発言を入力してください:"
         try:
-            resp_a_obj = generate_func(model="gemini-2.5-pro", contents=prompt_a, category="summit")
-            resp_a = resp_a_obj.text.strip() if resp_a_obj and hasattr(resp_a_obj, 'text') else "..."
+            resp_a = _generate_with_tool(generate_func, logger, SUMMIT_MODEL, prompt_a, "summit", search_tool_a, proposal.proposer)
         except Exception as e:
             logger.sys_log(f"[{proposal.proposer}] APIエラー(Summit): {e}", "ERROR")
             resp_a = "通信障害により発言できませんでした。"
@@ -138,8 +167,7 @@ def run_summit(
         # Bの発言
         prompt_b = base_context_b + turn_instruction + "\nこれまでの会話:\n" + "\n".join(messages) + f"\n\n{proposal.target}としての次の発言を入力してください:"
         try:
-            resp_b_obj = generate_func(model="gemini-2.5-pro", contents=prompt_b, category="summit")
-            resp_b = resp_b_obj.text.strip() if resp_b_obj and hasattr(resp_b_obj, 'text') else "..."
+            resp_b = _generate_with_tool(generate_func, logger, SUMMIT_MODEL, prompt_b, "summit", search_tool_b, proposal.target)
         except Exception as e:
             logger.sys_log(f"[{proposal.target}] APIエラー(Summit): {e}", "ERROR")
             resp_b = "通信障害により発言できませんでした。"
@@ -149,7 +177,7 @@ def run_summit(
     # 合意の要約
     summary_prompt = "以下の首脳会談の記録から、両国の最終的な「合意事項（または物別れに終わったという結果）」を100文字程度で簡潔に要約してください。\n\n" + "\n".join(messages)
     try:
-        summary_obj = generate_func(model="gemini-2.5-pro", contents=summary_prompt, category="summit_summary")
+        summary_obj = generate_func(model=SUMMIT_MODEL, contents=summary_prompt, category="summit_summary")
         summary = summary_obj.text.strip() if summary_obj and hasattr(summary_obj, 'text') else "会談は終了しました"
     except Exception as e:
         logger.sys_log(f"[Summit Summary] APIエラー: {e}", "ERROR")
