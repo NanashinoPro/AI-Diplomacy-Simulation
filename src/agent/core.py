@@ -27,12 +27,20 @@ load_dotenv()
 class AgentSystem:
     """Gemini APIを使用して各国家の意思決定を行うAIエージェントシステム（外務・防衛・経済の大臣と大統領の4エージェント制）"""
     
-    def __init__(self, logger: SimulationLogger, model_name: str = "gemini-2.5-pro", db_manager=None): 
+    def __init__(self, logger: SimulationLogger = None, model_name: str = "gemini-2.5-pro", db_manager=None): 
         self.logger = logger
         self.db_manager = db_manager
         
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
+            # loggerがNone（ダミーインスタンス）の場合はAPI未設定でもクラッシュしない
+            if logger is None:
+                self.client = None
+                self.model_name = model_name
+                self.sentiment_analyzer = None
+                self.token_usage = {}
+                self.ollama_client = None
+                return
             raise ValueError("GEMINI_API_KEYが環境変数に設定されていません。")
             
         self.client = genai.Client(api_key=api_key, http_options={'timeout': 60000})
@@ -43,9 +51,11 @@ class AgentSystem:
         # Ollamaクライアントの初期化
         try:
             self.ollama_client = OllamaClient()
-            self.logger.sys_log("[System] Ollamaクライアント初期化完了 (mistral-small3.1)")
+            if self.logger:
+                self.logger.sys_log("[System] Ollamaクライアント初期化完了 (mistral-small3.1)")
         except ConnectionError as e:
-            self.logger.sys_log(f"[System] Ollamaクライアント初期化エラー: {e}", "ERROR")
+            if self.logger:
+                self.logger.sys_log(f"[System] Ollamaクライアント初期化エラー: {e}", "ERROR")
             self.ollama_client = None
 
     @retry(stop=stop_after_attempt(4), wait=wait_exponential(multiplier=2, min=4, max=30))

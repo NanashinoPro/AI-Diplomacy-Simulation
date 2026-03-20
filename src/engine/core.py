@@ -1,4 +1,5 @@
 import math
+import random
 from typing import Dict, List, Any
 from models import WorldState, AgentAction, SummitProposal
 
@@ -119,6 +120,31 @@ class WorldEngine(
                         decayed_deps[k] = decayed_val
             country.dependency_ratio = decayed_deps
             
+            # 属国の独立判定（ヒステリシス方式: 依存度40%以下でランダムルーレット）
+            if country.suzerain and country.suzerain in self.state.countries:
+                suzerain_dep = country.dependency_ratio.get(country.suzerain, 0.0)
+                if suzerain_dep <= 0.40:
+                    independence_chance = (0.40 - suzerain_dep) / 0.40
+                    roll = random.random()
+                    if roll < independence_chance:
+                        old_suzerain = country.suzerain
+                        country.suzerain = None
+                        self.log_event(
+                            f"🗽 【独立回復】{country_name}は{old_suzerain}からの経済的従属を脱し、"
+                            f"主権を回復しました！（依存度: {suzerain_dep*100:.1f}%, 独立確率: {independence_chance*100:.1f}%）",
+                            involved_countries=[country_name, old_suzerain, "global"]
+                        )
+                        self.sys_logs_this_turn.append(
+                            f"[{country_name} 独立回復] 依存度 {suzerain_dep*100:.1f}% (閾値40%), "
+                            f"確率 {independence_chance*100:.1f}%, ロール {roll*100:.1f}%"
+                        )
+                    else:
+                        self.sys_logs_this_turn.append(
+                            f"[{country_name} 独立失敗] 依存度 {suzerain_dep*100:.1f}%, "
+                            f"確率 {independence_chance*100:.1f}%, ロール {roll*100:.1f}%"
+                        )
+            
+
             # 属国の場合、独自の外交アクションを無効化（あるいは宗主国にひたすら協力する内容に書き換え可能だが、ここではシンプルに空にする）
             if country.suzerain and country_name in actions:
                 actions[country_name].diplomatic_policies = []
