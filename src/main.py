@@ -128,8 +128,15 @@ def main():
     parser = argparse.ArgumentParser(description="AI Diplomacy Simulation")
     parser.add_argument("--turns", type=int, default=40, help="Number of turns to run")
     parser.add_argument("--resume", type=str, help="Path to a simulation log file (.jsonl) to resume from", default=None)
+    parser.add_argument("--resume-turn", type=int, help="指定ターンの状態から再開する（--resumeと併用必須）", default=None, dest="resume_turn")
     parser.add_argument("--seed", type=int, default=None, help="乱数シード（再現性のために設定推奨）")
     args = parser.parse_args()
+    
+    # バリデーション: --resume-turn は --resume と併用必須
+    if args.resume_turn is not None and args.resume is None:
+        print("エラー: --resume-turn は --resume と併用してください。")
+        print("使用例: python src/main.py --resume logs/simulations/sim_XXXXXX.jsonl --resume-turn 18 --turns 3")
+        return
     
     # --- 再現性のための乱数シード設定 ---
     if args.seed is not None:
@@ -139,6 +146,9 @@ def main():
         current_seed = random.randint(0, 2**32 - 1)
         print(f"🔒 乱数シード（自動生成）: {current_seed}")
     random.seed(current_seed)
+    # past_news_queue を事前に宣言（resume時に復元する可能性があるため）
+    past_news_queue_restored = None
+    
     if args.resume:
         if not os.path.exists(args.resume):
             print(f"エラー: 指定されたログファイルが見つかりません: {args.resume}")
@@ -149,9 +159,40 @@ def main():
             if not lines:
                 print("エラー: ログファイルが空です。")
                 return
-            last_line = lines[-1]
-            last_turn_data = json.loads(last_line)
-            world_state = WorldState.model_validate(last_turn_data["world_state"])
+            
+            if args.resume_turn is not None:
+                # --- 指定ターンからの再開 ---
+                target_data = None
+                all_turn_data = []
+                available_turns = []
+                for line in lines:
+                    data = json.loads(line)
+                    all_turn_data.append(data)
+                    available_turns.append(data["turn"])
+                    if data["turn"] == args.resume_turn:
+                        target_data = data
+                
+                if target_data is None:
+                    print(f"エラー: ターン {args.resume_turn} がログファイルに見つかりません。")
+                    print(f"利用可能なターン: {available_turns}")
+                    return
+                
+                world_state = WorldState.model_validate(target_data["world_state"])
+                
+                # past_news_queue の復元（直近4ターン分）
+                past_news_queue_restored = []
+                for data in all_turn_data:
+                    if data["turn"] <= args.resume_turn and data["turn"] > args.resume_turn - 4:
+                        past_news_queue_restored.append(
+                            data["world_state"].get("news_events", [])
+                        )
+                
+                print(f"📂 ターン {args.resume_turn} の状態を復元しました。")
+            else:
+                # --- 従来動作: 最終ターンから再開 ---
+                last_line = lines[-1]
+                last_turn_data = json.loads(last_line)
+                world_state = WorldState.model_validate(last_turn_data["world_state"])
             
         # ファイル名から session_id を抽出 (例: sim_20260301_192846.jsonl)
         filename = os.path.basename(args.resume)
@@ -162,6 +203,8 @@ def main():
             
         logger = SimulationLogger(session_id=session_id)
         logger.sys_log(f"[Reproducibility] 乱数シード: {current_seed}")
+        if args.resume_turn is not None:
+            logger.sys_log(f"[Resume] ターン {args.resume_turn} の状態から再開")
     else:
         # システム初期化
         world_state = initialize_world()
@@ -189,7 +232,8 @@ def main():
 
     # シミュレーションループ
     MAX_TURNS = args.turns
-    past_news_queue = []
+    # past_news_queue の初期化（resume時に復元されている場合はそれを使用）
+    past_news_queue = past_news_queue_restored if past_news_queue_restored is not None else []
 
     # ideologyが空の国家に初期ideologyを生成（CSV空欄→首脳エージェントが自律記述）
     empty_ideology_countries = [
