@@ -77,3 +77,9 @@ FRAGMENTATION_TRADE_FACTOR_MULTIPLIER = 5.0
 # 正常時の税率(30%)に対し、行政機構の混乱による一時的な低下を0.20〜0.30の範囲でランダムに表現する。
 COUP_BUDGET_RATIO_MIN = 0.20
 COUP_BUDGET_RATIO_MAX = 0.30
+
+# --- 分裂後経済安定化モデル定数 ---
+# [学術的根拠] Álvarez-Pereira et al. (2022, PLOS ONE)
+# 分裂後のGDP/C低下は累計-20%～-24%で収束する。ソ連崩壊時でも年-10%程度が上限。
+GDP_GROWTH_FLOOR_EARLY = -10.0   # 分裂直後(2ターン以内)のGDP/C成長率下限（四半期あたり）
+GDP_GROWTH_FLOOR_NORMAL = -5.0   # 通常時のGDP/C成長率下限（四半期あたり）

@@ -124,6 +124,15 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
                 f"諜報力={p_state.intelligence_level:.1f}, "
                 f"関係={rel_str}{war_info}{suzerain_info}\n"
             )
+            
+            # 新興独立国/政権交代直後の国に関する援助機会の通知
+            # Alesina & Spolaore (2003): 小国は国際支援と貿易開放で大国並みの成長が可能
+            if p_state.regime_duration <= 2 and p_name != country_name:
+                other_info += (
+                    f"  🆕【新興国家/新政権】{p_name}は直近に独立または政権交代した国家です。"
+                    f"経済援助(aid_amount_economy)や軍事援助(aid_amount_military)を提供することで"
+                    f"影響力を拡大できますが、相手の依存度上昇リスクも考慮してください。\n"
+                )
         
     news_info = ""
     if past_news:

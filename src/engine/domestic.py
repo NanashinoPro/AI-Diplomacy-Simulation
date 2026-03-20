@@ -12,7 +12,8 @@ from .constants import (
     ENDOGENOUS_GROWTH_ALPHA, DEBT_TO_GDP_PENALTY_THRESHOLD,
     BASE_MILITARY_MAINTENANCE_ALPHA, MAX_MILITARY_FATIGUE_ALPHA, BASE_MILITARY_GROWTH_RATE,
     INTEL_GROWTH_RATE, INTEL_MAINTENANCE_ALPHA,
-    EDUCATION_GROWTH_RATE, EDUCATION_MAINTENANCE_ALPHA
+    EDUCATION_GROWTH_RATE, EDUCATION_MAINTENANCE_ALPHA,
+    GDP_GROWTH_FLOOR_EARLY, GDP_GROWTH_FLOOR_NORMAL
 )
 
 class DomesticMixin:
@@ -306,6 +307,23 @@ class DomesticMixin:
         # 成長率ボーナスの計算 (総GDPではなく1人当たりGDPの成長率を使用し、人口増による豊かさの希釈と過剰動員ペナルティを反映)
         new_gdp_per_capita = country.economy / max(0.1, country.population)
         gdp_growth_rate = (new_gdp_per_capita - gdp_per_capita) / max(1.0, gdp_per_capita) * 100.0
+
+        # --- GDP成長率のフロア設定 (Álvarez-Pereira et al. 2022) ---
+        # 分裂直後（2ターン以内）は四半期あたり-10%、通常時は-5%をフロアとする
+        if country.regime_duration <= 2:
+            growth_floor = GDP_GROWTH_FLOOR_EARLY
+        else:
+            growth_floor = GDP_GROWTH_FLOOR_NORMAL
+
+        if gdp_growth_rate < growth_floor:
+            target_gdp_per_capita = gdp_per_capita * (1.0 + growth_floor / 100.0)
+            country.economy = max(1.0, target_gdp_per_capita * country.population)
+            new_gdp_per_capita = country.economy / max(0.1, country.population)
+            self.sys_logs_this_turn.append(
+                f"[{country.name} GDP成長フロア適用] 成長率 {gdp_growth_rate:.1f}% → {growth_floor:.1f}% に制限 "
+                f"(学術的根拠: Álvarez-Pereira et al. 2022)"
+            )
+            gdp_growth_rate = growth_floor
 
         # 2. 相対的な貧困ショック (1人当たりGDPが前期比で-5.0%以上急落した場合)
         if gdp_growth_rate < -5.0:

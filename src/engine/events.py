@@ -1,7 +1,7 @@
 import random
 import uuid
 from scipy.stats import skewnorm
-from models import CountryState, GovernmentType, WarState, DisasterEvent, BreakthroughState
+from models import CountryState, GovernmentType, WarState, DisasterEvent, BreakthroughState, TradeState
 from .constants import (
     GLOBAL_DISASTERS, NATIONAL_DISASTERS, EARTH_LAND_AREA,
     FRAGMENTATION_BASE_INSTABILITY_MULTIPLIER, FRAGMENTATION_SIZE_FACTOR_MULTIPLIER, FRAGMENTATION_TRADE_FACTOR_MULTIPLIER,
@@ -338,6 +338,27 @@ class EventsMixin:
                 target_occupation_progress=0.0
             )
             self.state.active_wars.append(war)
+
+        # 6. 貿易協定の引き継ぎ (Fidrmuc & Fidrmuc 2003: 分裂後も貿易はゼロにならない)
+        # 旧母国が持っていた貿易協定を新国家にも適用
+        old_trades = [t for t in self.state.active_trades if t.country_a == old_name or t.country_b == old_name]
+        inherited_partners = []
+        for t in old_trades:
+            partner = t.country_b if t.country_a == old_name else t.country_a
+            if partner != new_name:  # 自分自身との貿易は除外
+                self.state.active_trades.append(TradeState(country_a=new_name, country_b=partner))
+                inherited_partners.append(partner)
+
+        # 平和的離別の場合は旧母国との貿易協定も付与
+        if old_country.government_type == GovernmentType.DEMOCRACY:
+            self.state.active_trades.append(TradeState(country_a=old_name, country_b=new_name))
+            inherited_partners.append(old_name)
+
+        if inherited_partners:
+            self.log_event(
+                f"📊 【残留貿易】{new_name}は{', '.join(inherited_partners)}との暫定的な貿易関係を引き継ぎました",
+                involved_countries=[new_name] + inherited_partners
+            )
             
         # もし100%乗っ取られて旧政権のリソースが微小（1.0未満）になった場合、事実上の滅亡処理
         if old_country.economy <= 1.5 or old_country.military <= 1.0:
