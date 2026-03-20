@@ -70,3 +70,10 @@ NATIONAL_DISASTERS = [
 FRAGMENTATION_BASE_INSTABILITY_MULTIPLIER = 0.2
 FRAGMENTATION_SIZE_FACTOR_MULTIPLIER = 0.05
 FRAGMENTATION_TRADE_FACTOR_MULTIPLIER = 5.0
+
+# クーデター後の緊急予算リセット比率（対GDP比）
+# [学術的根拠] AfDB研究によりクーデター後の税収低下は段階的であり、
+# 即座にGDP比10%まで激減するエビデンスは存在しない。
+# 正常時の税率(30%)に対し、行政機構の混乱による一時的な低下を0.20〜0.30の範囲でランダムに表現する。
+COUP_BUDGET_RATIO_MIN = 0.20
+COUP_BUDGET_RATIO_MAX = 0.30

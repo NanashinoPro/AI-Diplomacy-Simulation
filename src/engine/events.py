@@ -4,7 +4,8 @@ from scipy.stats import skewnorm
 from models import CountryState, GovernmentType, WarState, DisasterEvent, BreakthroughState
 from .constants import (
     GLOBAL_DISASTERS, NATIONAL_DISASTERS, EARTH_LAND_AREA,
-    FRAGMENTATION_BASE_INSTABILITY_MULTIPLIER, FRAGMENTATION_SIZE_FACTOR_MULTIPLIER, FRAGMENTATION_TRADE_FACTOR_MULTIPLIER
+    FRAGMENTATION_BASE_INSTABILITY_MULTIPLIER, FRAGMENTATION_SIZE_FACTOR_MULTIPLIER, FRAGMENTATION_TRADE_FACTOR_MULTIPLIER,
+    COUP_BUDGET_RATIO_MIN, COUP_BUDGET_RATIO_MAX
 )
 
 class EventsMixin:
@@ -196,7 +197,8 @@ class EventsMixin:
         #   政府予算の強制補充や税率の一時的適正化を行う）
         country.economy = max(10.0, country.economy * 0.9) # 内戦による経済ダメージ（10%減）
         country.military = max(0.5, country.economy * 0.1)  # 軍事力をGDPの10%にリセット
-        country.government_budget = country.economy * 0.1 # 緊急予算の確保
+        coup_budget_ratio = random.uniform(COUP_BUDGET_RATIO_MIN, COUP_BUDGET_RATIO_MAX)
+        country.government_budget = country.economy * coup_budget_ratio # 緊急予算の確保（クーデター後の税収低下を反映）
         country.tax_rate = 0.3 # 標準税率へ一旦リセット
         
         # 政府支持率の反転 (100% - 旧支持率) 
