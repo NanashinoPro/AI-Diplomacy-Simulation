@@ -168,6 +168,24 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
                     f"影響力を拡大できますが、相手の依存度上昇リスクも考慮してください。\n"
                 )
         
+        # 自国が直接関与していない他国間の進行中の戦争を表示
+        third_party_wars = []
+        for w in world_state.active_wars:
+            if w.aggressor != country_name and w.defender != country_name:
+                third_party_wars.append(w)
+        if third_party_wars:
+            other_info += "\n---【他国間の進行中の戦争】---\n"
+            other_info += "※自国が直接関与していない戦争です。友好国への軍事援助（aid_amount_military）で戦局に介入可能。\n"
+            for w in third_party_wars:
+                rel_agg = world_state.relations.get(country_name, {}).get(w.aggressor, RelationType.NEUTRAL)
+                rel_def = world_state.relations.get(country_name, {}).get(w.defender, RelationType.NEUTRAL)
+                other_info += (
+                    f"  ⚔️ {w.aggressor}（攻撃側, 投入率{w.aggressor_commitment_ratio:.0%}）"
+                    f" vs {w.defender}（防衛側, 投入率{w.defender_commitment_ratio:.0%}）"
+                    f" | 占領進捗: {w.target_occupation_progress:.1f}%"
+                    f" | 自国との関係: {w.aggressor}={rel_agg.value}, {w.defender}={rel_def.value}\n"
+                )
+        
     news_info = ""
     if past_news:
         news_info = "---直近1年(4四半期)の自国関連ニュース---\n"
