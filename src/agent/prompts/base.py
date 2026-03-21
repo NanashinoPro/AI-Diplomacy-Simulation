@@ -40,7 +40,7 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
         f"国家債務(National Debt): {country_state.national_debt:.1f} (GDP比 {(country_state.national_debt / max(0.1, country_state.economy)):.1%}。高すぎると経済成長に深刻なペナルティ)\n"
         f"国民の支持率: {country_state.approval_rating:.1f}% (30%未満で危険)\n"
         f"報道の自由度: {country_state.press_freedom:.3f} (0.0-1.0。低いほど情報統制されるが不満が高まる)\n"
-        f"教育・人的資本レベル: {country_state.education_level:.2f} (内生的成長理論に基づき、蓄積されるほどGDPを押し上げる能力が高まる)\n"
+        f"人的資本指数(PWT HCI): {country_state.human_capital_index:.3f} (平均就学年数: {country_state.mean_years_schooling:.1f}年。内生的成長理論に基づき、蓄積されるほどGDPを押し上げる能力が高まる)\n"
     )
     
     if country_state.turns_until_election is not None:

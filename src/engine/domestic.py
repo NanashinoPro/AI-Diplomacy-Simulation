@@ -12,9 +12,32 @@ from .constants import (
     ENDOGENOUS_GROWTH_ALPHA, DEBT_TO_GDP_PENALTY_THRESHOLD,
     BASE_MILITARY_MAINTENANCE_ALPHA, MAX_MILITARY_FATIGUE_ALPHA, BASE_MILITARY_GROWTH_RATE,
     INTEL_GROWTH_RATE, INTEL_MAINTENANCE_ALPHA,
-    EDUCATION_GROWTH_RATE, EDUCATION_MAINTENANCE_ALPHA,
+    MINCER_RETURN_PRIMARY, MINCER_RETURN_SECONDARY, MINCER_RETURN_TERTIARY,
+    MYS_GROWTH_RATE, MYS_DECAY_RATE,
     GDP_GROWTH_FLOOR_EARLY, GDP_GROWTH_FLOOR_NORMAL
 )
+
+def compute_pwt_hci(s: float) -> float:
+    """Penn World Table 人的資本指数を算出する (Hall & Jones 1999, Psacharopoulos 1994).
+    
+    φ(s) = 区分線形ミンサー方程式に基づく収益率関数
+    hc = e^φ(s)
+    
+    Args:
+        s: 平均就学年数 (Mean Years of Schooling)
+    Returns:
+        人的資本指数 (hc)
+    """
+    s = max(0.0, s)
+    if s <= 4.0:
+        phi = MINCER_RETURN_PRIMARY * s
+    elif s <= 8.0:
+        phi = MINCER_RETURN_PRIMARY * 4.0 + MINCER_RETURN_SECONDARY * (s - 4.0)
+    else:
+        phi = (MINCER_RETURN_PRIMARY * 4.0 + MINCER_RETURN_SECONDARY * 4.0 
+               + MINCER_RETURN_TERTIARY * (s - 8.0))
+    return math.exp(phi)
+
 
 class DomesticMixin:
     def _process_domestic(self, country_name: str, action: AgentAction):
@@ -211,9 +234,9 @@ class DomesticMixin:
         
         I *= breakthrough_multiplier
 
-        # --- 教育・科学投資による人的資本の限界効用逓減 (Mankiw, Romer, and Weil 1992) ---
-        # H0(initial_education_level)に対する比率。単位依存を解消。
-        base_h_ratio = country.education_level / max(1.0, country.initial_education_level)
+        # --- PWT HCIによる人的資本の限界効用逓減 (Mankiw, Romer, and Weil 1992) ---
+        # 初期HCIに対する現在HCIの比率。PWT HCIスケール(≈1.0-4.5)で安定。
+        base_h_ratio = country.human_capital_index / max(1.0, country.initial_human_capital_index)
         
         # 物理的なインフレ上限の設定
         # log2を使うことで、指数関数的成長に対して強力にブレーキをかけ、実質的なシステムキャップとする
@@ -261,7 +284,7 @@ class DomesticMixin:
         
         # 出生率: 基礎2%。1人当たりGDPと教育水準が高いほど低下 (少子化の罠)
         base_birth_rate = 0.02
-        birth_rate_reduction = min(0.015, (math.log10(max(1.0, gdp_per_capita)) * 0.002) + (country.education_level / 1000.0 * 0.005))
+        birth_rate_reduction = min(0.015, (math.log10(max(1.0, gdp_per_capita)) * 0.002) + (country.mean_years_schooling / 20.0 * 0.005))
         welfare_birth_bonus = inv_wel * 0.01 * execution_power
         birth_rate = max(0.001, base_birth_rate - birth_rate_reduction + welfare_birth_bonus)
         
@@ -370,10 +393,21 @@ class DomesticMixin:
         intel_growth = g_intel * INTEL_GROWTH_RATE
         country.intelligence_level = (country.intelligence_level * (1.0 - INTEL_MAINTENANCE_ALPHA)) + intel_growth
 
-        # --- 教育・科学技術の蓄積・減衰（ルーカス・モデル）---
-        old_edu = country.education_level
-        edu_growth = g_edu * EDUCATION_GROWTH_RATE
-        country.education_level = (country.education_level * (1.0 - EDUCATION_MAINTENANCE_ALPHA)) + edu_growth
+        # --- PWT HCI: 教育投資 → 平均就学年数(MYS) → 人的資本指数(HCI) の更新 ---
+        # [学術的根拠] Jackson et al. (2016, QJE): 教育支出10%増 → 完了就学年数+0.27~0.43年
+        old_mys = country.mean_years_schooling
+        old_hci = country.human_capital_index
+        
+        # Step 1: 教育投資のGDP比から就学年数の増加量を算出
+        edu_investment_ratio = g_edu / max(1.0, old_gdp)
+        delta_mys = math.log1p(edu_investment_ratio * 10.0) * MYS_GROWTH_RATE
+        
+        # Step 2: 自然減衰（退職・知識陳腐化）を適用して新MYSを算出
+        country.mean_years_schooling = max(0.0, 
+            country.mean_years_schooling * (1.0 - MYS_DECAY_RATE) + delta_mys)
+        
+        # Step 3: PWT HCI の再計算（ミンサー区分線形関数）
+        country.human_capital_index = compute_pwt_hci(country.mean_years_schooling)
             
         self.turn_domestic_factors[country_name] = {
             "gdp_growth_rate": gdp_growth_rate,
@@ -393,6 +427,6 @@ class DomesticMixin:
             f"動員率:{mobilization_rate:.1%}{mobilization_penalty_text}\n"
             f"  > 軍事力:{old_military:.1f} -> {country.military:.1f} (+{military_growth:.1f}, 維持費: -{alpha*100:.1f}%), "
             f"諜報:{old_intel:.1f} -> {country.intelligence_level:.1f}, "
-            f"教育:{old_edu:.2f} -> {country.education_level:.2f}, "
+            f"HCI:{old_hci:.3f} -> {country.human_capital_index:.3f} (MYS:{old_mys:.2f} -> {country.mean_years_schooling:.2f}), "
             f"支持率:{old_approval:.1f}% -> {country.approval_rating:.1f}%"
         )

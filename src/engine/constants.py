@@ -43,9 +43,14 @@ DEFENDER_ADVANTAGE_MULTIPLIER = 1.2
 INTEL_GROWTH_RATE = 0.02           # 諜報投資の成長率（軍事と同スケール）
 INTEL_MAINTENANCE_ALPHA = 0.05     # 諜報網の自然減衰率
 
-# --- 教育・科学システム定数（内生的成長理論）---
-EDUCATION_GROWTH_RATE = 0.05       # 教育投資の成長率（人的資本の蓄積速度。絶対額スケール調整済み）
-EDUCATION_MAINTENANCE_ALPHA = 0.015 # 人的資本の自然減衰率（1%/四半期。知識の陳腐化等）
+# --- 教育・科学システム定数（PWT HCI: Penn World Table 人的資本指数）---
+# [学術的根拠] Penn World Table 11.0 (Feenstra, Inklaar & Timmer 2015)
+# hc = e^φ(s), φ(s) = ミンサー方程式ベースの区分線形収益率関数
+MINCER_RETURN_PRIMARY = 0.134      # 初等教育の収益率（就学0-4年目）[Psacharopoulos 1994]
+MINCER_RETURN_SECONDARY = 0.101    # 中等教育の収益率（就学5-8年目）[Psacharopoulos 1994]
+MINCER_RETURN_TERTIARY = 0.068     # 高等教育の収益率（就学9年目以降）[Psacharopoulos 1994]
+MYS_GROWTH_RATE = 0.04             # 教育投資の平均就学年数(MYS)増加率 [Jackson et al. 2016, QJE]
+MYS_DECAY_RATE = 0.003             # MYSの四半期あたり自然減衰率（年1.2%。退職・知識陳腐化）
 ENDOGENOUS_GROWTH_ALPHA = 0.05     # 内生的成長ボーナス係数。教育・科学投資が直接GDP成長率（イノベーション）に与える影響
 
 # --- 政治・実行力モデル定数 ---

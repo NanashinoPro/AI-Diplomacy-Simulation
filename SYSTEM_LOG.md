@@ -1,5 +1,35 @@
 # System Log
 
+## 2026-03-21 13:00:00 - 教育指標のPWT HCI（Penn World Table 人的資本指数）への全面移行
+- **修正内容**: 旧来の`education_level`（R&D支出絶対額ベース）を廃止し、Penn World Table 11.0準拠の人的資本指数（PWT HCI）に全面移行。ミンサー方程式に基づく区分線形収益率関数で算出。
+- **学術的根拠**:
+    - Penn World Table 11.0 (Feenstra, Inklaar & Timmer 2015): HCI算出方法論
+    - Psacharopoulos (1994): ミンサー収益率（初等13.4%/中等10.1%/高等6.8%）
+    - Barro & Lee (2013): 平均就学年数（MYS）の国別データ
+    - Jackson et al. (2016, QJE): 教育支出→就学年数の因果関係
+- **実装詳細**:
+    - `src/engine/constants.py`: `EDUCATION_GROWTH_RATE`/`EDUCATION_MAINTENANCE_ALPHA`を廃止、`MYS_GROWTH_RATE=0.04`/`MYS_DECAY_RATE=0.003`/`MINCER_RETURN_PRIMARY=0.134`/`MINCER_RETURN_SECONDARY=0.101`/`MINCER_RETURN_TERTIARY=0.068`を新設
+    - `src/models.py`: `education_level`→`human_capital_index`、`initial_education_level`→`initial_human_capital_index`にリネーム、`mean_years_schooling`フィールド追加
+    - `src/engine/domestic.py`: `compute_pwt_hci()`関数新設、教育バフ・出生率・蓄積式をすべてPWT HCIモデルに改修
+    - `src/engine/core.py`, `src/main.py`: 初期化ロジック変更
+    - `src/engine/events.py`: 国家分裂時のHCI/MYS引き継ぎ
+    - `src/agent/prompts/base.py`, `src/agent/prompts/economic.py`: AIプロンプトをPWT HCI用語に更新
+    - `src/logger.py`, `src/templates/index.html`: 表示名をHCIに変更（UIは後方互換フォールバック付き）
+    - `data/initial_stats.csv`: 各国初期値をBarro & Lee (2013)準拠に更新
+    - `docs/ARCHITECTURE.md`: §2.2の数理モデルを全面改訂
+- **初期値**:
+    | 国 | MYS | HCI |
+    |:--|:--|:--|
+    | アメリカ | 13.7年 | 3.774 |
+    | 中国 | 8.1年 | 2.578 |
+    | 日本 | 13.0年 | 3.597 |
+- **後方互換性**: 旧ログファイルの`education_level`フィールドはWeb UIでフォールバック表示される
+
+> **【AIからの報告】**
+> ボス、教育指標をPenn World Table人的資本指数（PWT HCI）に全面移行しました。
+> ミンサー方程式（区分線形：初等13.4%/中等10.1%/高等6.8%）で算出し、Barro & Lee (2013)の平均就学年数データで初期化しています。
+> 教育投資→MYS増加→HCI再計算の間接モデルにより、旧来のR&D支出絶対額ベースの問題（単位依存性）を解消しました。
+
 ## 2026-03-21 08:45:00 - ニュースフィルタリング機能の実装（プロンプト最適化）
 - **修正内容**: 各大臣・大統領エージェントのプロンプトに渡される直近4ターン分のニュースイベント（`past_news_queue`）を、自国に関連するニュースのみにフィルタリングする機能を実装。プロンプトサイズの削減とDB検索ツール（Function Calling）の利用促進を目的とする。
 - **実装詳細**:

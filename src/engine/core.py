@@ -43,8 +43,8 @@ class WorldEngine(
 
         # 1ターン目のみ、各国の初期教育レベルを保存（規格化用）
         for name, country in self.state.countries.items():
-            if country.initial_education_level <= 1.0 and country.education_level > 1.0:
-                country.initial_education_level = country.education_level
+            if country.initial_human_capital_index <= 1.0 and country.human_capital_index > 1.0:
+                country.initial_human_capital_index = country.human_capital_index
             # [追加] 政権の存続期間をインクリメント
             country.regime_duration += 1
 

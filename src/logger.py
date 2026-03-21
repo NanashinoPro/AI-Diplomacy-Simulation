@@ -82,7 +82,7 @@ class SimulationLogger:
         table.add_column("1人当GDP", justify="right", style="green")
         table.add_column("経済力", justify="right", style="green")
         table.add_column("軍事力", justify="right", style="red")
-        table.add_column("教育・科学", justify="right", style="purple")
+        table.add_column("HCI", justify="right", style="purple")
         table.add_column("諜報力", justify="right", style="blue")
         table.add_column("支持率", justify="right", style="yellow")
         table.add_column("イデオロギー/状態", style="white")
@@ -111,7 +111,7 @@ class SimulationLogger:
                 f"{(c.economy / max(0.1, c.population)):.1f}",
                 f"{c.economy:.1f}",
                 f"{c.military:.1f}",
-                f"{c.education_level:.1f}",
+                f"{c.human_capital_index:.2f}",
                 f"{c.intelligence_level:.1f}",
                 f"{c.approval_rating:.1f}%",
                 ideology_text

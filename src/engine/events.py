@@ -277,8 +277,9 @@ class EventsMixin:
         new_population = max(0.1, old_country.population * split_ratio)
         
         # 人的インフラ（教育）の引き継ぎ（無減衰で100%引き継ぎ）
-        new_education = old_country.education_level
-        new_initial_education = old_country.initial_education_level
+        new_hci = old_country.human_capital_index
+        new_initial_hci = old_country.initial_human_capital_index
+        new_mys = old_country.mean_years_schooling
         # 組織インフラ（諜報）の分割
         new_intelligence = max(0.0, old_country.intelligence_level * split_ratio)
         
@@ -311,8 +312,9 @@ class EventsMixin:
             area=new_area,
             population=new_population,
             initial_population=new_population,
-            education_level=new_education,
-            initial_education_level=max(1.0, new_initial_education), # 0割りを防ぐ
+            human_capital_index=new_hci,
+            initial_human_capital_index=max(1.0, new_initial_hci), # 0割りを防ぐ
+            mean_years_schooling=new_mys,
             intelligence_level=new_intelligence
         )
         new_country.national_debt = new_debt

@@ -313,7 +313,7 @@
                                     <th>経済力</th>
                                     <th>軍事力</th>
                                     <th>諜報力</th>
-                                    <th>教育・科学</th>
+                                    <th>HCI</th>
                                     <th>税率</th>
                                     <th>支持率</th>
                                 </tr>
@@ -457,7 +457,7 @@
                 const milData = simulationData.map(d => d.world_state.countries[country] ? d.world_state.countries[country].military : null);
                 const appData = simulationData.map(d => d.world_state.countries[country] ? d.world_state.countries[country].approval_rating : null);
                 const intData = simulationData.map(d => d.world_state.countries[country] ? (d.world_state.countries[country].intelligence_level || 0) : null);
-                const eduData = simulationData.map(d => d.world_state.countries[country] ? (d.world_state.countries[country].education_level || 0) : null);
+                const eduData = simulationData.map(d => d.world_state.countries[country] ? (d.world_state.countries[country].human_capital_index || d.world_state.countries[country].education_level || 0) : null);
                 const popData = simulationData.map(d => d.world_state.countries[country] ? (d.world_state.countries[country].population || 0) : null);
 
                 datasets.economy.push({ label: country, data: ecoData, borderColor: color, fill: false, tension: 0.1, pointRadius: 0 });
@@ -483,7 +483,7 @@
             militaryChart = drawChart('militaryChart', '⚔️ 軍事力推移', datasets.military, militaryChart);
             approvalChart = drawChart('approvalChart', '👍 支持率推移 (%)', datasets.approval, approvalChart);
             intelligenceChart = drawChart('intelligenceChart', '🕵️ 諜報力推移', datasets.intelligence, intelligenceChart);
-            educationChart = drawChart('educationChart', '🎓 教育・科学推移', datasets.education, educationChart);
+            educationChart = drawChart('educationChart', '🎓 人的資本指数(HCI)推移', datasets.education, educationChart);
             populationChart = drawChart('populationChart', '👥 人口推移', datasets.population, populationChart);
         }
 
@@ -578,7 +578,7 @@
                     <td>${Number(info.economy).toFixed(1)}</td>
                     <td>${Number(info.military).toFixed(1)}</td>
                     <td>${Number(info.intelligence_level || 0).toFixed(1)}</td>
-                    <td>${Number(info.education_level || 0).toFixed(1)}</td>
+                    <td>${Number(info.human_capital_index || info.education_level || 0).toFixed(3)}</td>
                     <td>${Number((info.tax_rate || 0) * 100).toFixed(1)}%</td>
                     <td>${Number(info.approval_rating).toFixed(1)}%</td>
                 `;
