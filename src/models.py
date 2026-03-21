@@ -137,6 +137,7 @@ class WarState(BaseModel):
     target_occupation_progress: float = Field(0.0, ge=0.0, le=100.0, description="攻撃側による防衛側領土の占領進捗率（0-100）。100で降伏。")
     aggressor_commitment_ratio: float = Field(0.50, ge=0.0, le=1.0, description="攻撃側の軍事力投入比率（0.0-1.0）。自国軍のうちどれだけを前線に投入するか")
     defender_commitment_ratio: float = Field(0.80, ge=0.0, le=1.0, description="防衛側の軍事力投入比率（0.0-1.0）。自衛のため通常は高め")
+    war_turns_elapsed: int = Field(0, ge=0, description="戦争経過ターン数。Rally効果と戦争疲弊の計算に使用")
 
 class TradeState(BaseModel):
     """貿易協定を結んでいるペア"""

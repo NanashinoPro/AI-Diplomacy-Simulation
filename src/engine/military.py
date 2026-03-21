@@ -49,9 +49,29 @@ class MilitaryMixin:
             aggressor.economy *= max(0.90, 0.98 * agg_war_drain)
             defender.economy *= max(0.90, 0.98 * def_war_drain)
             
-            # 支持率デバフ（長引く戦争の不満）
+            # 支持率デバフ/ボーナス
+            # 攻撃側: 長引く戦争の不満
             aggressor.approval_rating -= 1.0
-            defender.approval_rating -= 1.5 # 防戦の被害実感
+            
+            # 防衛側: Rally 'round the flag 効果 (Mueller 1970, 1973)
+            # 自国が侵攻を受けると国民が一致団結し、支持率が一時的に急上昇する。
+            # 効果は時間と共に減衰し、長期化すると戦争疲弊（War Fatigue）に転じる。
+            war_turns = getattr(war, 'war_turns_elapsed', 0)
+            if war_turns <= 4:
+                # 初期ラリー効果（最初の4ターン=1年）: 最大+10%→減衰
+                rally_bonus = max(0.0, 10.0 - (war_turns * 2.5))  # +10, +7.5, +5.0, +2.5, +0.0
+                defender.approval_rating = min(100.0, defender.approval_rating + rally_bonus)
+                if rally_bonus > 0:
+                    self.sys_logs_this_turn.append(
+                        f"[Rally効果] {defender.name}: 国民の結束により支持率 +{rally_bonus:.1f}% "
+                        f"(Mueller 1970, 経過{war_turns}ターン)"
+                    )
+            else:
+                # 戦争疲弊期（5ターン目以降）: -1.5%/ターン
+                defender.approval_rating -= 1.5
+            
+            # 戦争経過ターンのカウントアップ
+            war.war_turns_elapsed = war_turns + 1
             
             # 占領進捗率の更新 (投入済み戦力の差による)
             power_diff = agg_power - def_power
