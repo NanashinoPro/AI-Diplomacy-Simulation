@@ -135,7 +135,19 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
             war_info = ""
             for w in world_state.active_wars:
                 if (w.aggressor == country_name and w.defender == p_name) or (w.aggressor == p_name and w.defender == country_name):
-                    war_info = f" [!交戦中!] 占領進捗率: {w.target_occupation_progress:.1f}%"
+                    if w.aggressor == country_name:
+                        my_commit = w.aggressor_commitment_ratio
+                        enemy_commit = w.defender_commitment_ratio
+                        role = "攻撃側"
+                    else:
+                        my_commit = w.defender_commitment_ratio
+                        enemy_commit = w.aggressor_commitment_ratio
+                        role = "防衛側"
+                    war_info = (
+                        f" [!交戦中({role})!] 占領進捗率: {w.target_occupation_progress:.1f}%"
+                        f" | 自国投入率: {my_commit:.0%}, 敵国投入率: {enemy_commit:.0%}"
+                        f" (war_commitment_ratioで投入率を変更可能。高いほど戦力増だが経済負担も増大)"
+                    )
             
             suzerain_info = f", 宗主国={p_state.suzerain}" if getattr(p_state, 'suzerain', None) else ""
             

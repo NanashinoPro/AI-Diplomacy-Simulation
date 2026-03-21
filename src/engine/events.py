@@ -333,11 +333,11 @@ class EventsMixin:
             # Secessionist War（内戦突入）
             self.log_event(f"⚔️ 【独立戦争勃発】{old_name}の独裁体制は独立を許さず、直ちに{new_name}に対する武力鎮圧を開始！凄惨な内戦に突入しました！", involved_countries=[old_name, new_name, "global"])
             war = WarState(
-                id=str(uuid.uuid4()),
                 aggressor=old_name,
                 defender=new_name,
-                turn_started=self.state.turn,
-                target_occupation_progress=0.0
+                target_occupation_progress=0.0,
+                aggressor_commitment_ratio=0.80,  # 武力鎮圧のため高め
+                defender_commitment_ratio=0.90     # 独立防衛のため全力投入
             )
             self.state.active_wars.append(war)
 

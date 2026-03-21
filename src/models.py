@@ -107,6 +107,9 @@ class DiplomaticAction(BaseModel):
     accept_summit: bool = Field(False, description="前のターンに相手から提案された首脳会談を受諾するか")
     summit_topic: Optional[str] = Field(None, description="首脳会談で議論したい議題（提案または受諾時のみ記載）")
     
+    # 軍事侵攻比率の変更
+    war_commitment_ratio: Optional[float] = Field(None, ge=0.1, le=1.0, description="交戦中の場合、この戦争に投入する軍事力の比率を変更する（0.1〜1.0。未指定なら現状維持）")
+    
     # 対外援助 (Foreign Aid)
     aid_amount_economy: float = Field(0.0, ge=0.0, description="対象国に対する民生・インフラへの経済支援額（自国の政府予算から拠出。翌ターンに相手国が受入判断する）")
     aid_amount_military: float = Field(0.0, ge=0.0, description="対象国に対する兵器・軍事物資の軍事支援額（自国の政府予算から拠出。翌ターンに相手国が受入判断する）")
@@ -132,6 +135,8 @@ class WarState(BaseModel):
     aggressor: str = Field(..., description="攻撃側（宣戦布告した国）")
     defender: str = Field(..., description="防衛側（攻撃された国）")
     target_occupation_progress: float = Field(0.0, ge=0.0, le=100.0, description="攻撃側による防衛側領土の占領進捗率（0-100）。100で降伏。")
+    aggressor_commitment_ratio: float = Field(0.50, ge=0.0, le=1.0, description="攻撃側の軍事力投入比率（0.0-1.0）。自国軍のうちどれだけを前線に投入するか")
+    defender_commitment_ratio: float = Field(0.80, ge=0.0, le=1.0, description="防衛側の軍事力投入比率（0.0-1.0）。自衛のため通常は高め")
 
 class TradeState(BaseModel):
     """貿易協定を結んでいるペア"""

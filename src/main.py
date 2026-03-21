@@ -96,7 +96,16 @@ def initialize_world() -> WorldState:
                 war_aggressor = row.get("war_aggressor", "").strip()
                 if war_aggressor and rel == RelationType.AT_WAR:
                     defender = cb if war_aggressor == ca else ca
-                    active_wars.append(WarState(aggressor=war_aggressor, defender=defender))
+                    # 初期侵攻比率と初期占領進捗率の読み込み
+                    agg_commit = float(row.get("aggressor_commitment_ratio", 0.50) or 0.50)
+                    def_commit = float(row.get("defender_commitment_ratio", 0.80) or 0.80)
+                    init_progress = float(row.get("initial_occupation_progress", 0.0) or 0.0)
+                    active_wars.append(WarState(
+                        aggressor=war_aggressor, defender=defender,
+                        aggressor_commitment_ratio=agg_commit,
+                        defender_commitment_ratio=def_commit,
+                        target_occupation_progress=init_progress
+                    ))
         
         print(f"📋 initial_relations.csv を読み込みました: 貿易{len(active_trades)}件, 制裁{len(active_sanctions)}件, 戦争{len(active_wars)}件")
     else:

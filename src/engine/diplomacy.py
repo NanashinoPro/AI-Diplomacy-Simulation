@@ -180,10 +180,33 @@ class DiplomacyMixin:
                 rel = self._get_relation(country_name, target_name)
                 if rel != RelationType.AT_WAR:
                     self._update_relation(country_name, target_name, RelationType.AT_WAR)
-                    # 新しい戦争を作成
-                    new_war = WarState(aggressor=country_name, defender=target_name)
+                    # 新しい戦争を作成（デフォルト投入比率を適用）
+                    from .constants import DEFAULT_AGGRESSOR_COMMITMENT, DEFAULT_DEFENDER_COMMITMENT
+                    new_war = WarState(
+                        aggressor=country_name, defender=target_name,
+                        aggressor_commitment_ratio=DEFAULT_AGGRESSOR_COMMITMENT,
+                        defender_commitment_ratio=DEFAULT_DEFENDER_COMMITMENT
+                    )
                     self.state.active_wars.append(new_war)
-                    self.log_event(f"⚔️ 【開戦】{country_name}が{target_name}に対して宣戦布告しました！", involved_countries=[country_name, target_name, "global"])
+                    self.log_event(f"⚔️ 【開戦】{country_name}が{target_name}に対して宣戦布告しました！（投入率: 攻撃側{DEFAULT_AGGRESSOR_COMMITMENT:.0%}, 防衛側{DEFAULT_DEFENDER_COMMITMENT:.0%}）", involved_countries=[country_name, target_name, "global"])
+            
+            # 軍事侵攻比率の変更（交戦中の場合）
+            if getattr(dip, 'war_commitment_ratio', None) is not None:
+                from .constants import MIN_COMMITMENT_RATIO
+                new_ratio = max(MIN_COMMITMENT_RATIO, min(1.0, dip.war_commitment_ratio))
+                for w in self.state.active_wars:
+                    if w.aggressor == country_name and w.defender == target_name:
+                        old_ratio = w.aggressor_commitment_ratio
+                        w.aggressor_commitment_ratio = new_ratio
+                        self.sys_logs_this_turn.append(f"[{country_name} 投入比率変更] 対{target_name}戦: {old_ratio:.0%} → {new_ratio:.0%}")
+                        self.log_event(f"📊 {country_name}が対{target_name}戦への軍事投入比率を{old_ratio:.0%}から{new_ratio:.0%}に変更しました。", involved_countries=[country_name, target_name, "global"])
+                        break
+                    elif w.defender == country_name and w.aggressor == target_name:
+                        old_ratio = w.defender_commitment_ratio
+                        w.defender_commitment_ratio = new_ratio
+                        self.sys_logs_this_turn.append(f"[{country_name} 投入比率変更] 対{target_name}戦: {old_ratio:.0%} → {new_ratio:.0%}")
+                        self.log_event(f"📊 {country_name}が対{target_name}戦への軍事投入比率を{old_ratio:.0%}から{new_ratio:.0%}に変更しました。", involved_countries=[country_name, target_name, "global"])
+                        break
                     
             # 諜報工作
             if dip.espionage_gather_intel or dip.espionage_sabotage:

@@ -1,5 +1,38 @@
 # System Log
 
+## 2026-03-21 22:50:00 - 軍事侵攻比率（Military Commitment Ratio）の実装とロシア・ウクライナ初期データの導入
+- **修正内容**: 戦争における軍事力の投入比率（Commitment Ratio）を導入。既存3カ国（アメリカ・中国・日本）を削除し、ロシア・ウクライナの2カ国シミュレーションに差替え。
+- **学術的根拠**:
+    - U.S. Army FM 3-0: 攻撃3:1ルール
+    - Dupuy Institute: 歴史的戦力比分析
+    - RUSI (2024): ウクライナ戦況分析（ロシアの投入率推定）
+    - ISW (Institute for the Study of War): ウクライナ領土占領率推計（約18%）
+- **実装詳細**:
+    - `src/models.py`: `WarState`に`aggressor_commitment_ratio`/`defender_commitment_ratio`フィールド追加。`DiplomaticAction`に`war_commitment_ratio`フィールド追加（AIが交戦中に投入比率を変更可能）。
+    - `src/engine/constants.py`: `DEFAULT_AGGRESSOR_COMMITMENT=0.50`, `DEFAULT_DEFENDER_COMMITMENT=0.80`, `MIN_COMMITMENT_RATIO=0.10`, `COMMITMENT_ECONOMIC_DRAIN=0.01`を新規追加。
+    - `src/engine/military.py`: `_process_wars()`のダメージ計算を投入比率対応に全面改修。投入分の軍事力のみで戦闘、投入比率に応じた経済負担デバフ、ログに投入比率を表示。
+    - `src/engine/diplomacy.py`: 宣戦布告時にデフォルト投入比率を`WarState`に設定。AIが`war_commitment_ratio`を指定した場合の`WarState`更新処理を追加。
+    - `src/engine/events.py`: 分裂時の内戦`WarState`作成に投入比率を設定（武力鎮圧80%/独立防衛90%）。
+    - `src/main.py`: `initial_relations.csv`読み込み時に`aggressor_commitment_ratio`/`defender_commitment_ratio`/`initial_occupation_progress`を`WarState`に設定するロジックを追加。
+    - `src/agent/prompts/base.py`: 交戦中の表示に投入比率を追加（攻撃側/防衛側の役割、自国投入率、敵国投入率を表示）。
+    - `data/initial_stats.csv`: 既存3カ国を削除し、ロシア（GDP=2100, Military=400, Pop=144M）・ウクライナ（GDP=210, Military=100, Pop=38M）の2カ国のみに差替え。
+    - `data/initial_relations.csv`: ロシア-ウクライナ間をat_war状態で設定。投入比率（ロシア35%/ウクライナ90%）と初期占領進捗率（18%）を定義。
+    - `docs/ARCHITECTURE.md`: §2.5に軍事侵攻比率モデルの詳細を追加、初期値テーブルをロシア・ウクライナに更新。
+- **初期値（2025年時点推計）**:
+    | 項目 | ロシア | ウクライナ | ソース |
+    |:--|:--|:--|:--|
+    | GDP (10億$) | 2100 | 210 | IMF 2025推計 |
+    | 軍事力 | 400 | 100 | Global Firepower |
+    | 人口 (百万人) | 144 | 38 | UN推計 |
+    | 投入比率 | 35% | 90% | RUSI推計 |
+    | 初期占領進捗率 | 18% | - | ISW推計 |
+
+> **【AIからの報告】**
+> ボス、軍事侵攻比率（Military Commitment Ratio）を実装しました。
+> ロシアは全軍の35%をウクライナ前線に投入、ウクライナは国家存亡のため90%を投入する初期設定です。
+> AIが毎ターン投入比率を変更でき、高い投入率ほど戦力は増すが経済負担も増大するトレードオフが機能します。
+> 既存3カ国は削除し、ロシア・ウクライナの2カ国シミュレーションに変更。初期占領進捗率は18%（2025年時点）です。
+
 ## 2026-03-21 13:00:00 - 教育指標のPWT HCI（Penn World Table 人的資本指数）への全面移行
 - **修正内容**: 旧来の`education_level`（R&D支出絶対額ベース）を廃止し、Penn World Table 11.0準拠の人的資本指数（PWT HCI）に全面移行。ミンサー方程式に基づく区分線形収益率関数で算出。
 - **学術的根拠**:

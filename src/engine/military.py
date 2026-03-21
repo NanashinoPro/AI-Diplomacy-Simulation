@@ -1,6 +1,10 @@
 import random
 
-from .constants import DEFENDER_ADVANTAGE_MULTIPLIER
+from .constants import (
+    DEFENDER_ADVANTAGE_MULTIPLIER,
+    MIN_COMMITMENT_RATIO,
+    COMMITMENT_ECONOMIC_DRAIN
+)
 
 class MilitaryMixin:
     def _process_wars(self):
@@ -12,45 +16,62 @@ class MilitaryMixin:
             
             if not aggressor or not defender:
                 continue # 国が既に滅亡している等
+            
+            # 投入比率の適用（最小値を保証）
+            agg_commit = max(MIN_COMMITMENT_RATIO, war.aggressor_commitment_ratio)
+            def_commit = max(MIN_COMMITMENT_RATIO, war.defender_commitment_ratio)
                 
-            # ダメージ計算
+            # ダメージ計算（投入分の軍事力のみで戦闘）
+            agg_committed = aggressor.military * agg_commit
+            def_committed = defender.military * def_commit
+            
             # 防衛側ボーナス
-            def_power = defender.military * DEFENDER_ADVANTAGE_MULTIPLIER
-            agg_power = aggressor.military
+            def_power = def_committed * DEFENDER_ADVANTAGE_MULTIPLIER
+            agg_power = agg_committed
             
             agg_damage = def_power * random.uniform(0.05, 0.15)
             def_damage = agg_power * random.uniform(0.05, 0.15)
             
             # 人口減少計算（軍事ダメージ割合に比例。防衛側は戦場となるため民間人被害が大きい）
-            agg_pop_loss = aggressor.population * (agg_damage / max(1.0, aggressor.military)) * 0.05
-            def_pop_loss = defender.population * (def_damage / max(1.0, defender.military)) * 0.15
+            agg_pop_loss = aggressor.population * (agg_damage / max(1.0, agg_committed)) * 0.05
+            def_pop_loss = defender.population * (def_damage / max(1.0, def_committed)) * 0.15
             
+            # 損害は投入分のみに適用（後方軍は温存）
             aggressor.military = max(0.0, aggressor.military - agg_damage)
             defender.military = max(0.0, defender.military - def_damage)
             
             aggressor.population = max(0.1, aggressor.population - agg_pop_loss)
             defender.population = max(0.1, defender.population - def_pop_loss)
             
-            # 経済デバフ（戦争状態による疲弊）
-            aggressor.economy *= 0.98
-            defender.economy *= 0.98
+            # 経済デバフ（戦争状態による疲弊 + 投入比率に応じた追加負担）
+            agg_war_drain = 1.0 - (COMMITMENT_ECONOMIC_DRAIN * agg_commit)
+            def_war_drain = 1.0 - (COMMITMENT_ECONOMIC_DRAIN * def_commit)
+            aggressor.economy *= max(0.90, 0.98 * agg_war_drain)
+            defender.economy *= max(0.90, 0.98 * def_war_drain)
+            
             # 支持率デバフ（長引く戦争の不満）
             aggressor.approval_rating -= 1.0
             defender.approval_rating -= 1.5 # 防戦の被害実感
             
-            # 占領進捗率の更新 (戦力差による)
-            # 攻撃側が圧倒していれば進捗が進む。防衛側が押し返せば進捗が下がる（マイナスにはならないよう処理）
+            # 占領進捗率の更新 (投入済み戦力の差による)
             power_diff = agg_power - def_power
-            progress_change = power_diff / max(1, def_power) * 5.0 # 例: 戦力が2倍なら毎ターン+5%以上
+            progress_change = power_diff / max(1, def_power) * 5.0
             
             war.target_occupation_progress = max(0.0, min(100.0, war.target_occupation_progress + progress_change))
             
             self.log_event(
                 f"🔥 【戦況報告】{war.aggressor} vs {war.defender} | "
-                f"占領進捗: {war.target_occupation_progress:.1f}% "
+                f"占領進捗: {war.target_occupation_progress:.1f}% | "
+                f"投入率: {war.aggressor}={agg_commit:.0%}, {war.defender}={def_commit:.0%} | "
                 f"(両軍損害: {aggressor.name}軍残{aggressor.military:.0f} / {defender.name}軍残{defender.military:.0f} | "
                 f"民間人犠牲: {aggressor.name} {agg_pop_loss:.2f}M, {defender.name} {def_pop_loss:.2f}M)",
                 involved_countries=[war.aggressor, war.defender, "global"]
+            )
+            
+            self.sys_logs_this_turn.append(
+                f"[戦争ダメージ] {war.aggressor}(投入率{agg_commit:.0%}, 投入戦力{agg_committed:.0f}) vs "
+                f"{war.defender}(投入率{def_commit:.0%}, 投入戦力{def_committed:.0f}, 防衛ボーナス込み{def_power:.0f}). "
+                f"経済負担: {war.aggressor} x{agg_war_drain:.3f}, {war.defender} x{def_war_drain:.3f}"
             )
             
             # 敗北判定
@@ -102,5 +123,4 @@ class MilitaryMixin:
         # 5. 技術革新の原産国が敗北した場合（必要に応じて）
         for bt in self.state.active_breakthroughs:
             if bt.origin_country == loser_name:
-                # 原産国が滅んでも技術自体は普及し続ける可能性があるが、ここでは伝播を維持し、原産国の表示のみ考慮
                 pass
