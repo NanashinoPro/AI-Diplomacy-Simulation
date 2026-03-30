@@ -181,7 +181,7 @@ def generate_ideology_democracy(
 {news_context}
 
 指示:
-これらの国民の生の声（不満・要望）を鋭く汲み取った上で、新政権が目指す「新たな国家目標・イデオロギー」を50文字程度で簡潔に宣言してください。前政権との違いがわかるようにしてください。必ず日本語で出力してください。"""
+これらの国民の生の声（不満・要望）を鋭く汲み取った上で、新政権が目指す「新たな国家目標・イデオロギー」を50文字程度で簡潔に宣言してください。前政権との違いがわかるようにしてください。必ず日本語で出力してください。挨拶や雑談はせずにイデオロギーのみを出力してください。例外はありません。"""
     
     try:
         response_obj = generate_func(
@@ -355,27 +355,21 @@ def generate_media_reports(
                 f"世界の最新ニュース（他国の動向）: {world_state.news_events}\n\n"
                 f"{summit_text}\n\n"
                 f"{whistleblowing_scandal}"
-                f"今回の状況を総括する、自国民に向けた象徴的なニュースを以下のJSON形式で出力してください。記事の見出しと本文は必ず日本語で作成してください。必ずJSONオブジェクトのみとしてください。\n"
-                f"{{\n"
-                f"  \"article\": \"ニュースの見出しと本文（100文字程度）\"\n"
-                f"}}"
+                f"今回の状況を総括する、自国民に向けた象徴的なニュース記事を1つ作成してください。"
+                f"見出しと本文を合わせて100文字程度で、必ず日本語で書いてください。"
+                f"記事の本文のみを出力し、JSON・マークダウン・コードブロック等のフォーマットは一切使わないでください。"
             )
             
             response_obj = generate_func(
                 model="gemini-2.5-flash",
                 contents=prompt,
-                config=genai_types.GenerateContentConfig(response_mime_type="application/json"),
                 category="media"
             )
-            response = response_obj.text.strip() if response_obj else "{}"
+            article = response_obj.text.strip() if response_obj else ""
             
-            if response.startswith("```json"): response = response[7:]
-            if response.endswith("```"): response = response[:-3]
-            data = json.loads(response)
-            
-            article = data.get("article", "ニュース報道なし")
-            if not isinstance(article, str):
-                article = str(article) if article is not None else "ニュース報道なし"
+            if not article:
+                logger.sys_log(f"[Media: {country_name}] 空のレスポンス。デフォルト記事を使用します。", "WARNING")
+                article = f"{country_name}国内外で大きな動きはなく、現状維持が続いている。"
             
             scores = sentiment_analyzer.analyze(article)
             avg_score = sum(scores) / len(scores) if scores else 0.0

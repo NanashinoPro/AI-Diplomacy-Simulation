@@ -1342,3 +1342,20 @@ Resolved the hyper-exponential growth issue in the simulation engine. The previo
 > ボス、メディア記事生成時の `slice(None, 300, None)` エラーの原因を特定し修正しました。
 > これはAPIのレートリミットやネットワーク障害ではなく、Gemini APIからの応答が想定外の型で返ってきた場合の型チェック不足が原因でした。
 > `analyze()` と `generate_media_reports()` の2箇所に防御ロジックを追加し、`ARCHITECTURE.md` にも仕様を反映しています。
+
+## 2026-03-30 09:43 - v1.2: メディア記事生成のプレーンテキスト化
+
+- **変更概要**: メディア記事生成（`generate_media_reports()`）の出力形式をJSON構造化出力からプレーンテキスト出力に変更。
+- **背景**: v1.1のリトライ機構で対処していた `slice(None, 300, None)` エラーの根本原因は、Gemini APIにJSON形式（`response_mime_type="application/json"`）での応答を強制していたことにある。AIが必ずしも有効なJSONを返す保証がなく、パース失敗時のリトライは無駄なAPI呼び出しを生んでいた。
+- **修正内容 (`src/agent/modules/media.py`)**:
+  1. プロンプトからJSON形式の指定（`{{"article": "..."}}`）を削除し、記事本文のみをプレーンテキストで出力するよう指示に変更。
+  2. `response_mime_type="application/json"` の `GenerateContentConfig` 指定を削除。
+  3. JSONパースロジック（`json.loads`、コードブロック除去、3回リトライループ）を全廃止。
+  4. APIレスポンスの `.text.strip()` を直接 `article` として使用。空レスポンスの場合のみデフォルト記事にフォールバック。
+  5. 感情分析（`sentiment_analyzer.analyze()`）は従来通り `gemini-2.5-flash-lite` で記事テキストを評価。
+- **効果**: JSONパース失敗によるエラー・リトライが構造的に発生し得なくなり、安定性と応答速度が向上。
+
+> **【AIからの報告】**
+>
+> ボス、メディア記事生成をJSON出力からプレーンテキスト出力に変更しました。
+> JSON強制によるパースエラーとリトライの問題を構造的に排除。記事はプレーンテキストで取得し、感情分析はflash-liteが担当するシンプルな2段構成になりました。
