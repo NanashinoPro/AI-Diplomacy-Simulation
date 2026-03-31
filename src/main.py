@@ -43,6 +43,8 @@ def initialize_world() -> WorldState:
                 capital_lat=float(row.get("capital_lat", 0.0) or 0.0),
                 capital_lon=float(row.get("capital_lon", 0.0) or 0.0),
                 has_dissolution_power=row.get("has_dissolution_power", "").strip().lower() == "true",
+                iso_code=row.get("iso_code", "").strip(),
+                has_coastline=row.get("has_coastline", "true").strip().lower() != "false",
                 hidden_plans=""
             )
 

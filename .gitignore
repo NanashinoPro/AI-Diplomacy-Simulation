@@ -19,3 +19,9 @@ TODO.md
 stats_sequence.txt
 
 scripts/
+
+# Map data (large GeoJSON files)
+data/geo/
+
+# Map output
+output/

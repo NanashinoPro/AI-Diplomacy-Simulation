@@ -15,6 +15,70 @@ class RelationType(str, Enum):
     NEUTRAL = "neutral"           # 中立
     AT_WAR = "at_war"             # 戦争状態（交戦中）
 
+# ---------------------------------------------------------
+# 軍事配備関連の定義
+# ---------------------------------------------------------
+
+class DeploymentType(str, Enum):
+    """配備ユニットの種別"""
+    ARMY = "army"    # 陸軍
+    NAVY = "navy"    # 海軍
+    AIR = "air"      # 空軍
+
+class ArmyPosture(str, Enum):
+    """陸軍の態勢"""
+    OFFENSIVE = "offensive"         # 攻勢: 攻撃+20%, 防御-10%
+    DEFENSIVE = "defensive"         # 守勢: 防御+30%, 攻撃-20%
+    INTIMIDATION = "intimidation"   # 威嚇: 戦闘効果なし、緊張度上昇
+
+class NavalMission(str, Enum):
+    """海軍のミッション種別"""
+    PATROL = "patrol"                       # 通商護衛（平時/戦時）
+    SHOW_OF_FORCE = "show_of_force"         # 砲艦外交・武力示威（平時/戦時）
+    BLOCKADE = "blockade"                   # 海上封鎖（戦時のみ）
+    NAVAL_ENGAGEMENT = "naval_engagement"   # 艦隊決戦（戦時のみ）
+    AMPHIBIOUS_SUPPORT = "amphibious_support" # 上陸支援（戦時のみ）
+    SHORE_BOMBARDMENT = "shore_bombardment" # 艦砲射撃（戦時のみ）
+
+class AirMission(str, Enum):
+    """空軍のミッション種別"""
+    AIR_SUPERIORITY = "air_superiority"       # 制空権確保（平時/戦時）
+    GROUND_SUPPORT = "ground_support"         # 地上部隊支援（戦時のみ）
+    STRATEGIC_BOMBING = "strategic_bombing"   # 戦略爆撃（戦時のみ）
+    RECON_FLIGHT = "recon_flight"             # 偵察飛行（平時/戦時）
+
+class FortificationLevel(str, Enum):
+    """要塞化レベル"""
+    NONE = "none"      # なし
+    LIGHT = "light"    # 軽度要塞 (+25%防御)
+    HEAVY = "heavy"    # 重度要塞 (+50%防御)
+
+class MilitaryDeploymentOrder(BaseModel):
+    """防衛大臣が出力する個別の配備命令"""
+    type: DeploymentType = Field(..., description="配備ユニット種別（army/navy/air）")
+    target_country: str = Field(..., description="配備先の対象国名")
+    # 陸軍用フィールド
+    divisions: int = Field(0, ge=0, description="配備する陸軍師団数")
+    posture: Optional[ArmyPosture] = Field(None, description="陸軍の態勢（offensive/defensive/intimidation）")
+    fortify: FortificationLevel = Field(FortificationLevel.NONE, description="要塞化レベル")
+    # 海軍用フィールド
+    fleets: int = Field(0, ge=0, description="派遣する海軍艦隊数")
+    naval_mission: Optional[NavalMission] = Field(None, description="海軍ミッション種別")
+    # 空軍用フィールド
+    squadrons: int = Field(0, ge=0, description="投入する空軍飛行隊数")
+    air_mission: Optional[AirMission] = Field(None, description="空軍ミッション種別")
+
+class ForceAllocation(BaseModel):
+    """兵科比率（陸海空の配分）。合計は1.0以下"""
+    army_ratio: float = Field(0.70, ge=0.0, le=1.0, description="陸軍の割合")
+    navy_ratio: float = Field(0.15, ge=0.0, le=1.0, description="海軍の割合")
+    air_ratio: float = Field(0.15, ge=0.0, le=1.0, description="空軍の割合")
+
+class MilitaryDeploymentState(BaseModel):
+    """国家の現在の軍事配備状態（防衛大臣が毎ターン更新）"""
+    force_allocation: ForceAllocation = Field(default_factory=ForceAllocation)
+    deployments: List[MilitaryDeploymentOrder] = Field(default_factory=list, description="各方面への配備命令リスト")
+
 class CountryState(BaseModel):
     """各国の状況を表すモデル"""
     name: str = Field(..., description="国名")
@@ -62,6 +126,14 @@ class CountryState(BaseModel):
     # 対外援助・属国化関連
     dependency_ratio: Dict[str, float] = Field(default_factory=dict, description="他国に対する経済的依存度（0.0-1.0）。60%を超えると属国化する")
     suzerain: Optional[str] = Field(None, description="属国化した場合の宗主国の国名（独自外交権を喪失する）")
+    
+    # 地図可視化・軍事配備関連
+    iso_code: str = Field("", description="ISO 3166-1 Alpha-3 国コード（地図レンダリング用）")
+    has_coastline: bool = Field(True, description="海岸線の有無（海軍ユニット表示制御用）")
+    military_deployment: MilitaryDeploymentState = Field(
+        default_factory=MilitaryDeploymentState,
+        description="現在の軍事配備状態（防衛大臣が毎ターン更新）"
+    )
 
 # ---------------------------------------------------------
 # アクション定義（AIが出力するJSON構造）

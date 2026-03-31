@@ -1,0 +1,31 @@
+{
+    "アメリカ": {
+        "primary": "#3a5f3a",
+        "secondary": "#5a8f5a",
+        "military_accent": "#4a7a4a"
+    },
+    "中国": {
+        "primary": "#c41e3a",
+        "secondary": "#e05050",
+        "military_accent": "#d43030"
+    },
+    "日本": {
+        "primary": "#c7b299",
+        "secondary": "#e0d5c0",
+        "military_accent": "#b09070"
+    },
+    "台湾": {
+        "primary": "#2e8b57",
+        "secondary": "#4eb87a",
+        "military_accent": "#3a9a65"
+    },
+    "_non_participant": {
+        "primary": "#2d2d2d",
+        "secondary": "#3d3d3d",
+        "military_accent": "#2d2d2d"
+    },
+    "_ocean": {
+        "primary": "#1a1a2e",
+        "secondary": "#16213e"
+    }
+}
