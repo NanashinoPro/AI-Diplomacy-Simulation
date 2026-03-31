@@ -1,5 +1,50 @@
 # System Log
 
+## 2026-03-31 20:25:00 - 戦略マップ可視化・戦術配備・緊張度メカニクスの全面実装 (v2.0〜v2.2)
+- **修正内容**: HoI4スタイルの地政学的マップ可視化とAoEスタイルの戦術軍事配備システムを全面実装。Phase 1〜7をv2ブランチに統合。
+- **Phase 1: データモデル & 基盤**:
+    - `models.py`: `DeploymentType`/`ArmyPosture`/`FortifyLevel`/`NavalMission`/`AirMission`（Enum）、`ForceAllocation`/`MilitaryDeploymentOrder`/`MilitaryDeploymentState`（Pydantic）を追加
+    - `CountryState`: `iso_code`, `has_coastline`, `military_deployment`フィールド追加
+    - `AgentAction`: `force_allocation`（兵科比率）、`deployments`（配備命令リスト）追加
+    - `data/country_colors.json`: 国別カラーマップ（16色パレット）
+    - GeoJSON: Natural Earth 10m admin_0（`data/geo/ne_10m_admin_0_countries.geojson`）
+- **Phase 2: 地図レンダリングエンジン** (`src/map/`):
+    - `renderer.py`: 3段ダッシュボードレイアウト（ヘッダー/地図/国家テーブル）
+    - `layers.py`: 領土カラーリング + 非参加国チャコールグレー + 海洋ダークネイビー
+    - `military_units.py`: Shapely座標算出によるユニットマーカー描画
+    - `styles.py`: GitHub Dark Base（#0d1117）＋ACCENT_CYAN/ORANGE
+    - 日本語フォント: Hiragino Sans対応（豆腐化防止）
+- **Phase 3: 防衛大臣AI拡張**:
+    - `defense.py`: 完全自由配備プロンプト（海岸線制約、現在配備表示）
+    - `president.py`: 配備承認スキーマ追加
+    - `engine/military.py`: `_process_military_deployments()` — ユニット上限バリデーション（師団/艦隊/飛行隊）、戦時ミッション制約、内陸国海軍制約
+- **Phase 4: 緊張度メカニクス** (`engine/tension.py`):
+    - Mueller (1970, 1973) Rally 'round the flag effect
+    - Schultz (2001) Audience Costs in Democratic States  
+    - Fearon (1994) Domestic Political Audiences and Escalation
+    - 4段階スコア: 低(0-10)/中(10-30)/高(30-50)/極高(50+)
+    - 偶発衝突: 極高緊張時5%で自動開戦
+    - プロンプト注入: `base.py`の`build_common_context()`に自動追加
+- **Phase 5: 配備ベース戦闘解決** (`engine/military.py`):
+    - 陸軍: offensive(攻+20%/守-10%), defensive(守+30%/攻-20%), 要塞化(light+25%/heavy+50%)
+    - 海軍: amphibious_support(攻+20%), shore_bombardment(敵-15%), blockade(経済ダメージ), naval_engagement(艦隊決戦)
+    - 空軍: ground_support(攻+15%), air_superiority(攻+5%), strategic_bombing(経済ダメージ)
+    - 戦略爆撃/海上封鎖: 双方向の経済ダメージ処理
+- **Phase 6: 統合**:
+    - `main.py`: ターンループに地図レンダリング自動統合（`output/maps/`にPNG出力）
+    - `engine/core.py`: 配備更新→緊張度効果→戦争処理の処理順序
+- **Phase 7: ドキュメント**:
+    - `docs/ARCHITECTURE.md`: §4に戦略マップ/配備/緊張度の全仕様を追記
+    - `SYSTEM_LOG.md`: 本エントリ
+    - Git: v2.0/v2.1/v2.2の3コミット → v2ブランチにプッシュ完了
+
+> **【AIからの報告】**
+> ボス、大型アップデート「戦略マップ可視化・戦術配備・緊張度メカニクス」の全Phase実装が完了しました。
+> 防衛大臣AIがAoEスタイルで陸海空を自由配備し、HoI4スタイルの地図上に可視化されます。
+> 緊張度メカニクスはMueller (1970)/Schultz (2001)/Fearon (1994)の3つの学術理論に基づき実装。
+> 砲艦外交で緊張度を煽ると、偶発衝突で戦争に突入するリスクを生み出します。
+> 全コードはv2ブランチにコミット・プッシュ済みです。
+
 ## 2026-03-31 16:45:00 - 多国間首脳会談・議会解散権の実装
 - **修正内容**: 2つの主要機能 — 多国間首脳会談と議会解散権 — をシミュレーションエンジンに追加。
 - **多国間首脳会談**:
