@@ -8,6 +8,30 @@ from models import (
 )
 
 class DiplomacyMixin:
+    def _get_distance(self, country_a: str, country_b: str) -> float:
+        """2国間のHaversine距離（km）を取得。キャッシュがあればそれを使い、なければ計算してキャッシュに追加。"""
+        from .economy import _haversine_distance
+        
+        # economy.pyで構築された距離キャッシュを参照
+        if hasattr(self, '_distance_cache') and (country_a, country_b) in self._distance_cache:
+            return self._distance_cache[(country_a, country_b)]
+        
+        # キャッシュにない場合（分裂で新国家が誕生した場合等）はその場で計算
+        ca = self.state.countries.get(country_a)
+        cb = self.state.countries.get(country_b)
+        if ca and cb and hasattr(ca, 'capital_lat') and hasattr(cb, 'capital_lat'):
+            dist = _haversine_distance(ca.capital_lat, ca.capital_lon, cb.capital_lat, cb.capital_lon)
+            if dist < 100:
+                dist = 10000.0  # 座標未設定の場合のデフォルト
+            # キャッシュに追加
+            if not hasattr(self, '_distance_cache'):
+                self._distance_cache = {}
+            self._distance_cache[(country_a, country_b)] = dist
+            self._distance_cache[(country_b, country_a)] = dist
+            return dist
+        
+        return 10000.0  # フォールバック値
+
     def _process_foreign_aid(self, actions: Dict[str, AgentAction]):
         """
         対外援助の処理（翌ターン承認制）
