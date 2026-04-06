@@ -221,6 +221,7 @@ class WorldState(BaseModel):
     active_breakthroughs: List[BreakthroughState] = Field(default_factory=list, description="現在進行中の技術革新")
     disaster_history: List[DisasterEvent] = Field(default_factory=list, description="過去に発生した重大災害の履歴")
     pending_vacuum_auctions: List[dict] = Field(default_factory=list, description="分裂により誕生した新国家に対するパワー・バキューム・オークションの保留中リスト")
+    pending_influence_auctions: List[dict] = Field(default_factory=list, description="クーデター/革命により政変が発生した国に対する影響力介入オークションの保留中リスト")
     
     # ログ・UI用データ
     news_events: List[str] = Field(default_factory=list, description="前ターンに世界で起きた公開イベント（ニュース）")

@@ -54,6 +54,7 @@ flowchart TD
     ProcessTurn --> |5-2| Domestic[内政: 予算・税収・マクロ経済投資]
     ProcessTurn --> |5-3| Diplomacy[外交・諜報: 工作・同盟・会談提案]
     ProcessTurn --> |5-3.5| Vacuum[パワー・バキューム・オークション解決<br/>Tullock CSF]
+    ProcessTurn --> |5-3.6| Influence[影響力介入オークション解決<br/>軽量版パワー・バキューム]
     ProcessTurn --> |5-4| Trade[貿易・制裁: グラビティモデルと赤字計算]
     ProcessTurn --> |5-5| War[戦争: 軍事衝突と占領判定]
     ProcessTurn --> |5-6| RandomEvent[ランダムイベント: 災害・技術革新]
@@ -62,6 +63,7 @@ flowchart TD
     Domestic --> IntelReport[6. 諜報機関レポートの作成]
     Diplomacy --> IntelReport[6. 諜報機関レポートの作成]
     Vacuum --> IntelReport[6. 諜報機関レポートの作成]
+    Influence --> IntelReport
     Trade --> IntelReport[6. 諜報機関レポートの作成]
     War --> IntelReport[6. 諜報機関レポートの作成]
     RandomEvent --> IntelReport[6. 諜報機関レポートの作成]
@@ -458,6 +460,44 @@ $$P_i = \frac{b_i^{eff}}{\sum_{j} b_j^{eff} + M_{new}}$$
 *   敵国の分裂は漁夫の利（2.0倍ボーナス）
 *   ベット額が大きいほど吸収確率が上がるが、新国家の軍事力が大きいと独立確率が高くなる
 *   吸収された場合、`_handle_peaceful_annexation`で全リソースが吸収国に統合される
+
+#### 影響力介入オークション（軽量版パワー・バキューム）
+
+[学術的根拠]
+*   Morgenthau, H. (1948). *Politics Among Nations*: パワー・バキュームは周辺大国の介入を誘発する
+*   Tullock, G. (1980). *Efficient Rent Seeking*: コンテスト成功関数
+*   歴史的実例: ウクライナ政変(2014)→ロシアのクリミア介入、エジプト政変(2013)→サウジ/UAE影響力拡大
+
+クーデター/革命により政権転覆が発生した場合、周辺国が混乱に乗じて影響力を拡大する仕組み。分裂版オークションと異なり、**領土併合は発生せず、依存度の上昇（属国化への道）**が結果となる。
+
+##### 分裂版との差異
+| | 分裂版オークション | 影響力介入オークション |
+|:--|:--|:--|
+| 発火条件 | 分裂で新国家が誕生 | クーデター/革命で政権転覆 |
+| 結果 | 領土ごと併合（国が消える） | 依存度+20%上昇（国は残る） |
+| 防衛ベット | 新国家の全軍事力 | 対象国のGDP（ログスケール圧縮） |
+| 介入ベット | 軍事力（vacuum_bid） | 同左（vacuum_bidを流用） |
+
+##### メカニズム
+1. **登録**: クーデター処理（`_handle_rebellion`）完了時に`pending_influence_auctions`に自動登録
+2. **ベット**: 首脳AIが通常の意思決定内で`vacuum_bid`（0.0〜自国軍事力）を設定。0 = 介入しない
+3. **解決**: `_resolve_influence_auctions()`でTullock CSFにより確率的に決定
+
+##### Tullock CSF の確率計算
+$$P_i = \frac{b_i^{eff}}{\sum_{j} b_j^{eff} + D_{target}}$$
+
+*   $b_i^{eff}$: 国 $i$ の有効ベット額 = $\min(b_i, M_i) \times \frac{1}{1 + d_i / 5000} \times R_i$
+*   $D_{target}$: 対象国の防衛ベット = $\ln(1 + GDP_{target}) \times 10$（ログスケール圧縮）
+*   $d_i$: 国 $i$ と対象国のHaversine距離（km）
+*   $R_i$: 関係性補正（同盟国→1.5倍、交戦国→2.0倍、その他→1.0倍）
+
+##### 結果
+*   **勝者あり**: 対象国の`dependency_ratio[winner]`に`INFLUENCE_AUCTION_DEPENDENCY_GAIN`（20%）を加算。依存度60%超で属国化判定
+*   **自力回復**: 支持率+`INFLUENCE_AUCTION_INDEPENDENCE_BONUS`（3.0%）ボーナス
+
+##### 定数
+*   `INFLUENCE_AUCTION_DEPENDENCY_GAIN = 0.20`
+*   `INFLUENCE_AUCTION_INDEPENDENCE_BONUS = 3.0`
 
 #### 戦略ドクトリン選択（攻撃的/防御的リアリズム）
 

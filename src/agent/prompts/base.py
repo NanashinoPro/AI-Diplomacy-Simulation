@@ -229,5 +229,22 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
             if new_c:
                 vacuum_info += f"  \U0001f195 {auction['new_country']}（旧: {auction['old_country']}から分裂）\n"
                 vacuum_info += f"     軍事力: {new_c.military:.1f}, 経済力: {new_c.economy:.1f}, 人口: {new_c.population:.1f}百万人\n\n"
+    
+    # 影響力介入オークション情報の表示（軽量版パワー・バキューム）
+    influence_info = ""
+    if hasattr(world_state, 'pending_influence_auctions') and world_state.pending_influence_auctions:
+        influence_info = "\n---\U0001f578【影響力介入オークション（要判断）】\U0001f578---\n"
+        influence_info += "以下の国家でクーデター/革命が発生し、政治的混乱状態にあります。\n"
+        influence_info += "この混乱に乗じて影響力を拡大するかどうかを判断してください。\n"
+        influence_info += "diplomatic_policies 内の該当国に対して `vacuum_bid`（0.0〜自国軍事力の数値）を設定してください。\n"
+        influence_info += "vacuum_bid = 0 は「介入しない」を意味します。\n"
+        influence_info += "※分裂版オークションと異なり、結果は「依存度の上昇」です（領土併合は発生しません）。\n"
+        influence_info += "依存度が60%を超えると属国化するリスクがあります。\n"
+        influence_info += "対象国のGDP（経済力）が高いほど、外部介入に対する抵抗力が高くなります。\n\n"
+        for auction in world_state.pending_influence_auctions:
+            target_c = world_state.countries.get(auction["target_country"])
+            if target_c:
+                influence_info += f"  ⚡ {auction['target_country']}（政変発生）\n"
+                influence_info += f"     経済力: {target_c.economy:.1f}, 軍事力: {target_c.military:.1f}, 支持率: {target_c.approval_rating:.1f}%\n\n"
         
-    return my_info + other_info + news_info + vacuum_info
+    return my_info + other_info + news_info + vacuum_info + influence_info

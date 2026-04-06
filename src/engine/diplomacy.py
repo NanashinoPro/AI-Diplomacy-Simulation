@@ -577,3 +577,142 @@ class DiplomacyMixin:
         # オークションリストをクリア
         self.state.pending_vacuum_auctions.clear()
 
+    def _resolve_influence_auctions(self, actions):
+        """影響力介入オークションの解決（軽量版パワー・バキューム）
+        
+        [学術的根拠]
+        - Morgenthau, H. (1948). Politics Among Nations: パワー・バキュームは周辺大国の介入を誘発する。
+        - Tullock, G. (1980). Efficient Rent Seeking: コンテスト成功関数。
+        - 歴史的実例: ウクライナ政変(2014)→ロシア介入、エジプト政変(2013)→サウジ/UAE影響力拡大
+        
+        クーデター/革命で政変が発生した国に対し、周辺国が vacuum_bid で介入。
+        分裂版と異なり、結果は「依存度の上昇」であり領土併合は発生しない。
+        """
+        from .constants import INFLUENCE_AUCTION_DEPENDENCY_GAIN, INFLUENCE_AUCTION_INDEPENDENCE_BONUS
+        
+        for auction in list(self.state.pending_influence_auctions):
+            target_name = auction["target_country"]
+            target_economy = auction["target_economy"]  # GDP = 独立防衛ベット
+            
+            if target_name not in self.state.countries:
+                continue
+            
+            target = self.state.countries[target_name]
+            
+            # 全国のベットを集計
+            bids = {}
+            for country_name, action in actions.items():
+                if country_name == target_name:
+                    continue
+                if country_name not in self.state.countries:
+                    continue
+                    
+                for dip in action.diplomatic_policies:
+                    if dip.target_country == target_name:
+                        raw_bid = getattr(dip, 'vacuum_bid', 0.0)
+                        if raw_bid <= 0:
+                            continue
+                        
+                        # ベット上限 = 自国軍事力
+                        bid = min(raw_bid, self.state.countries[country_name].military)
+                        
+                        # 地理的距離ペナルティ（遠い国ほど介入コストが高い）
+                        distance = self._get_distance(country_name, target_name)
+                        distance_penalty = 1.0 / (1.0 + distance / 5000.0)
+                        
+                        # 関係性ボーナス
+                        rel = self._get_relation(country_name, target_name)
+                        if rel == RelationType.ALLIANCE:
+                            rel_bonus = 1.5  # 同盟国の混乱 → 保護下に置く動機
+                        elif rel == RelationType.AT_WAR:
+                            rel_bonus = 2.0  # 敵国の政変 → 漁夫の利
+                        else:
+                            rel_bonus = 1.0
+                        
+                        effective_bid = bid * distance_penalty * rel_bonus
+                        bids[country_name] = {
+                            "raw_bid": bid,
+                            "effective_bid": effective_bid,
+                            "distance": distance,
+                            "distance_penalty": distance_penalty,
+                            "rel_bonus": rel_bonus,
+                        }
+            
+            # GDP防衛ベット: GDPが高い国ほど外部介入に抵抗できる
+            # スケール調整: GDPをそのまま使うと大国すぎて常に独立になるため、ログスケールで圧縮
+            defense_bet = math.log1p(target_economy) * 10.0
+            
+            # Tullock CSF で確率計算
+            total_effective = sum(b["effective_bid"] for b in bids.values()) + defense_bet
+            if total_effective <= 0:
+                continue
+            
+            # 確率テーブルを作成
+            outcomes = {}
+            outcomes["🛡️自力回復"] = defense_bet / total_effective
+            for bidder, bid_info in bids.items():
+                outcomes[bidder] = bid_info["effective_bid"] / total_effective
+            
+            # ログ出力（確率テーブル）
+            prob_log = ", ".join([f"{k}: {v:.1%}" for k, v in outcomes.items()])
+            self.sys_logs_this_turn.append(
+                f"[影響力介入オークション] {target_name} (政変): 防衛GDP={target_economy:.1f}→defense_bet={defense_bet:.1f}: {prob_log}"
+            )
+            for bidder, bid_info in bids.items():
+                self.sys_logs_this_turn.append(
+                    f"  └ {bidder}: raw_bid={bid_info['raw_bid']:.1f}, "
+                    f"距離={bid_info['distance']:.0f}km(x{bid_info['distance_penalty']:.2f}), "
+                    f"関係補正(x{bid_info['rel_bonus']:.1f}) → effective={bid_info['effective_bid']:.1f}"
+                )
+            
+            # 乱数で決定
+            roll = random.random()
+            cumulative = 0.0
+            winner = "🛡️自力回復"
+            for name, prob in outcomes.items():
+                cumulative += prob
+                if roll < cumulative:
+                    winner = name
+                    break
+            
+            self.sys_logs_this_turn.append(
+                f"[影響力介入結果] roll={roll:.4f} → 勝者: {winner}"
+            )
+            
+            if winner == "🛡️自力回復":
+                # 外部介入を退けた → 支持率ボーナス
+                target.approval_rating = min(100.0, target.approval_rating + INFLUENCE_AUCTION_INDEPENDENCE_BONUS)
+                self.log_event(
+                    f"🛡️ 【外部介入阻止】{target_name}は政変の混乱期において全ての大国の干渉を退け、"
+                    f"自力で国内秩序を回復しました。（抵抗確率: {outcomes['🛡️自力回復']:.1%}）",
+                    involved_countries=[target_name, "global"]
+                )
+            else:
+                # 勝者が影響力を獲得 → 依存度上昇
+                old_dep = target.dependency_ratio.get(winner, 0.0)
+                new_dep = min(1.0, old_dep + INFLUENCE_AUCTION_DEPENDENCY_GAIN)
+                target.dependency_ratio[winner] = new_dep
+                
+                influence_prob = outcomes.get(winner, 0.0)
+                self.log_event(
+                    f"🕸️ 【影響力拡大】{winner}が{target_name}の政変に乗じて介入！"
+                    f"経済・軍事支援を通じて同国への影響力を大幅に拡大しました。"
+                    f"（依存度: {old_dep*100:.1f}% → {new_dep*100:.1f}%, 介入確率: {influence_prob:.1%}）",
+                    involved_countries=[winner, target_name, "global"]
+                )
+                
+                self.sys_logs_this_turn.append(
+                    f"[影響力介入] {winner} → {target_name}: 依存度 {old_dep*100:.1f}% → {new_dep*100:.1f}% "
+                    f"(+{INFLUENCE_AUCTION_DEPENDENCY_GAIN*100:.0f}%)"
+                )
+                
+                # 依存度60%超で属国化チェック（既存ロジックが次ターンで自動適用される）
+                if new_dep >= 0.6:
+                    self.sys_logs_this_turn.append(
+                        f"[⚠️ 属国化リスク] {target_name}の{winner}への依存度が{new_dep*100:.1f}%に到達。"
+                        f"次ターン以降、属国化判定が行われます。"
+                    )
+        
+        # オークションリストをクリア
+        self.state.pending_influence_auctions.clear()
+

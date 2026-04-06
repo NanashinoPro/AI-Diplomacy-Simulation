@@ -102,3 +102,9 @@ COUP_BUDGET_RATIO_MAX = 0.30
 # 分裂後のGDP/C低下は累計-20%～-24%で収束する。ソ連崩壊時でも年-10%程度が上限。
 GDP_GROWTH_FLOOR_EARLY = -10.0   # 分裂直後(2ターン以内)のGDP/C成長率下限（四半期あたり）
 GDP_GROWTH_FLOOR_NORMAL = -5.0   # 通常時のGDP/C成長率下限（四半期あたり）
+
+# --- 影響力介入オークション定数 ---
+# [学術的根拠] Morgenthau (1948): パワー・バキュームは周辺大国の介入を誘発する。
+# Tullock (1980): コンテスト成功関数。歴史的実例: ウクライナ政変(2014)、エジプト政変(2013)
+INFLUENCE_AUCTION_DEPENDENCY_GAIN = 0.20  # 勝者が獲得する依存度加算値（20%）
+INFLUENCE_AUCTION_INDEPENDENCE_BONUS = 3.0  # 外部介入を退けた場合の支持率ボーナス

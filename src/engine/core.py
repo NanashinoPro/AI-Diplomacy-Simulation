@@ -168,6 +168,11 @@ class WorldEngine(
         if self.state.pending_vacuum_auctions:
             self._resolve_vacuum_auctions(actions)
         
+        # 影響力介入オークションの解決（軽量版パワー・バキューム）
+        # プレターンでクーデター/革命が発生した場合、各国のvacuum_bidを集計して依存度変動を決定
+        if self.state.pending_influence_auctions:
+            self._resolve_influence_auctions(actions)
+        
         # 多国間会談: 受諾者が2名以上集まった提案を実行キューに移動
         for s in list(self.state.pending_summits):
             if s.participants and len(s.accepted_participants) >= 2:

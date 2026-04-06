@@ -255,6 +255,20 @@ class EventsMixin:
         country.rebellion_risk = 0.0
         country.intelligence_level = 0.0  # 諜報組織も崩壊・リセット
         
+        # 【新設】影響力介入オークションの登録
+        # [学術的根拠] Morgenthau (1948): 政変によるパワー・バキュームは周辺大国の介入を誘発する。
+        # 歴史的実例: ウクライナ政変(2014)→ロシアのクリミア介入、エジプト政変(2013)→サウジ/UAE介入
+        # 分裂版と異なり、領土併合ではなく「依存度の上昇」（影響力圏への取り込み）が結果となる。
+        self.state.pending_influence_auctions.append({
+            "target_country": country_name,
+            "trigger": "coup",
+            "target_economy": country.economy,  # 経済力が防衛ベット（GDPが高い国ほど外部介入に強い）
+        })
+        self.sys_logs_this_turn.append(
+            f"[影響力介入オークション登録] {country_name}で政変発生。"
+            f"GDP={country.economy:.1f}で外部介入に抵抗。各国のベットを待機中。"
+        )
+        
         self.pending_rebellions.append(country_name)
 
     def _execute_fragmentation(self, old_name: str, old_country: CountryState, base_instability: float):
