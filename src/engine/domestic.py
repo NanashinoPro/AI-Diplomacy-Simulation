@@ -8,7 +8,7 @@ from .constants import (
     DEMOCRACY_MIN_EXECUTION_POWER,
     DEBT_INTEREST_RATE, TAX_APPROVAL_PENALTY_MULTIPLIER, TAX_REDUCTION_APPROVAL_BONUS_MULTIPLIER, MAX_TAX_CHANGE_PER_TURN,
     AUTHORITARIAN_BASE_SAVING_RATE, DEMOCRACY_BASE_SAVING_RATE,
-    DEBT_REPAYMENT_CROWD_IN_MULTIPLIER, GOVERNMENT_CROWD_IN_MULTIPLIER, GOVERNMENT_CROWD_OUT_MULTIPLIER,
+    DEBT_REPAYMENT_CROWD_IN_MULTIPLIER, GOVERNMENT_CROWD_IN_MULTIPLIER, GOVERNMENT_CROWD_OUT_MULTIPLIER, BASE_INVESTMENT_RATE,
     ENDOGENOUS_GROWTH_ALPHA, DEBT_TO_GDP_PENALTY_THRESHOLD,
     BASE_MILITARY_MAINTENANCE_ALPHA, MAX_MILITARY_FATIGUE_ALPHA, BASE_MILITARY_GROWTH_RATE,
     INTEL_GROWTH_RATE, INTEL_MAINTENANCE_ALPHA,
@@ -256,11 +256,14 @@ class DomesticMixin:
 
         # --- SNAマクロ経済モデル: 民間投資 (I) ---
         # [Harrod 1939; Domar 1946] 貯蓄=投資均衡仮定の下、民間貯蓄の一部が
-        # 資本市場を通じて国内投資へ還流すると仮定。係数0.85は国内投資率を表し、
-        # 残15%は海外流出・現預金積み上げ等として処理。
+        # 資本市場を通じて国内投資へ還流すると仮定。係数0.95は国内投資率を表し、
+        # 残5%は海外流出・現預金積み上げ等として処理。
+        # ベース投資(BASE_INVESTMENT_RATE)を生命線として底板に設定する。
         # 政府の経済投資は民間投資を誘発（クラウドイン）し、軍事費が民間投資を押し出す（クラウドアウト）。
         # 民間貯蓄に加え、政府の未執行予算(S_gov)が金融市場を通じて民間投資に還流する
-        I = max(0.0, S_private * 0.85 + (S_gov * DEBT_REPAYMENT_CROWD_IN_MULTIPLIER) + (g_econ * GOVERNMENT_CROWD_IN_MULTIPLIER) - (g_mil * GOVERNMENT_CROWD_OUT_MULTIPLIER))
+        induced_investment = S_private * 0.95 + (S_gov * DEBT_REPAYMENT_CROWD_IN_MULTIPLIER) + (g_econ * GOVERNMENT_CROWD_IN_MULTIPLIER) - (g_mil * GOVERNMENT_CROWD_OUT_MULTIPLIER)
+        base_investment = old_gdp * BASE_INVESTMENT_RATE
+        I = max(0.0, max(base_investment, induced_investment))
         
         # -- 災害・技術革新のフロー影響を適用 --
         disaster_damage_sum = sum(d.damage_percent for d in self.state.disaster_history if d.turn == self.state.turn and (d.country == country_name or d.country is None))
