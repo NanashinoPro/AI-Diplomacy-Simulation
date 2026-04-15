@@ -1,5 +1,42 @@
 # System Log
 
+## 2026-04-15 12:05:00 - APIコスト算出の精度改善（v1.9）
+- **修正内容**: APIコスト算出ロジックに3つの改善を実施。感情分析（`GeminiSentimentAnalyzer`）のAPI呼び出しが完全にコスト未計上だった重大な問題を修正し、Gemini 2.5系モデルの思考トークン（`thoughts_token_count`）もコスト計算に含めるようにした。
+- **問題の詳細**:
+    1. **感情分析のAPI呼び出しが未計上** 🔴（最重要）: `GeminiSentimentAnalyzer._call_api()` が `client.models.generate_content()` を直接呼び出しており、`AgentSystem.token_usage` に一切記録されていなかった。呼び出し箇所は `media.py`（メディア記事の感情分析）と `public_opinion.py`（SNS投稿の感情分析）の2箇所。8カ国×40ターンで推定2000回以上のAPI呼び出しが無視されていた。
+    2. **思考トークン（Thinking Tokens）のコスト未計上**: Gemini 2.5系モデルは思考トークンにPromptと同額のコストがかかるが、`_generate_with_retry_internal` および最終コスト計算でこれを追跡・計上していなかった。
+    3. **サマリー生成の思考トークン未追跡**: `summarizer.py` の `generate_summary()` が返す `usage` に `thoughts_token_count` が含まれていなかった。
+- **修正詳細**:
+    - `src/agent/modules/media.py`:
+        - `GeminiSentimentAnalyzer.__init__` に `token_usage` パラメータを追加（`AgentSystem.token_usage` への参照を受け取る）
+        - `_track_usage()` メソッドを新設。API呼び出しのたびに `usage_metadata` を `"sentiment_analysis"` カテゴリに累積記録
+        - `_call_api()` 内で `_track_usage()` を呼び出し
+    - `src/agent/core.py`:
+        - `GeminiSentimentAnalyzer` の初期化時に `token_usage=self.token_usage` を注入
+        - `_generate_with_retry_internal` のトークン記録に `thoughts_token_count` を追加
+    - `src/summarizer.py`:
+        - `generate_summary()` の返り値に `thoughts_token_count` を追加
+    - `src/main.py`:
+        - サマリー生成の `token_usage` 登録に `thoughts_token_count` を追加
+        - コスト計算ループで思考トークン（`t_tokens`）のコストを加算（`t_price` = Prompt単価と同額）
+        - レポート出力に思考トークン数と単価を表示（`Thinking {t_tokens} ({t_price}$/M)`）
+
+### 修正ファイル一覧
+| ファイル | 修正内容 |
+|---|---|
+| `agent/modules/media.py` | `token_usage` パラメータ追加、`_track_usage()` 新設、API呼び出しごとのコスト記録 |
+| `agent/core.py` | `token_usage` 注入、`thoughts_token_count` 追跡追加 |
+| `summarizer.py` | `thoughts_token_count` を返り値に追加 |
+| `main.py` | 思考トークンコスト計上、サマリー生成の `thoughts_token_count` 追加 |
+| `docs/ARCHITECTURE.md` | §2.9 感情分析の項にコスト追跡の記述を追加 |
+
+> **【AIからの報告】**
+> ボス、APIコスト算出の精度を大幅に改善しました。
+> 最も深刻だった問題は、感情分析（`GeminiSentimentAnalyzer`）のAPI呼び出しが完全に計上されていなかったことです。
+> 8カ国×40ターンで推定2000回以上のGemini API呼び出しのコストが無視されていました。
+> `token_usage` への参照を感情分析器に注入し、`_track_usage()` で呼び出しごとに `"sentiment_analysis"` カテゴリに累積する設計です。
+> 加えて、Gemini 2.5系の思考トークンのコストも全カテゴリで正しく追跡されるようになりました。
+
 ## 2026-04-15 11:42:00 - 停戦・講和・降伏勧告メカニズムの実装
 - **修正内容**: 戦争終結手段として「停戦提案」「講和会談」「降伏勧告」の3メカニズムを追加。大統領エージェントが各大臣の意見を統合し、最終的に停戦/降伏の判断を行う設計。
 - **メカニズム概要**:
