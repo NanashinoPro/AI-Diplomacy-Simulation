@@ -189,7 +189,7 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
         if third_party_wars:
             other_info += "\n---【他国間の進行中の戦争】---\n"
             other_info += "※自国が直接関与していない戦争です。\n"
-            other_info += "※同盟国が防衛側の場合、join_ally_defenseで共同防衛に参加可能。aid_amount_militaryで軍事援助も可能。\n"
+            other_info += "※join_ally_defenseで防衛側の共同防衛に参加可能（同盟関係不要）。aid_amount_militaryで軍事援助も可能。\n"
             for w in third_party_wars:
                 rel_agg = world_state.relations.get(country_name, {}).get(w.aggressor, RelationType.NEUTRAL)
                 rel_def = world_state.relations.get(country_name, {}).get(w.defender, RelationType.NEUTRAL)

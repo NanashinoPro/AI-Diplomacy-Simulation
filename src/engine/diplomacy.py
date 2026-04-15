@@ -214,45 +214,56 @@ class DiplomacyMixin:
                     self.state.active_wars.append(new_war)
                     self.log_event(f"⚔️ 【開戦】{country_name}が{target_name}に対して宣戦布告しました！（投入率: 攻撃側{DEFAULT_AGGRESSOR_COMMITMENT:.0%}, 防衛側{DEFAULT_DEFENDER_COMMITMENT:.0%}）", involved_countries=[country_name, target_name, "global"])
             
-            # 同盟国の共同防衛参加（join_ally_defense）
-            # 同盟国が防衛側となっている既存の戦争に、防衛支援国として合流する。
+            # 共同防衛参加（join_ally_defense）— 有志連合型
+            # 攻撃国と交戦中でない限り、任意の防衛側の戦争に防衛支援国として合流可能。
             # target_countryは攻撃国（敵国）を指定。攻撃国との直接戦争は発生しない。
             if getattr(dip, 'join_ally_defense', False):
                 attacker_name = target_name  # target_country = 攻撃国（敵国）
                 support_commit = getattr(dip, 'defense_support_commitment', None) or 0.10
                 support_commit = max(0.01, min(0.50, support_commit))
                 
-                # 同盟国が防衛側の戦争を検索
+                # 攻撃国が防衛側の戦争を検索（同盟制限なし）
                 joined = False
                 for w in self.state.active_wars:
                     if w.aggressor == attacker_name:
-                        # 防衛側と自国が同盟関係かチェック
-                        ally_rel = self._get_relation(country_name, w.defender)
-                        if ally_rel == RelationType.ALLIANCE:
-                            # 既に支援国として参加しているかチェック
-                            if country_name in w.defender_supporters:
-                                self.sys_logs_this_turn.append(
-                                    f"[{country_name}] 既に{w.defender}の防衛に参加中。投入率更新: {w.defender_supporters[country_name]:.0%} → {support_commit:.0%}"
-                                )
-                                w.defender_supporters[country_name] = support_commit
-                            else:
-                                w.defender_supporters[country_name] = support_commit
-                                self.log_event(
-                                    f"🛡️ 【共同防衛】{country_name}が同盟国{w.defender}の防衛に参加！"
-                                    f"（対{attacker_name}戦に{support_commit:.0%}の戦力を投入）",
-                                    involved_countries=[country_name, w.defender, attacker_name, "global"]
-                                )
-                                self.sys_logs_this_turn.append(
-                                    f"[共同防衛] {country_name}が{w.defender}の防衛支援国として参加 "
-                                    f"(対{attacker_name}戦, 投入率{support_commit:.0%})"
-                                )
-                            joined = True
+                        # 自国が攻撃国と交戦中でないかチェック（自己矛盾防止）
+                        rel_with_attacker = self._get_relation(country_name, attacker_name)
+                        if rel_with_attacker == RelationType.AT_WAR:
+                            self.sys_logs_this_turn.append(
+                                f"[{country_name}] 共同防衛失敗: {attacker_name}とは既に交戦中のため、"
+                                f"防衛支援国としての参加は不可"
+                            )
                             break
+                        
+                        # 自国が防衛側本人の場合はスキップ（自分の戦争に支援国として参加する矛盾防止）
+                        if w.defender == country_name:
+                            continue
+                        
+                        # 既に支援国として参加しているかチェック
+                        if country_name in w.defender_supporters:
+                            self.sys_logs_this_turn.append(
+                                f"[{country_name}] 既に{w.defender}の防衛に参加中。投入率更新: {w.defender_supporters[country_name]:.0%} → {support_commit:.0%}"
+                            )
+                            w.defender_supporters[country_name] = support_commit
+                        else:
+                            w.defender_supporters[country_name] = support_commit
+                            rel_with_defender = self._get_relation(country_name, w.defender)
+                            rel_label = "同盟国" if rel_with_defender == RelationType.ALLIANCE else "友好国"
+                            self.log_event(
+                                f"🛡️ 【共同防衛】{country_name}が{rel_label}{w.defender}の防衛に参加！"
+                                f"（対{attacker_name}戦に{support_commit:.0%}の戦力を投入）",
+                                involved_countries=[country_name, w.defender, attacker_name, "global"]
+                            )
+                            self.sys_logs_this_turn.append(
+                                f"[共同防衛] {country_name}が{w.defender}の防衛支援国として参加 "
+                                f"(対{attacker_name}戦, 投入率{support_commit:.0%}, 関係={rel_with_defender.value})"
+                            )
+                        joined = True
+                        break
                 
                 if not joined:
                     self.sys_logs_this_turn.append(
-                        f"[{country_name}] 共同防衛失敗: {attacker_name}が攻撃側の戦争で、"
-                        f"同盟国が防衛側となっている戦争が見つかりません"
+                        f"[{country_name}] 共同防衛失敗: {attacker_name}が攻撃側の戦争が見つかりません"
                     )
             
             # 軍事侵攻比率の変更（交戦中の場合）— Rate Limiter適用
