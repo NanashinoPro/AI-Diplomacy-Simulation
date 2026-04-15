@@ -60,6 +60,12 @@ B) 防御的現実主義 (Waltz):
 8. **降伏勧告の判断**: 攻撃側の場合のみ `demand_surrender: true` で降伏勧告を発することができます。
    - 防衛側が翌ターンに `accept_surrender: true` で受諾すると、占領率が即100%となり防衛側は消滅。
    - 降伏勧告の拒否にペナルティはありません。
+9. **⚠️ 同盟国の集団防衛義務（最重要判断事項）**: 自国が同盟関係（alliance）にある国が第三国から攻撃（at_war）を受けている場合、以下を必ず thought_process に記載して最終判断してください：
+   - **条約上の義務**: 同盟条約の精神に基づき、「同盟国への武力攻撃は自国への攻撃と見なす」ことが期待される。共同防衛参加（`join_ally_defense`）を真剣に検討すること。
+   - **参戦しない場合**: 同盟の信頼性が崩壊し、将来の安全保障が大幅に損なわれる。同盟国が敗北すれば、次は自国が標的になる可能性がある。
+   - **参戦する場合**: 自国の経済・軍事への負担、支持率への影響。ただし歴史的に「正義の戦争」は支持率を上昇させることもある（Rally効果）。
+   - **最低限の措置**: 参戦しないと判断しても、軍事援助の大幅増額、攻撃国への経済制裁、国際的非難声明は「同盟国としての最低限の義務」である。何もしないことは許容されない。
+   - **共同防衛の使い方**: `join_ally_defense: true` + `defense_support_commitment: 0.01〜0.50` を攻撃国向けのdiplomatic_policyに設定。自国軍の一部が同盟国の防衛戦に合流し、防衛側の戦力が増強される。declare_warとは異なり、新たな二国間戦争は発生しない。
 """
 
     # 議会解散権の説明は、解散権を持つ民主主義国家のみ表示
@@ -102,6 +108,8 @@ B) 防御的現実主義 (Waltz):
       "is_private": bool,
       "propose_alliance": bool,
       "declare_war": bool,
+      "join_ally_defense": bool（同盟国が防衛側の戦争に支援国として参加。target_countryには攻撃国を指定）,
+      "defense_support_commitment": 0.01から0.50の数値（join_ally_defense時に投入する自国軍の比率。省略時は0.10）,
       "propose_annexation": bool,
       "accept_annexation": bool,
       "propose_trade": bool,

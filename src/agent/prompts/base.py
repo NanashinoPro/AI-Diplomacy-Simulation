@@ -143,11 +143,24 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
                         my_commit = w.defender_commitment_ratio
                         enemy_commit = w.aggressor_commitment_ratio
                         role = "防衛側"
+                    # 支援国情報
+                    sup_info = ""
+                    if w.defender_supporters:
+                        sup_parts = [f"{s}({r:.0%})" for s, r in w.defender_supporters.items()]
+                        sup_info = f" | 防衛支援国: {', '.join(sup_parts)}"
                     war_info = (
                         f" [!交戦中({role})!] 占領進捗率: {w.target_occupation_progress:.1f}%"
-                        f" | 自国投入率: {my_commit:.0%}, 敵国投入率: {enemy_commit:.0%}"
+                        f" | 自国投入率: {my_commit:.0%}, 敵国投入率: {enemy_commit:.0%}{sup_info}"
                         f" (war_commitment_ratioで投入率を変更可能。高いほど戦力増だが経済負担も増大)"
                     )
+                # 自国が防衛支援国として参加中の戦争
+                elif country_name in w.defender_supporters and (w.aggressor == p_name or w.defender == p_name):
+                    my_sup_commit = w.defender_supporters[country_name]
+                    if w.aggressor == p_name:
+                        war_info = (
+                            f" [🛡️共同防衛参加中] {w.defender}の防衛支援国として参戦中"
+                            f" | 自国投入率: {my_sup_commit:.0%} | 占領進捗: {w.target_occupation_progress:.1f}%"
+                        )
             
             suzerain_info = f", 宗主国={p_state.suzerain}" if getattr(p_state, 'suzerain', None) else ""
             
@@ -175,14 +188,19 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
                 third_party_wars.append(w)
         if third_party_wars:
             other_info += "\n---【他国間の進行中の戦争】---\n"
-            other_info += "※自国が直接関与していない戦争です。友好国への軍事援助（aid_amount_military）で戦局に介入可能。\n"
+            other_info += "※自国が直接関与していない戦争です。\n"
+            other_info += "※同盟国が防衛側の場合、join_ally_defenseで共同防衛に参加可能。aid_amount_militaryで軍事援助も可能。\n"
             for w in third_party_wars:
                 rel_agg = world_state.relations.get(country_name, {}).get(w.aggressor, RelationType.NEUTRAL)
                 rel_def = world_state.relations.get(country_name, {}).get(w.defender, RelationType.NEUTRAL)
+                sup_info = ""
+                if w.defender_supporters:
+                    sup_parts = [f"{s}({r:.0%})" for s, r in w.defender_supporters.items()]
+                    sup_info = f" | 支援国: {', '.join(sup_parts)}"
                 other_info += (
                     f"  ⚔️ {w.aggressor}（攻撃側, 投入率{w.aggressor_commitment_ratio:.0%}）"
                     f" vs {w.defender}（防衛側, 投入率{w.defender_commitment_ratio:.0%}）"
-                    f" | 占領進捗: {w.target_occupation_progress:.1f}%"
+                    f" | 占領進捗: {w.target_occupation_progress:.1f}%{sup_info}"
                     f" | 自国との関係: {w.aggressor}={rel_agg.value}, {w.defender}={rel_def.value}\n"
                 )
         

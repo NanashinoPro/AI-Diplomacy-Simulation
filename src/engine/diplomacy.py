@@ -214,22 +214,77 @@ class DiplomacyMixin:
                     self.state.active_wars.append(new_war)
                     self.log_event(f"⚔️ 【開戦】{country_name}が{target_name}に対して宣戦布告しました！（投入率: 攻撃側{DEFAULT_AGGRESSOR_COMMITMENT:.0%}, 防衛側{DEFAULT_DEFENDER_COMMITMENT:.0%}）", involved_countries=[country_name, target_name, "global"])
             
-            # 軍事侵攻比率の変更（交戦中の場合）
+            # 同盟国の共同防衛参加（join_ally_defense）
+            # 同盟国が防衛側となっている既存の戦争に、防衛支援国として合流する。
+            # target_countryは攻撃国（敵国）を指定。攻撃国との直接戦争は発生しない。
+            if getattr(dip, 'join_ally_defense', False):
+                attacker_name = target_name  # target_country = 攻撃国（敵国）
+                support_commit = getattr(dip, 'defense_support_commitment', None) or 0.10
+                support_commit = max(0.01, min(0.50, support_commit))
+                
+                # 同盟国が防衛側の戦争を検索
+                joined = False
+                for w in self.state.active_wars:
+                    if w.aggressor == attacker_name:
+                        # 防衛側と自国が同盟関係かチェック
+                        ally_rel = self._get_relation(country_name, w.defender)
+                        if ally_rel == RelationType.ALLIANCE:
+                            # 既に支援国として参加しているかチェック
+                            if country_name in w.defender_supporters:
+                                self.sys_logs_this_turn.append(
+                                    f"[{country_name}] 既に{w.defender}の防衛に参加中。投入率更新: {w.defender_supporters[country_name]:.0%} → {support_commit:.0%}"
+                                )
+                                w.defender_supporters[country_name] = support_commit
+                            else:
+                                w.defender_supporters[country_name] = support_commit
+                                self.log_event(
+                                    f"🛡️ 【共同防衛】{country_name}が同盟国{w.defender}の防衛に参加！"
+                                    f"（対{attacker_name}戦に{support_commit:.0%}の戦力を投入）",
+                                    involved_countries=[country_name, w.defender, attacker_name, "global"]
+                                )
+                                self.sys_logs_this_turn.append(
+                                    f"[共同防衛] {country_name}が{w.defender}の防衛支援国として参加 "
+                                    f"(対{attacker_name}戦, 投入率{support_commit:.0%})"
+                                )
+                            joined = True
+                            break
+                
+                if not joined:
+                    self.sys_logs_this_turn.append(
+                        f"[{country_name}] 共同防衛失敗: {attacker_name}が攻撃側の戦争で、"
+                        f"同盟国が防衛側となっている戦争が見つかりません"
+                    )
+            
+            # 軍事侵攻比率の変更（交戦中の場合）— Rate Limiter適用
             if getattr(dip, 'war_commitment_ratio', None) is not None:
-                from .constants import MIN_COMMITMENT_RATIO
+                from .constants import MIN_COMMITMENT_RATIO, MAX_COMMITMENT_CHANGE_PER_TURN
                 new_ratio = max(MIN_COMMITMENT_RATIO, min(1.0, dip.war_commitment_ratio))
                 for w in self.state.active_wars:
                     if w.aggressor == country_name and w.defender == target_name:
                         old_ratio = w.aggressor_commitment_ratio
-                        w.aggressor_commitment_ratio = new_ratio
-                        self.sys_logs_this_turn.append(f"[{country_name} 投入比率変更] 対{target_name}戦: {old_ratio:.0%} → {new_ratio:.0%}")
-                        self.log_event(f"📊 {country_name}が対{target_name}戦への軍事投入比率を{old_ratio:.0%}から{new_ratio:.0%}に変更しました。", involved_countries=[country_name, target_name, "global"])
+                        # Rate Limiter: 1ターンあたり±MAX_COMMITMENT_CHANGE_PER_TURNに制限
+                        clamped_ratio = max(old_ratio - MAX_COMMITMENT_CHANGE_PER_TURN,
+                                            min(old_ratio + MAX_COMMITMENT_CHANGE_PER_TURN, new_ratio))
+                        clamped_ratio = max(MIN_COMMITMENT_RATIO, min(1.0, clamped_ratio))
+                        w.aggressor_commitment_ratio = clamped_ratio
+                        if abs(clamped_ratio - new_ratio) > 0.001:
+                            self.sys_logs_this_turn.append(f"[{country_name} 投入比率変更 ⚠️Rate Limit] 対{target_name}戦: {old_ratio:.0%} → {clamped_ratio:.0%} (要求値{new_ratio:.0%}は±{MAX_COMMITMENT_CHANGE_PER_TURN:.0%}制限により却下)")
+                        else:
+                            self.sys_logs_this_turn.append(f"[{country_name} 投入比率変更] 対{target_name}戦: {old_ratio:.0%} → {clamped_ratio:.0%}")
+                        self.log_event(f"📊 {country_name}が対{target_name}戦への軍事投入比率を{old_ratio:.0%}から{clamped_ratio:.0%}に変更しました。", involved_countries=[country_name, target_name, "global"])
                         break
                     elif w.defender == country_name and w.aggressor == target_name:
                         old_ratio = w.defender_commitment_ratio
-                        w.defender_commitment_ratio = new_ratio
-                        self.sys_logs_this_turn.append(f"[{country_name} 投入比率変更] 対{target_name}戦: {old_ratio:.0%} → {new_ratio:.0%}")
-                        self.log_event(f"📊 {country_name}が対{target_name}戦への軍事投入比率を{old_ratio:.0%}から{new_ratio:.0%}に変更しました。", involved_countries=[country_name, target_name, "global"])
+                        # Rate Limiter: 1ターンあたり±MAX_COMMITMENT_CHANGE_PER_TURNに制限
+                        clamped_ratio = max(old_ratio - MAX_COMMITMENT_CHANGE_PER_TURN,
+                                            min(old_ratio + MAX_COMMITMENT_CHANGE_PER_TURN, new_ratio))
+                        clamped_ratio = max(MIN_COMMITMENT_RATIO, min(1.0, clamped_ratio))
+                        w.defender_commitment_ratio = clamped_ratio
+                        if abs(clamped_ratio - new_ratio) > 0.001:
+                            self.sys_logs_this_turn.append(f"[{country_name} 投入比率変更 ⚠️Rate Limit] 対{target_name}戦: {old_ratio:.0%} → {clamped_ratio:.0%} (要求値{new_ratio:.0%}は±{MAX_COMMITMENT_CHANGE_PER_TURN:.0%}制限により却下)")
+                        else:
+                            self.sys_logs_this_turn.append(f"[{country_name} 投入比率変更] 対{target_name}戦: {old_ratio:.0%} → {clamped_ratio:.0%}")
+                        self.log_event(f"📊 {country_name}が対{target_name}戦への軍事投入比率を{old_ratio:.0%}から{clamped_ratio:.0%}に変更しました。", involved_countries=[country_name, target_name, "global"])
                         break
                     
             # 停戦提案（同盟提案と同じ双方向メカニズム）

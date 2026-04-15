@@ -88,6 +88,8 @@ class DiplomaticAction(BaseModel):
     is_private: bool = Field(False, description="対象国とのやり取り（メッセージや会談提案）を第三国に非公開にするかどうか")
     propose_alliance: bool = Field(False, description="同盟を提案するかどうか")
     declare_war: bool = Field(False, description="宣戦布告するかどうか")
+    join_ally_defense: bool = Field(False, description="同盟国が防衛側となっている既存の戦争に、防衛支援国として参加するか。target_countryには攻撃国（敵国）を指定する")
+    defense_support_commitment: Optional[float] = Field(None, ge=0.01, le=0.5, description="共同防衛に投入する自国軍事力の比率（0.01〜0.50）。同盟国防衛参加時に設定")
     propose_annexation: bool = Field(False, description="対象国に対して、自国への平和的な統合（吸収合併）を提案するか")
     accept_annexation: bool = Field(False, description="前のターンに対象国から提案された平和的統合を受諾するか（受諾した場合、自国は対象国に吸収され消滅します）")
     
@@ -153,6 +155,7 @@ class WarState(BaseModel):
     aggressor_commitment_ratio: float = Field(0.50, ge=0.0, le=1.0, description="攻撃側の軍事力投入比率（0.0-1.0）。自国軍のうちどれだけを前線に投入するか")
     defender_commitment_ratio: float = Field(0.80, ge=0.0, le=1.0, description="防衛側の軍事力投入比率（0.0-1.0）。自衛のため通常は高め")
     war_turns_elapsed: int = Field(0, ge=0, description="戦争経過ターン数。Rally効果と戦争疲弊の計算に使用")
+    defender_supporters: Dict[str, float] = Field(default_factory=dict, description="防衛支援国とその投入比率 {国名: 投入率}。同盟国が防衛に参加した場合に追加される")
     aggressor_cumulative_military_loss: float = Field(0.0, description="攻撃側の累積軍事損害額（講和時の賠償金計算用）")
     defender_cumulative_military_loss: float = Field(0.0, description="防衛側の累積軍事損害額（講和時の賠償金計算用）")
     aggressor_cumulative_civilian_gdp_loss: float = Field(0.0, description="攻撃側の累積民間人GDP損害額（人口損失×一人当たりGDP）")

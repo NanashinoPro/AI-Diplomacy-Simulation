@@ -1,7 +1,7 @@
 country_a,country_b,relation_type,trade,sanctions_a_to_b,sanctions_b_to_a,war_aggressor,tariff_a_to_b,tariff_b_to_a,aggressor_commitment_ratio,defender_commitment_ratio,initial_occupation_progress,initial_aid_economy_a_to_b,initial_aid_military_a_to_b,initial_aid_economy_b_to_a,initial_aid_military_b_to_a
-中国,台湾,at_war,false,false,false,中国,0.0,0.0,0.30,0.90,5.0,,,,,
+中国,台湾,at_war,false,false,false,中国,0.0,0.0,0.20,0.90,5.0,,,,,
 中国,アメリカ,neutral,true,false,false,,0.20,0.10,,,,,,,,
-中国,日本,neutral,true,false,false,,0.08,0.05,,,,,,,,
+中国,日本,at_war,false,false,false,中国,0.0,0.0,0.10,0.60,0.5,,,,,
 台湾,アメリカ,neutral,true,false,false,,0.03,0.03,,,,3.0,10.0,,,
-台湾,日本,neutral,true,false,false,,0.03,0.03,,,,,,2.5,1.0
-アメリカ,日本,alliance,true,false,false,,0.025,0.025,,,,,2.0,,,
+台湾,日本,neutral,true,false,false,,0.03,0.03,,,,,,1.0,0.5
+アメリカ,日本,alliance,true,false,false,,0.025,0.025,,,,2.0,5.0,,,

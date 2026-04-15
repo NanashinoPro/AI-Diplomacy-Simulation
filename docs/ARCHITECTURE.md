@@ -290,6 +290,7 @@ NX赤字状態が4ターン以上連続した場合: $Penalty = \min(3.0,\ (Defi
 | `DEFAULT_AGGRESSOR_COMMITMENT` | 0.50 | 攻撃側のデフォルト投入率 |
 | `DEFAULT_DEFENDER_COMMITMENT` | 0.80 | 防衛側のデフォルト投入率（自衛のため高め） |
 | `MIN_COMMITMENT_RATIO` | 0.10 | 最小投入率（10%未満の戦争はあり得ない） |
+| `MAX_COMMITMENT_CHANGE_PER_TURN` | 0.10 | 1ターンあたりの投入比率変動上限（±10%） |
 | `COMMITMENT_ECONOMIC_DRAIN` | 0.01 | 投入比率1.0あたりの四半期GDP減衰率 |
 
 **投入分の軍事力のみで戦闘が行われる**:
@@ -299,9 +300,47 @@ $$ M_{agg}^{eff} = M_{agg} \times CR_{agg}, \quad M_{def}^{eff} = M_{def} \times
 $$ EconDrain = 0.98 \times (1.0 - 0.01 \times CR) $$
 投入比率が高いほどGDPへの経済負担が増大する。
 
-**AIエージェントによる投入比率の変更**: 交戦中の国家は、`DiplomaticAction` の `war_commitment_ratio` フィールド（0.1〜1.0）により、毎ターン投入比率を動的に変更できる。未指定の場合は現状維持。
+#### 動員速度制限（Rate Limiter）
+[学術的根拠]
+1. **ロシア部分動員 (2022年9月)**: 30万人の動員命令から5週間で「完了」宣言（Shoigu国防相, 2022/10/28）されたが、実際に前線配備されたのは82,000名（27%）のみ。ISW (Institute for the Study of War) は「動員された兵力が実質的な戦闘力として機能するには数ヶ月を要する」と評価。実効ベースで四半期あたり約+8%の戦力投入率増加に相当。
+2. **クラウゼヴィッツ『戦争論』(1832)**: 計画と実行の間には不可避な「摩擦 (Friction)」が存在し、即時の戦力拡大は理論上不可能。兵站・訓練・装備配備がボトルネックとなる。
+3. **WW1 シュリーフェン計画 (1905)**: ドイツはロシアの総動員に6週間かかることを前提に全戦略を構築。動員速度そのものが国家戦略の根本的制約であった。
+
+AIエージェントが `war_commitment_ratio` で投入比率の変更を指示した場合、エンジン側で以下のクランプ処理が適用される:
+
+$$CR_{new} = \text{clamp}(CR_{requested},\ CR_{old} - 0.10,\ CR_{old} + 0.10)$$
+
+例: 現在の投入率が20%の場合、AIが70%を要求しても、実際には30%にクランプされる。70%に到達するには最低5ターン（1年3ヶ月）を要する。これはLLMの出力を信頼境界の外として扱い、エンジン側で物理的に制約するアプローチである。
+
+**AIエージェントによる投入比率の変更**: 交戦中の国家は、`DiplomaticAction` の `war_commitment_ratio` フィールド（0.1〜1.0）により、毎ターン投入比率を動的に変更できる。ただし、1ターンあたりの変動幅は`MAX_COMMITMENT_CHANGE_PER_TURN`（±10%）に制限される。未指定の場合は現状維持。
 
 **初期関係設定 (`data/initial_relations.csv`) での定義**: 開戦状態の初期データとして、`aggressor_commitment_ratio`、`defender_commitment_ratio`、`initial_occupation_progress` をCSVカラムで指定可能。
+
+#### 合計投入率キャップ（Multi-Front Commitment Cap）
+1国が複数の戦争に同時参加（2正面作戦等）している場合、各戦争の投入率の合計が物理的上限である100%を超えないよう、`_process_wars`の冒頭で前処理が行われる。
+
+$$ \text{if} \sum_{i} CR_i > 1.0 \implies CR_i' = CR_i \times \frac{1.0}{\sum_{i} CR_i} $$
+
+例: 台湾戦0.70 + 日本戦0.60 = 合計1.30 → スケールファクタ $0.769$ → 台湾0.538、日本0.462。
+攻撃側・防衛側・防衛支援国すべての投入率が合計対象に含まれる。
+
+#### 共同防衛メカニズム（Collective Defense）
+同盟国が防衛側となっている既存の戦争に、「防衛支援国 (Defender Supporter)」として参加する仕組み。現実の日米安保条約第5条（在日米軍が日本の防衛に参加）をモデル化する。
+
+**`declare_war`との違い**: `declare_war`は新たな二国間WarStateを作成し、宣戦布告した国が攻撃側になる。これは「アメリカが中国本土を占領する」ような非現実的なシナリオを生む。`join_ally_defense`は既存のWarStateに支援国として合流するため、二国間戦争は発生しない。
+
+**処理フロー**:
+1. AIが `join_ally_defense: true` + `defense_support_commitment: 0.01〜0.50` を設定（`target_country`には攻撃国を指定）
+2. `diplomacy.py` で同盟関係を確認し、WarStateの `defender_supporters` に追加
+3. `military.py` の戦闘計算で防衛側の戦力に支援国の戦力を加算
+
+**防衛力の計算**:
+$$ M_{def}^{eff} = \left( M_{def} \times CR_{def} + \sum_{j \in Supporters} M_j \times CR_j \right) \times DEFENDER\_ADVANTAGE $$
+
+**ダメージの按分**: 防衛側が受けるダメージは、投入戦力の比率に応じて防衛国と支援国に按分される。
+$$ Damage_{defender} = Damage_{total} \times \frac{M_{def} \times CR_{def}}{M_{def} \times CR_{def} + \sum_j M_j \times CR_j} $$
+
+**支援国の負担**: 支援国は投入分のダメージ（軍事力減少）に加え、投入比率に応じた軽度の経済デバフ（本国の50%）を受ける。ただし、戦場は防衛国の領土であるため、支援国には民間人犠牲は発生しない。
 
 交戦国は毎ターン、**投入分の**軍事力に対してランダムな損害を与え合う（防衛側は攻撃力× $5\% \sim 15\%$ の損害、攻撃側は防衛戦力× $5\% \sim 15\%$ の損害）。損害は投入分のみに適用され、後方の未投入軍は温存される。さらに両国の経済力に投入比率に応じた戦時デバフが発動する。これに加えて、軍事ダメージ量に比例した**人口減少（民間人犠牲）**が毎ターン発生する（防衛側の方が損失率が大きい）。
 

@@ -10,6 +10,45 @@ class MilitaryMixin:
     def _process_wars(self):
         surviving_wars = []
         
+        # === 合計投入率キャップ（前処理）===
+        # 1国が複数の戦争に参加している場合、各戦争の投入率の合計が1.0を超えないよう
+        # 比例配分でスケールダウンする。全軍の100%以上を投入するのは物理的に不可能。
+        country_total_commitment = {}  # {国名: 合計投入率}
+        for war in self.state.active_wars:
+            # 攻撃側
+            agg_name = war.aggressor
+            agg_commit = max(MIN_COMMITMENT_RATIO, war.aggressor_commitment_ratio)
+            country_total_commitment[agg_name] = country_total_commitment.get(agg_name, 0.0) + agg_commit
+            # 防衛側
+            def_name = war.defender
+            def_commit = max(MIN_COMMITMENT_RATIO, war.defender_commitment_ratio)
+            country_total_commitment[def_name] = country_total_commitment.get(def_name, 0.0) + def_commit
+            # 防衛支援国
+            for sup_name, sup_commit in war.defender_supporters.items():
+                country_total_commitment[sup_name] = country_total_commitment.get(sup_name, 0.0) + sup_commit
+        
+        # 合計が1.0を超える国のスケールダウン
+        for country_name, total in country_total_commitment.items():
+            if total > 1.0:
+                scale_factor = 1.0 / total
+                self.sys_logs_this_turn.append(
+                    f"[⚠️ 投入率キャップ] {country_name}: 合計投入率{total:.0%}が100%超過。"
+                    f"各戦争の投入率を{scale_factor:.2f}倍にスケールダウン"
+                )
+                for war in self.state.active_wars:
+                    if war.aggressor == country_name:
+                        old = war.aggressor_commitment_ratio
+                        war.aggressor_commitment_ratio = max(MIN_COMMITMENT_RATIO, old * scale_factor)
+                        self.sys_logs_this_turn.append(
+                            f"  └ 対{war.defender}戦（攻撃側）: {old:.0%} → {war.aggressor_commitment_ratio:.0%}"
+                        )
+                    if war.defender == country_name:
+                        old = war.defender_commitment_ratio
+                        war.defender_commitment_ratio = max(MIN_COMMITMENT_RATIO, old * scale_factor)
+                        self.sys_logs_this_turn.append(
+                            f"  └ 対{war.aggressor}戦（防衛側）: {old:.0%} → {war.defender_commitment_ratio:.0%}"
+                        )
+        
         for war in self.state.active_wars:
             aggressor = self.state.countries.get(war.aggressor)
             defender = self.state.countries.get(war.defender)
@@ -25,24 +64,56 @@ class MilitaryMixin:
             agg_committed = aggressor.military * agg_commit
             def_committed = defender.military * def_commit
             
-            # 防衛側ボーナス
-            def_power = def_committed * DEFENDER_ADVANTAGE_MULTIPLIER
+            # === 共同防衛メカニズム: 防衛支援国の戦力を加算 ===
+            supporter_committed = {}  # {国名: 投入戦力}
+            total_supporter_power = 0.0
+            supporter_info_parts = []
+            for sup_name, sup_commit in war.defender_supporters.items():
+                sup_country = self.state.countries.get(sup_name)
+                if sup_country and sup_country.military > 0:
+                    sup_power = sup_country.military * sup_commit
+                    supporter_committed[sup_name] = sup_power
+                    total_supporter_power += sup_power
+                    supporter_info_parts.append(f"{sup_name}({sup_commit:.0%}={sup_power:.0f})")
+            
+            # 防衛側ボーナス（防衛国+支援国の合計に適用）
+            def_power = (def_committed + total_supporter_power) * DEFENDER_ADVANTAGE_MULTIPLIER
             agg_power = agg_committed
             
             agg_damage_raw = def_power * random.uniform(0.05, 0.15)
             def_damage_raw = agg_power * random.uniform(0.05, 0.15)
             
             # 損害は投入分のみに適用（後方予備軍は温存）
-            # ダメージが投入戦力を超えた場合、投入分の消滅のみで予備軍には波及しない
             agg_damage = min(agg_damage_raw, agg_committed)
-            def_damage = min(def_damage_raw, def_committed)
+            
+            # 防衛側ダメージの分配（防衛国+支援国に投入戦力比率で按分）
+            total_def_committed = def_committed + total_supporter_power
+            def_damage = min(def_damage_raw, total_def_committed)
+            
+            if total_def_committed > 0:
+                # 防衛国本体のダメージ分
+                def_damage_share = def_damage * (def_committed / total_def_committed)
+                defender.military = max(0.0, defender.military - def_damage_share)
+                
+                # 支援国へのダメージ分配
+                for sup_name, sup_power in supporter_committed.items():
+                    sup_country = self.state.countries.get(sup_name)
+                    if sup_country:
+                        sup_damage = def_damage * (sup_power / total_def_committed)
+                        sup_country.military = max(0.0, sup_country.military - sup_damage)
+                        # 支援国の経済デバフ（投入比率に応じた戦時負担）
+                        sup_commit_ratio = war.defender_supporters.get(sup_name, 0.1)
+                        sup_war_drain = 1.0 - (COMMITMENT_ECONOMIC_DRAIN * sup_commit_ratio * 0.5)  # 本国より軽い
+                        sup_country.economy *= max(0.95, 0.99 * sup_war_drain)
+            else:
+                def_damage_share = def_damage
+                defender.military = max(0.0, defender.military - def_damage)
             
             aggressor.military = max(0.0, aggressor.military - agg_damage)
-            defender.military = max(0.0, defender.military - def_damage)
             
             # 人口減少計算（軍事ダメージ割合に比例。防衛側は戦場となるため民間人被害が大きい）
             agg_pop_loss = aggressor.population * (agg_damage / max(1.0, agg_committed)) * 0.05
-            def_pop_loss = defender.population * (def_damage / max(1.0, def_committed)) * 0.15
+            def_pop_loss = defender.population * (def_damage_share / max(1.0, def_committed)) * 0.15
             
             aggressor.population = max(0.1, aggressor.population - agg_pop_loss)
             defender.population = max(0.1, defender.population - def_pop_loss)
@@ -66,12 +137,9 @@ class MilitaryMixin:
             aggressor.approval_rating -= 1.0
             
             # 防衛側: Rally 'round the flag 効果 (Mueller 1970, 1973)
-            # 自国が侵攻を受けると国民が一致団結し、支持率が一時的に急上昇する。
-            # 効果は時間と共に減衰し、長期化すると戦争疲弊（War Fatigue）に転じる。
             war_turns = getattr(war, 'war_turns_elapsed', 0)
             if war_turns <= 4:
-                # 初期ラリー効果（最初の4ターン=1年）: 最大+10%→減衰
-                rally_bonus = max(0.0, 10.0 - (war_turns * 2.5))  # +10, +7.5, +5.0, +2.5, +0.0
+                rally_bonus = max(0.0, 10.0 - (war_turns * 2.5))
                 defender.approval_rating = min(100.0, defender.approval_rating + rally_bonus)
                 if rally_bonus > 0:
                     self.sys_logs_this_turn.append(
@@ -79,7 +147,6 @@ class MilitaryMixin:
                         f"(Mueller 1970, 経過{war_turns}ターン)"
                     )
             else:
-                # 戦争疲弊期（5ターン目以降）: -1.5%/ターン
                 defender.approval_rating -= 1.5
             
             # 戦争経過ターンのカウントアップ
@@ -91,8 +158,13 @@ class MilitaryMixin:
             
             war.target_occupation_progress = max(0.0, min(100.0, war.target_occupation_progress + progress_change))
             
+            # 支援国情報のログ文字列
+            supporter_log = ""
+            if supporter_info_parts:
+                supporter_log = f" | 支援国: {', '.join(supporter_info_parts)}"
+            
             self.log_event(
-                f"🔥 【戦況報告】{war.aggressor} vs {war.defender} | "
+                f"🔥 【戦況報告】{war.aggressor} vs {war.defender}{supporter_log} | "
                 f"占領進捗: {war.target_occupation_progress:.1f}% | "
                 f"投入率: {war.aggressor}={agg_commit:.0%}, {war.defender}={def_commit:.0%} | "
                 f"(両軍損害: {aggressor.name}軍残{aggressor.military:.0f} / {defender.name}軍残{defender.military:.0f} | "
@@ -102,7 +174,7 @@ class MilitaryMixin:
             
             self.sys_logs_this_turn.append(
                 f"[戦争ダメージ] {war.aggressor}(投入率{agg_commit:.0%}, 投入戦力{agg_committed:.0f}) vs "
-                f"{war.defender}(投入率{def_commit:.0%}, 投入戦力{def_committed:.0f}, 防衛ボーナス込み{def_power:.0f}). "
+                f"{war.defender}(投入率{def_commit:.0%}, 投入戦力{def_committed:.0f}+支援{total_supporter_power:.0f}, 防衛ボーナス込み{def_power:.0f}). "
                 f"経済負担: {war.aggressor} x{agg_war_drain:.3f}, {war.defender} x{def_war_drain:.3f}"
             )
             

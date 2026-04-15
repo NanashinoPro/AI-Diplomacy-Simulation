@@ -157,6 +157,11 @@ python src/web_ui.py
 | `BASE_MILITARY_MAINTENANCE_ALPHA` | `0.03` | 軍事力の基礎維持費率 |
 | `MAX_MILITARY_FATIGUE_ALPHA` | `0.20` | 戦時疲弊による最大減衰率 |
 | `DEFENDER_ADVANTAGE_MULTIPLIER` | `1.2` | 防衛側の戦闘力ボーナス倍率 |
+| `DEFAULT_AGGRESSOR_COMMITMENT` | `0.50` | 攻撃側のデフォルト投入率 |
+| `DEFAULT_DEFENDER_COMMITMENT` | `0.80` | 防衛側のデフォルト投入率（自衛のため高め） |
+| `MIN_COMMITMENT_RATIO` | `0.10` | 最小投入率（10%未満の戦争はあり得ない） |
+| `MAX_COMMITMENT_CHANGE_PER_TURN` | `0.10` | 1ターンあたりの投入比率変動上限（±10%）。ロシア2022年部分動員実績(+8%/Q)に基づく |
+| `COMMITMENT_ECONOMIC_DRAIN` | `0.01` | 投入比率1.0あたりの四半期GDP減衰率 |
 
 #### 貿易モデル
 
