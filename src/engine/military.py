@@ -112,8 +112,9 @@ class MilitaryMixin:
             aggressor.military = max(0.0, aggressor.military - agg_damage)
             
             # 人口減少計算（軍事ダメージ割合に比例。防衛側は戦場となるため民間人被害が大きい）
-            agg_pop_loss = aggressor.population * (agg_damage / max(1.0, agg_committed)) * 0.05
-            def_pop_loss = defender.population * (def_damage_share / max(1.0, def_committed)) * 0.15
+            # ※係数を実態に即して修正（元の1/100スケール）
+            agg_pop_loss = aggressor.population * (agg_damage / max(1.0, agg_committed)) * 0.0005
+            def_pop_loss = defender.population * (def_damage_share / max(1.0, def_committed)) * 0.0015
             
             aggressor.population = max(0.1, aggressor.population - agg_pop_loss)
             defender.population = max(0.1, defender.population - def_pop_loss)
@@ -152,11 +153,29 @@ class MilitaryMixin:
             # 戦争経過ターンのカウントアップ
             war.war_turns_elapsed = war_turns + 1
             
-            # 占領進捗率の更新 (投入済み戦力の差による)
+            # 占領進捗率の更新（投入済み戦力の差による）
+            # 攻撃側優勢 → 進捗が増加（攻め込む）
+            # 防衛側優勢 → 進捗が減少し、0を下回ると守り側が逆占領（攻め側の領土を奪う）
             power_diff = agg_power - def_power
-            progress_change = power_diff / max(1, def_power) * 5.0
-            
-            war.target_occupation_progress = max(0.0, min(100.0, war.target_occupation_progress + progress_change))
+            progress_change = power_diff / max(1, max(agg_power, def_power)) * 5.0
+
+            new_progress = war.target_occupation_progress + progress_change
+
+            if new_progress < 0.0:
+                # 守り側が戦力逆転して反攻 → 攻め側の領土を逆占領
+                counter_occupation = abs(new_progress)  # 逆占領進捗（0〜100）
+                war.target_occupation_progress = 0.0
+                war.counter_occupation_progress = getattr(war, 'counter_occupation_progress', 0.0) + counter_occupation
+                war.counter_occupation_progress = min(100.0, war.counter_occupation_progress)
+                self.sys_logs_this_turn.append(
+                    f"[反攻進行] {war.defender}が戦力逆転により{war.aggressor}領土への反攻を開始。"
+                    f"逆占領進捗: {war.counter_occupation_progress:.1f}%"
+                )
+            else:
+                war.target_occupation_progress = min(100.0, new_progress)
+                # 攻め側が優勢に戻ったら逆占領進捗を減衰
+                if hasattr(war, 'counter_occupation_progress') and war.counter_occupation_progress > 0:
+                    war.counter_occupation_progress = max(0.0, war.counter_occupation_progress - abs(progress_change))
             
             # 支援国情報のログ文字列
             supporter_log = ""
@@ -181,9 +200,20 @@ class MilitaryMixin:
             # 敗北判定
             war_ended = False
             if war.target_occupation_progress >= 100.0 or defender.military < 1.0:
+                # 攻め側が完全占領 or 防衛側の軍事力が尽きた → 防衛側の敗北
                 self._handle_defeat(defender.name, aggressor.name)
                 war_ended = True
             elif aggressor.military < 1.0:
+                # 防衛側が反撃で攻め側の軍事力を壊滅させた → 攻め側の敗北
+                self._handle_defeat(aggressor.name, defender.name)
+                war_ended = True
+            elif getattr(war, 'counter_occupation_progress', 0.0) >= 100.0:
+                # 防衛側が逆占領を完成させた → 攻め側の領土を奪取して勝利
+                self.log_event(
+                    f"🔄 【戦局逆転・反攻成功】{war.defender}が{war.aggressor}の領土を完全占領しました！"
+                    f"守りを突破した{war.defender}軍が攻め側の首都を制圧します。",
+                    involved_countries=[war.aggressor, war.defender, "global"]
+                )
                 self._handle_defeat(aggressor.name, defender.name)
                 war_ended = True
                 
