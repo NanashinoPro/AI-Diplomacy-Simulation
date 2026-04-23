@@ -77,6 +77,12 @@ def generate_citizen_sns_posts(
         return []
         
     recent_news = "\n".join([f"- {news}" for news in world_state.news_events[-3:]]) if world_state.news_events else "特になし"
+    # 市民が認識できる支持率は「政府の公表値（reported）」のみ。真値には触れられない。
+    citizen_approval = (
+        country_state.reported_approval_rating
+        if country_state.reported_approval_rating is not None
+        else country_state.approval_rating
+    )
     history_str = ""
     if country_state.stat_history:
         history_str = "- 過去のパラメーター推移:\n" + "\n".join([f"  T{s['turn']}: 経済力 {s['economy']}, 支持率 {s['approval_rating']}%" for s in country_state.stat_history]) + "\n"
@@ -85,7 +91,7 @@ def generate_citizen_sns_posts(
 現在の自国の状況は以下の通りです：
 - 政治体制: {country_state.government_type.value}
 - 経済状況: {country_state.economy:.1f}
-- 政府支持率: {country_state.approval_rating:.1f}%
+- 政府支持率（政府公式発表）: {citizen_approval:.1f}%
 {history_str}- 最近の世界的ニュース:
 {recent_news}
 
