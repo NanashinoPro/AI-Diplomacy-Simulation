@@ -93,16 +93,51 @@ def build_analyst_prompt(
         elif p.donor == country_name and p.target == target_country_name:
             pending_aid_info += f"保留中の援助: 自国→{target_country_name} (経済{p.amount_economy:.1f}, 軍事{p.amount_military:.1f})\n"
     
+    # 情報偽装: 諜報成功(use_real_stats=True)なら真値、失敗なら偽装値を使用
+    real_gdppc   = target_state.economy / max(0.1, target_state.population)
+    disp_econ    = target_state.reported_economy           if (target_state.reported_economy           is not None and not use_real_stats) else target_state.economy
+    disp_mil     = target_state.reported_military          if (target_state.reported_military          is not None and not use_real_stats) else target_state.military
+    disp_intel   = target_state.reported_intelligence_level if (target_state.reported_intelligence_level is not None and not use_real_stats) else target_state.intelligence_level
+    disp_approval= target_state.reported_approval_rating   if (target_state.reported_approval_rating   is not None and not use_real_stats) else target_state.approval_rating
+    disp_gdppc   = target_state.reported_gdp_per_capita    if (target_state.reported_gdp_per_capita    is not None and not use_real_stats) else real_gdppc
+
+    # 諜報成功時: 偽装が存在するフィールドを全て比較した機密ヘッダーを生成
+    deception_intel_header = ""
+    if use_real_stats:
+        deception_details = []
+        _checks = [
+            ("経済力",        target_state.reported_economy,            target_state.economy,            ""),
+            ("軍事力",        target_state.reported_military,           target_state.military,           ""),
+            ("支持率",        target_state.reported_approval_rating,    target_state.approval_rating,    "%"),
+            ("諜報力",        target_state.reported_intelligence_level, target_state.intelligence_level, ""),
+            ("1人当たりGDP", target_state.reported_gdp_per_capita,     real_gdppc,                      ""),
+        ]
+        for label, rep_val, true_val, unit in _checks:
+            if rep_val is not None:
+                dev = abs(rep_val - true_val) / max(1.0, abs(true_val)) * 100.0
+                deception_details.append(f"{label}: 公式={rep_val:.1f}{unit} / 実際={true_val:.1f}{unit} (乖離={dev:.1f}%)")
+        if deception_details:
+            deception_intel_header = (
+                f"\n⚠️【機密情報：諜報成功】対象国「{target_country_name}」の公式発表値に偽装が発見されました！\n"
+                + "\n".join(deception_details) + "\n"
+                + "以下の数値は真値を反映しています。この情報は自国のみが知る極秘情報です。大臣には必ず共有してください。\n"
+            )
+        else:
+            deception_intel_header = (
+                f"\n✅【諜報成功（偽装なし確認）】対象国「{target_country_name}」の公式発表値に偽装の証拠は発見されませんでした。\n"
+            )
+
     target_info = (
         f"---分析対象国: {target_country_name} の詳細情報---\n"
+        f"{deception_intel_header}"
         f"政治体制: {target_state.government_type.value}\n"
         f"イデオロギー: {target_state.ideology}\n"
-        f"経済力(GDP): {target_state.economy:.1f}\n"
-        f"1人当たりGDP: {(target_state.economy / max(0.1, target_state.population)):.1f}\n"
-        f"軍事力: {target_state.military:.1f}\n"
-        f"諜報レベル: {target_state.intelligence_level:.1f}\n"
+        f"経済力(GDP): {disp_econ:.1f}\n"
+        f"1人当たりGDP: {disp_gdppc:.1f}\n"
+        f"軍事力: {disp_mil:.1f}\n"
+        f"諜報レベル: {disp_intel:.1f}\n"
         f"人口: {target_state.population:.1f}百万人\n"
-        f"支持率: {target_state.approval_rating:.1f}%\n"
+        f"支持率: {disp_approval:.1f}%\n"
         f"国家債務(GDP比): {(target_state.national_debt / max(0.1, target_state.economy)):.1%}\n"
         f"二国間関係: {rel_str}\n"
         f"{trade_info}\n"

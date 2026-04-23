@@ -479,3 +479,29 @@ class DomesticMixin:
             f"HCI:{old_hci:.3f} -> {country.human_capital_index:.3f} (MYS:{old_mys:.2f} -> {country.mean_years_schooling:.2f}), "
             f"支持率:{old_approval:.1f}% -> {country.approval_rating:.1f}%"
         )
+
+        # ===== 情報偽装（対外発表値）の更新 =====
+        # AIが report_* を設定した場合、reported_* に保存する（クランプなし）
+        dp = action.domestic_policy
+        _deception_logs = []
+
+        def _save_reported(field_name, attr_name, true_val, unit=""):
+            val = getattr(dp, field_name, None)
+            if val is not None:
+                setattr(country, attr_name, max(0.0, float(val)))
+                dev = abs(getattr(country, attr_name) - true_val) / max(1.0, abs(true_val)) * 100.0
+                _deception_logs.append(
+                    f"{attr_name.replace('reported_','')}: 発表={getattr(country, attr_name):.1f}{unit} / 真値={true_val:.1f}{unit} (乖離={dev:.1f}%)"
+                )
+
+        _save_reported('report_economy',           'reported_economy',           country.economy)
+        _save_reported('report_military',          'reported_military',          country.military)
+        _save_reported('report_approval_rating',   'reported_approval_rating',   country.approval_rating, "%")
+        _save_reported('report_intelligence_level','reported_intelligence_level',country.intelligence_level)
+        _save_reported('report_gdp_per_capita',    'reported_gdp_per_capita',    new_gdp_per_capita)
+
+        if _deception_logs:
+            self.sys_logs_this_turn.append(
+                f"[{country_name} 情報偽装] " + " | ".join(_deception_logs)
+            )
+

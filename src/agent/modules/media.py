@@ -339,7 +339,50 @@ def generate_media_reports(
                 role_desc = "あなたは自由民主主義国家の独立した報道機関（メディア）です。「第四の権力」として政府を監視しますが、極秘の諜報活動（成功したスパイ活動や工作プロセス等）を知ることはできず、国内外で公開された政策決断、経済指標、他国で起きたニュースのみに基づいて報道・論評します。失敗や不都合な事実には厳しく批判（支持率マイナス）しますが、経済成長や外交的合意などの成果に対しては適切に称賛し、国民の支持を向上させます（支持率プラス +1.0 ~ +5.0）。単に批判や事実を並べるだけでなく、良い結果には必ずプラスの評価をしてください。"
             else:
                 role_desc = "あなたは専制主義国家の国営メディアです。政府の統制下にあり、政府の政策を過剰に称賛し、経済や軍事の成果を誇張して報道します。同時に、敵対国を不当に非難し、国民の愛国心を煽るプロパガンダ記事を作成します。"
-            
+
+            # ---- 他国スキャンダル暴露（自国の報道の自由度 × 15% の確率）----
+            # 対象: 全国（偽装あり→統計捏造疑惑、偽装なし→従来型スキャンダル）
+            other_scandal_text = ""
+            other_scandal_chance = country_state.press_freedom * 0.15
+            for target_cname, target_cstate in world_state.countries.items():
+                if target_cname == country_name:
+                    continue
+                if random.random() > other_scandal_chance:
+                    continue
+                has_deception = any([
+                    target_cstate.reported_economy            is not None,
+                    target_cstate.reported_military           is not None,
+                    target_cstate.reported_approval_rating    is not None,
+                    target_cstate.reported_intelligence_level is not None,
+                    target_cstate.reported_gdp_per_capita     is not None,
+                ])
+                if has_deception:
+                    deception_lines = []
+                    if target_cstate.reported_economy is not None:
+                        deception_lines.append(f"経済力公式発表={target_cstate.reported_economy:.1f}（実態との乖離疑惑）")
+                    if target_cstate.reported_military is not None:
+                        deception_lines.append(f"軍事力公式発表={target_cstate.reported_military:.1f}（実態との乖離疑惑）")
+                    if target_cstate.reported_approval_rating is not None:
+                        deception_lines.append(f"支持率公式発表={target_cstate.reported_approval_rating:.1f}%（実態との乖離疑惑）")
+                    if target_cstate.reported_intelligence_level is not None:
+                        deception_lines.append(f"諜報力公式発表={target_cstate.reported_intelligence_level:.1f}（過大/過小申告の疑惑）")
+                    if target_cstate.reported_gdp_per_capita is not None:
+                        deception_lines.append(f"1人当たりGDP公式発表={target_cstate.reported_gdp_per_capita:.1f}（実態との乖離疑惑）")
+                    other_scandal_text += (
+                        f"【他国スキャンダル】{target_cname}の公式統計に重大な捏造疑惑が浮上しました。\n"
+                        f"疑惑の焦点: {', '.join(deception_lines)}\n"
+                        f"指示: {target_cname}の統計捏造・情報操作の疑いをスクープしてください。\n\n"
+                    )
+                    logger.sys_log(f"[Media: {country_name}→{target_cname}] 他国統計偽装暴露スキャンダル発動")
+                else:
+                    scandal_material = target_cstate.hidden_plans if target_cstate.hidden_plans else f"{target_cname}の外交政策や内政の動向"
+                    other_scandal_text += (
+                        f"【他国スキャンダル報道】{target_cname}に関する重大な疑惑が浮上しています。\n"
+                        f"情報の断片: {scandal_material[:200]}\n"
+                        f"指示: 上記の情報を手がかりに、{target_cname}の政治腐敗・外交的欺瞞などのスキャンダルを創作・報道してください。\n\n"
+                    )
+                    logger.sys_log(f"[Media: {country_name}→{target_cname}] 他国一般スキャンダル発動")
+
             recent_action = previous_actions.get(country_name)
             action_text = "特になし"
             if recent_action:
@@ -368,10 +411,12 @@ def generate_media_reports(
                 f"世界の最新ニュース（他国の動向）: {world_state.news_events}\n\n"
                 f"{summit_text}\n\n"
                 f"{whistleblowing_scandal}"
+                f"{other_scandal_text}"
                 f"今回の状況を総括する、自国民に向けた象徴的なニュース記事を1つ作成してください。"
                 f"見出しと本文を合わせて100文字程度で、必ず日本語で書いてください。"
                 f"記事の本文のみを出力し、JSON・マークダウン・コードブロック等のフォーマットは一切使わないでください。"
             )
+
             
             response_obj = generate_func(
                 model="gemini-2.5-flash",
