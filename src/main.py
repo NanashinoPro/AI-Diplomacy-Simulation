@@ -43,8 +43,18 @@ def initialize_world() -> WorldState:
                 capital_lat=float(row.get("capital_lat", 0.0) or 0.0),
                 capital_lon=float(row.get("capital_lon", 0.0) or 0.0),
                 has_dissolution_power=row.get("has_dissolution_power", "").strip().lower() == "true",
-                hidden_plans=""
+                hidden_plans="",
+                # 初期国家はシミュレーション開始時点で既に長年の政権が存在する
+                # クールダウン(4ターン)を大きく超える20ターン相当の政権期間を設定
+                # [学術的根拠] Polity IV: 既存政権の安定性は過去の継続期間に依存する
+                regime_duration=20,
             )
+            # 専制主義国家は初期から支持率を対外偽装する（真値は不明なため公表値=50%で開始）
+            # メリット: 支持率低下デバフが対外公表値に依存するため回避可能
+            # デメリット: 反乱リスク上昇は真値ベースで判定、かつ偽装乖離でバフが加わる
+            if government_type == GovernmentType.AUTHORITARIAN:
+                countries[name].reported_approval_rating = 50.0
+
 
     # 関係性の初期化（全組み合わせをデフォルトNEUTRALに）
     relations = {}

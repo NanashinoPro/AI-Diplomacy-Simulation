@@ -28,10 +28,25 @@ class EventsMixin:
                 self.sys_logs_this_turn.append(f"[{name} クールダウン] regime_duration={country.regime_duration} <= {FRAGMENTATION_COOLDOWN_TURNS}。分裂・クーデター判定をスキップ。")
                 continue
             
-            # 支持率低下による反乱リスク
-            if country.approval_rating < 30.0:
-                country.rebellion_risk += 5.0
-                self.log_event(f"⚠️ {name}の国内で政府への抗議運動が激化しています。(支持率{country.approval_rating:.1f}%)", involved_countries=[name])
+            # ---- 支持率による反乱リスク判定（常に「真値」ベース）----
+            # reported_approval_rating が設定されている場合は偽装中。
+            # 真値が低くても公表値が高ければ国民は不満を「表に出しにくい」が、
+            # 水面下での不満蓄積（反乱リスクの上昇率）は加速する（デメリット）。
+            true_approval = country.approval_rating
+            if true_approval < 30.0:
+                base_rebellion_increase = 5.0
+                # 偽装乖離バフ: 公表値と真値の差が大きいほど反乱リスク上昇が加速
+                if country.reported_approval_rating is not None:
+                    deception_gap = max(0.0, country.reported_approval_rating - true_approval)
+                    # 乖離10%ごとに+1.0、最大+5.0のバフ
+                    deception_buff = min(5.0, deception_gap / 10.0)
+                    base_rebellion_increase += deception_buff
+                    if deception_buff > 0:
+                        self.sys_logs_this_turn.append(
+                            f"[{name} 偽装ペナルティ] 支持率偽装乖離={deception_gap:.1f}pt → 反乱リスク増加バフ+{deception_buff:.1f}"
+                        )
+                country.rebellion_risk += base_rebellion_increase
+                self.log_event(f"⚠️ {name}の国内で政府への抗議運動が激化しています。(実際の支持率{true_approval:.1f}%)", involved_countries=[name])
             else:
                 country.rebellion_risk = max(0.0, country.rebellion_risk - 2.0)
                 
@@ -56,11 +71,12 @@ class EventsMixin:
                             self.state.countries[name].turns_until_election = 16 # 米国の場合4年(16ターン)リセット
                         
             elif country.government_type == GovernmentType.AUTHORITARIAN:
-                # 専制主義での反乱判定
+                # 専制主義での反乱判定（真値ベース）
                 if country.rebellion_risk > random.uniform(20.0, 100.0):
                     self._handle_rebellion(name, country)
                     if name in self.state.countries:
                         self.state.countries[name].rebellion_risk = 0.0
+
                     
         # プレターンイベントでリストを上書き（前ターンのログをここでクリア）
         self.state.news_events = self.events_this_turn.copy()
