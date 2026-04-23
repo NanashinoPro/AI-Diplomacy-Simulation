@@ -49,11 +49,14 @@ def initialize_world() -> WorldState:
                 # [学術的根拠] Polity IV: 既存政権の安定性は過去の継続期間に依存する
                 regime_duration=20,
             )
-            # 専制主義国家は初期から支持率を対外偽装する（真値は不明なため公表値=50%で開始）
-            # メリット: 支持率低下デバフが対外公表値に依存するため回避可能
-            # デメリット: 反乱リスク上昇は真値ベースで判定、かつ偽装乖離でバフが加わる
+            # 専制主義国家は初期から支持率を対外偽装する
+            # CSVの approval_rating は政府の「公表値（偽装値）」であり、真の民意は不明
+            # → 真値を50.0（不明のためニュートラル）に設定し、公表値はCSVの値を使用
             if government_type == GovernmentType.AUTHORITARIAN:
-                countries[name].reported_approval_rating = 50.0
+                public_approval = float(row["approval_rating"])   # CSVの値 = 公表値
+                countries[name].approval_rating = 50.0            # 真値 = 不明なので50%
+                countries[name].reported_approval_rating = public_approval  # 公表値（偽装）
+
 
 
     # 関係性の初期化（全組み合わせをデフォルトNEUTRALに）
