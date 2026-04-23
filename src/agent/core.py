@@ -227,9 +227,38 @@ class AgentSystem:
             self.logger.sys_log(f"[{country_name}] フェーズ0: 分析官による各国分析を開始 ({len(other_countries)}カ国)")
             for target_name in other_countries:
                 try:
+                    target_state = world_state.countries.get(target_name)
+
+                    # ===== 確率的諜報判定 =====
+                    # 自国諜報力 / (自国 + 相手国諜報力) の確率で真値取得に成功
+                    # 偽装がない国に対しては判定を行わない（処理コスト節約）
+                    import random
+                    has_deception = target_state is not None and any([
+                        target_state.reported_economy            is not None,
+                        target_state.reported_military           is not None,
+                        target_state.reported_approval_rating    is not None,
+                        target_state.reported_intelligence_level is not None,
+                        target_state.reported_gdp_per_capita     is not None,
+                    ])
+                    use_real_stats = False
+                    if has_deception and target_state is not None:
+                        my_intel     = max(1.0, country_state.intelligence_level)
+                        enemy_intel  = max(1.0, target_state.intelligence_level)
+                        success_prob = my_intel / (my_intel + enemy_intel)
+                        roll = random.random()
+                        use_real_stats = (roll < success_prob)
+                        result_str = "✅ 諜報成功（真値取得）" if use_real_stats else "❌ 諜報失敗（偽装値のまま）"
+                        self.logger.sys_log(
+                            f"[{country_name}→{target_name} 諜報判定] "
+                            f"自国:{my_intel:.1f} / 相手:{enemy_intel:.1f} "
+                            f"成功確率:{success_prob:.1%} | roll:{roll:.3f} → {result_str}"
+                        )
+                    # ===========================
+
                     analyst_prompt = build_analyst_prompt(
                         country_name, country_state, world_state,
-                        target_name, past_news
+                        target_name, past_news,
+                        use_real_stats=use_real_stats
                     )
                     report = self._execute_agent(
                         country_name, f"分析官(対{target_name})",
