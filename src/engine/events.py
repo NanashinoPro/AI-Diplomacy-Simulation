@@ -250,6 +250,12 @@ class EventsMixin:
             if random.random() < 0.3: # 30%で民主化
                 country.government_type = GovernmentType.DEMOCRACY
                 country.turns_until_election = 16
+                # 民主化と同時に偽装値を全消去（情報透明性の回復）
+                country.reported_approval_rating    = None
+                country.reported_economy            = None
+                country.reported_military           = None
+                country.reported_intelligence_level = None
+                country.reported_gdp_per_capita     = None
                 self.log_event(f"🕊️ {country_name}は民主化宣言を行いました！新政権は初の自由選挙に向けた準備を進めています。", involved_countries=[country_name, "global"])
             else:
                 self.log_event(f"🛡️ {country_name}では新たな軍事政権が実権を握り、引き続き強権的な統治が続きます。", involved_countries=[country_name, "global"])
