@@ -392,30 +392,24 @@ class DomesticMixin:
         mobilization_penalty_text = ""
         if mobilization_rate > 0.10: # 10%超過で過剰動員ペナルティ
             excess_mobilization = mobilization_rate - 0.10
-            # ① GDP蒸発（産業空洞化・労働力不足）: 学術的根拠に基づき上限を修正
-            # 史上最悪クラスのソ連WWII動員でも -34% は「2年間」かけて発生（Wikipedia, Warwick 2024）
-            # 1ターン=四半期なので、最大 -15%/四半期 が現実的な上限
-            # [旧: min(0.5, excess*2.0)] → [新: min(0.15, excess*0.75)]
-            mobilization_penalty = min(0.15, excess_mobilization * 0.75)
+            # GDP蒸発（産業空洞化・労働力不足）
+            # [Müller 1970 / Dunne et al.] 最大-10%/四半期（年換算で概ね-35〜40%に相当）
+            mobilization_penalty = min(0.10, excess_mobilization * 0.75)
             country.economy = max(1.0, country.economy * (1.0 - mobilization_penalty))
 
-            # ② 支持率への影響: 学術的根拠に基づき「小さな直接ペナルティ＋反乱リスク大幅加算」に修正
-            # [Müller 1970] ラリー・ラウンド・ザ・フラッグ効果: 軍事動員直後は短期的に支持が維持される傾向
-            # [Dunne et al.] 生活水準悪化の影響は遅行して現れる → 即時大幅低下は過剰
-            # → 直接ペナルティは生活悪化の認識分のみ（最大-5pt）、残りは反乱リスク上昇で遅延表現
+            # 支持率への影響: 直接ペナルティは生活悪化の認識分のみ（最大-5pt）
+            # [Müller 1970] ラリー効果により動員直後の即時大幅低下は非現実的
             direct_approval_drop = min(5.0, excess_mobilization * 50.0)
-            rebellion_risk_surge  = min(20.0, excess_mobilization * 150.0)
             country.approval_rating = max(0.0, country.approval_rating - direct_approval_drop)
-            country.rebellion_risk  = min(100.0, country.rebellion_risk + rebellion_risk_surge)
 
             mobilization_penalty_text = (
                 f" | [過剰動員ペナルティ] 動員限界突破({mobilization_rate:.1%}) "
-                f"GDP-{mobilization_penalty*100:.1f}%, 支持率-{direct_approval_drop:.1f}pt, 反乱R+{rebellion_risk_surge:.1f}"
+                f"GDP-{mobilization_penalty*100:.1f}%, 支持率-{direct_approval_drop:.1f}pt"
             )
             self.sys_logs_this_turn.append(
                 f"[{country.name} 極限動員] 動員率{mobilization_rate:.1%}。"
                 f"労働力不足→経済力-{mobilization_penalty*100:.1f}% | "
-                f"支持率-{direct_approval_drop:.1f}pt (即時) / 反乱リスク+{rebellion_risk_surge:.1f} (遅延型)"
+                f"支持率-{direct_approval_drop:.1f}pt (即時)"
             )
 
         # 成長率ボーナスの計算 (総GDPではなく1人当たりGDPの成長率を使用し、人口増による豊かさの希釈と過剰動員ペナルティを反映)
