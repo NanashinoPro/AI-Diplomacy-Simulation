@@ -164,6 +164,66 @@ class AgentAction(BaseModel):
     diplomatic_policies: List[DiplomaticAction] = Field(..., description="他国に対する個別の外交アクションのリスト")
 
 # ---------------------------------------------------------
+# 大臣最終決定制 モデル（v1.18〜）
+# 各大臣が担当ドメインを最終決定し、大統領は予算調停と重大事案のみ担当
+# ---------------------------------------------------------
+
+class MinisterDecisionForeign(BaseModel):
+    """外務大臣の最終決定（援助・首脳会談・制裁・メッセージ）"""
+    thought_process: str = Field(..., description="外交方針の思考サマリー（大統領への提言として使用）")
+    diplomatic_policies: List[DiplomaticAction] = Field(
+        default_factory=list,
+        description="外交行動リスト。ただし declare_war/propose_alliance/join_ally_defense/propose_annexation/accept_annexation/propose_ceasefire/accept_ceasefire/demand_surrender/accept_surrender は含めない（大統領権限）"
+    )
+
+class MinisterDecisionDefense(BaseModel):
+    """防衛大臣の最終決定（諜報・軍事投入比率）+ 予算要求"""
+    thought_process: str = Field(..., description="軍事・諜報方針の思考サマリー（大統領への提言として使用）")
+    reasoning_for_military_investment: str = Field(..., description="リチャードソン・モデルに基づく軍事投資の算出プロセス")
+    request_invest_military: float = Field(..., ge=0.0, le=1.0, description="軍事投資の予算要求（大統領が調停）")
+    request_invest_intelligence: float = Field(0.0, ge=0.0, le=1.0, description="諜報投資の予算要求（大統領が調停）")
+    war_commitment_ratios: Dict[str, float] = Field(
+        default_factory=dict,
+        description="交戦中の各相手国への軍事力投入比率（最終決定）。{相手国名: 0.1〜1.0}"
+    )
+    espionage_decisions: List[DiplomaticAction] = Field(
+        default_factory=list,
+        description="諜報・破壊工作の最終決定リスト（espionage_gather_intel/espionage_sabotage フィールドのみ使用）"
+    )
+
+class MinisterDecisionEconomic(BaseModel):
+    """経済大臣の最終決定（報道の自由度・情報偽装）+ 予算要求"""
+    thought_process: str = Field(..., description="内政経済方針の思考サマリー（大統領への提言として使用）")
+    target_press_freedom: float = Field(..., ge=0.0, le=1.0, description="報道の自由度（最終決定）")
+    request_invest_economy: float = Field(..., ge=0.0, le=1.0, description="経済投資の予算要求（大統領が調停）")
+    request_invest_welfare: float = Field(..., ge=0.0, le=1.0, description="福祉投資の予算要求（大統領が調停）")
+    request_invest_education_science: float = Field(0.0, ge=0.0, le=1.0, description="教育・科学技術投資の予算要求（大統領が調停）")
+
+class MinisterDecisionFinance(BaseModel):
+    """財務大臣の最終決定（税率・関税率）"""
+    thought_process: str = Field(..., description="財政方針の思考サマリー（大統領への提言として使用）")
+    tax_rate: float = Field(..., ge=0.1, le=0.7, description="税率（最終決定）")
+    target_tariff_rates: Dict[str, float] = Field(default_factory=dict, description="各国への関税率（最終決定）")
+
+class PresidentDecision(BaseModel):
+    """大統領の最終決定（予算調停 + 重大外交事案）"""
+    thought_process: str = Field(..., description="大統領としての戦略的判断サマリー")
+    sns_posts: List[str] = Field(default_factory=list, description="国民向けSNS投稿（1件・100文字以内）")
+    update_hidden_plans: str = Field("", description="次ターンへの非公開計画メモ")
+    # 予算配分（大臣要求を調停した確定値）
+    invest_military: float = Field(..., ge=0.0, le=1.0)
+    invest_intelligence: float = Field(0.0, ge=0.0, le=1.0)
+    invest_economy: float = Field(..., ge=0.0, le=1.0)
+    invest_welfare: float = Field(..., ge=0.0, le=1.0)
+    invest_education_science: float = Field(0.0, ge=0.0, le=1.0)
+    dissolve_parliament: bool = Field(False)
+    # 重大外交事案（declare_war / alliance / ceasefire / annexation 等）
+    major_diplomatic_actions: List[DiplomaticAction] = Field(
+        default_factory=list,
+        description="大統領権限の外交決定リスト（declare_war, propose_alliance, join_ally_defense, propose_annexation, accept_annexation, propose_ceasefire, accept_ceasefire, demand_surrender, accept_surrender のみ）"
+    )
+
+# ---------------------------------------------------------
 # 世界（World）の状態定義
 # ---------------------------------------------------------
 

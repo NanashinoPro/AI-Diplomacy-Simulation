@@ -2,120 +2,100 @@ from typing import Dict, Optional
 from models import WorldState, CountryState
 from agent.prompts.base import build_common_context
 
+# 大統領権限の外交フラグ（外務大臣は出力禁止）
+PRESIDENTIAL_FLAGS = {
+    "declare_war", "propose_alliance", "join_ally_defense",
+    "propose_annexation", "accept_annexation",
+    "propose_ceasefire", "accept_ceasefire",
+    "demand_surrender", "accept_surrender",
+}
+
 def build_foreign_minister_prompt(country_name: str, country_state: CountryState, world_state: WorldState, past_news: list = None, analyst_reports: Optional[Dict[str, str]] = None) -> str:
     common_ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="外務大臣")
 
-    # 戦時判定
-    is_at_war = any(
-        w.aggressor == country_name or w.defender == country_name
-        for w in world_state.active_wars
-    )
     # 同盟国が攻撃されているか
     ally_names = {
         r for r, rel in world_state.relations.get(country_name, {}).items()
         if str(rel).lower() == 'alliance'
     }
-    ally_under_attack = any(
-        w.defender in ally_names or w.aggressor in ally_names
-        for w in world_state.active_wars
-        if w.aggressor != country_name and w.defender != country_name
-    )
 
-    # 分析官からの各国レポートを挿入
+    # 分析官レポート
     analyst_section = ""
     if analyst_reports:
         analyst_section = "\n---📋【分析官からの各国分析レポート】📋---\n"
-        analyst_section += "以下は情報分析官(flash-lite)が各対象国について作成した包括的分析です。これらを踏まえて外交方針を策定してください。\n\n"
+        analyst_section += "以下を踏まえて外交方針を策定してください。\n\n"
         for target_name, report in analyst_reports.items():
             analyst_section += f"▼ 対{target_name}分析レポート:\n{report}\n\n"
 
     instructions = """
-あなたの役目は、他国の情報や世界情勢を踏まえて、自国の利益と発展を最大化するための「外交方針」を専門的に策定することです。
-同盟・戦争・併合、貿易や経済制裁、首脳会談の提案、対外援助などを選択可能です。
+あなたの役目は、外交・貿易・援助・首脳会談の戦略を最終決定することです。
 回答は必ず日本語で行ってください。
 
 ⚠️ thought_process には以下を必ず含めてください（大統領への提言として使われます）：
 ①現在の国際情勢と自国の外交的立ち位置、②主要外交アクション（対象国と理由）、③懸念事項または大統領への推奨
 
+【重要：権限の境界線】
+以下は大統領の専権事項です。あなたは出力しないでください：
+- 宣戦布告（declare_war）
+- 同盟提案（propose_alliance）
+- 共同防衛参加（join_ally_defense）
+- 平和的統合提案/受諾（propose_annexation / accept_annexation）
+- 停戦提案/受諾（propose_ceasefire / accept_ceasefire）
+- 降伏勧告/受諾（demand_surrender / accept_surrender）
+これらが必要と考える場合、thought_process に「大統領への提言」として記載してください。
+
 【対外援助（Foreign Aid）サブスク制ルール】
 援助はサブスク（自動継続）制です。一度設定すると毎ターン自動的に継続されます。
-
-⚠️【重要】共通コンテキストの「援助契約一覧」を必ず確認してください。
+⚠️ 共通コンテキストの「援助契約一覧」を必ず確認してください。
 - **変更不要な場合**: `aid_amount_*` は出力不要です（0.0のままで既存契約が継続されます）
-- **新規開始・増減したい場合**: `aid_amount_economy` / `aid_amount_military` に新しい金額を指定してください
-- **停止したい場合**: `aid_cancel: true` を設定してください（その国への全援助契約が解除されます）
+- **新規開始・増減**: `aid_amount_economy` / `aid_amount_military` に新しい金額を指定
+- **停止**: `aid_cancel: true` を設定（その国への全援助契約が解除されます）
 
 【援助の戦略的効果】
-- `aid_amount_military`: 相手の軍事力（Military）に直接加算。交戦中の友好国に特に効果的。
-- `aid_amount_economy`: 相手の経済力を強化。間接的な国力向上と依存度の蓄積に有効。
-- ⚠️ 累積援助比率が60%を超えると相手が属国化するリスクあり。戦略的に活用してください。
-- ⚠️ 1ターンでGDPの20%超の援助はオランダ病（政策実行力半減）を引き起こします。
+- `aid_amount_military`: 相手の軍事力に直接加算。交戦中の友好国に特に効果的。
+- `aid_amount_economy`: 相手の経済力を強化。依存度の蓄積に有効。
+- ⚠️ 累積援助比率が60%を超えると相手が属国化するリスクあり。
+- ⚠️ 1ターンでGDPの20%超の援助はオランダ病を引き起こします。
 
-【援助の受入制御】
-自国への援助に対し、`aid_acceptance_ratio`（0.0〜1.0）で受入率を設定できます。
-依存度上昇リスクを考慮し、戦略的に判断してください。
-
-【非公開外交チャネル（is_private）の活用指針】
-メッセージ送信や首脳会談の提案において `is_private: true` を設定すると、第三国には一切知られない秘密の外交を行えます。
-以下のケースでは非公開を積極的に検討してください：
-- **敵対国との秘密交渉**: 表向きは対立していても、水面下で停戦・制裁解除・領土問題を交渉したい場合
-- **裏切り・寝返りの打診**: 同盟国の敵に対して密かに接触し、関係転換を図りたい場合
-- **機密性の高い安全保障協議**: 軍事技術の共同開発・諜報情報の共有など、公開すれば他国の警戒を招く議題
-- **二重外交**: 表向きのメッセージと異なる本音の交渉を、非公開チャネルで同時並行する場合
-非公開会談（`propose_summit` + `is_private: true`）は、会談の開催事実すら第三国に秘匿されます。デリケートな議題には特に有効です。
+【非公開外交チャネル（is_private）】
+`is_private: true` で第三国に秘密の外交を行えます。
 """
 
-    # 戦時専用セクション（交戦中または同盟国が攻撃されている時のみ表示）
-    if is_at_war or ally_under_attack:
-        instructions += """
-【⚔️ 戦時外交専用】
-【⚠️ 同盟国の集団防衛義務（Collective Defense Obligation）】
-自国が同盟関係（alliance）にある国が第三国から攻撃（at_war）を受けている場合、以下を必ず thought_process で検討してください：
-- **条約上の義務**: 同盟条約の精神に基づき、同盟国への武力攻撃は自国への攻撃と見なすべきである。共同防衛参加（join_ally_defense）を真剣に検討すること。
-- **参戦しない場合のリスク**: 同盟国を見捨てれば、同盟の信頼性が崩壊し、将来の安全保障が大幅に損なわれる。他の同盟国・友好国からの信頼も失う。
-- **参戦する場合のリスク**: 自国の経済・軍事への負担、国民の支持率低下、戦争の拡大リスク。
-- **最終判断は大統領に委ねられるが、外務大臣として明確な推奨を提示すること**。「同盟国が侵攻されているが参戦しない」という判断には、説得力のある根拠が必要である。
-- 参戦せずとも、軍事援助（aid_amount_military）の大幅増額、経済制裁（impose_sanctions）、国際的な非難声明など、支援の選択肢を多角的に検討すること。
-
-【共同防衛参加（join_ally_defense）の仕組み】
-`join_ally_defense: true` + `defense_support_commitment: 投入率（0.01〜0.50）` を設定すると、防衛側となっている既存の戦争に「防衛支援国」として参加できます（有志連合型：同盟関係は必須ではない）。
-- **target_countryには攻撃国（敵国）を指定**してください。直接宣戦布告（declare_war）とは異なります。
-- 自国軍の一部が防衛側に合流し、防衛側の戦力が増強されます。投入分のみが損害を受けます。
-- **参加条件**: 攻撃国と交戦中でないこと（自己矛盾防止）。同盟・中立を問わず参加可能。
-- declare_warは「自国が攻撃側として新たな二国間戦争を開始する」行為です。共同防衛はjoin_ally_defenseを使ってください。
-
-【停戦・講和に関する提案指針】
-以下の観点から停戦の是非を thought_process に記載してください。あなたの意見は大統領の最終判断材料になります：
-- 現在の占領進捗率と講和条件の有利/不利（占領率3%未満で講和できれば防衛成功として賠償金を請求可能）
-- 経済・支持率の消耗状況と戦争継続のコスト
-- 同盟国からの支援状況と戦局の見通し
-- 相手国の消耗度と停戦に応じる可能性
+    if ally_names:
+        at_war_allies = [
+            f"{w.defender}（vs {w.aggressor}）" if w.defender in ally_names
+            else f"{w.aggressor}（vs {w.defender}）"
+            for w in world_state.active_wars
+            if (w.defender in ally_names or w.aggressor in ally_names)
+            and w.aggressor != country_name and w.defender != country_name
+        ]
+        if at_war_allies:
+            instructions += f"""
+【⚠️ 同盟国が交戦中: {', '.join(at_war_allies)}】
+thought_process に以下を必ず記載してください（大統領への提言として使用）：
+- 軍事援助（aid_amount_military）の大幅増額を検討すべきか
+- 経済制裁（impose_sanctions）で攻撃国に圧力をかけるべきか
+- 共同防衛参加の推奨（大統領判断への提言）
 """
 
     instructions += """
 以下のJSONスキーマに従って出力してください。必ずJSONオブジェクトのみを出力してください。
 {
-  "thought_process": "戦略思考（150文字程度）",
+  "thought_process": "外交方針の思考サマリー（150文字程度、大統領への提言を含む）",
   "diplomatic_policies": [
     {
       "target_country": "他国の名前",
       "message": "公開メッセージ",
-      "is_private": bool,
-      "propose_alliance": bool,
-      "declare_war": bool,
-      "join_ally_defense": bool,
-      "defense_support_commitment": 0.01から0.50,
-      "propose_annexation": bool,
-      "accept_annexation": bool,
-      "propose_trade": bool,
-      "cancel_trade": bool,
-      "impose_sanctions": bool,
-      "lift_sanctions": bool,
-      "propose_summit": bool,
+      "is_private": false,
+      "propose_trade": false,
+      "cancel_trade": false,
+      "impose_sanctions": false,
+      "lift_sanctions": false,
+      "propose_summit": false,
       "summit_topic": "議題",
-      "accept_summit": bool,
-      "propose_multilateral_summit": bool,
-      "summit_participants": ["招待国名1", "招待国名2", ...],
+      "accept_summit": false,
+      "propose_multilateral_summit": false,
+      "summit_participants": ["招待国名1"],
       "aid_amount_economy": 0.0,
       "aid_amount_military": 0.0,
       "aid_cancel": false,
@@ -125,6 +105,6 @@ def build_foreign_minister_prompt(country_name: str, country_state: CountryState
   ]
 }
 ※ `diplomatic_policies` は相手国の数だけ配列に入れてください。行動がない国は対象外でよいです。
-※ **多国間首脳会談**: `propose_multilateral_summit: true` + `summit_participants: ["国A", "国B", ...]` で複数国を招待できます。
+※ 宣戦布告・同盟・停戦・降伏等は大統領権限のため出力しないでください。
 """
     return common_ctx + analyst_section + instructions

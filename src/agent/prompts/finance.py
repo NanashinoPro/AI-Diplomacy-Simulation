@@ -77,13 +77,12 @@ NXの算出（重力モデル）:
 
 以下のJSONスキーマに従って出力してください。必ずJSONオブジェクトのみを出力してください。
 {{
-  "thought_process": "財政・通商戦略の思考（150文字程度）",
+  "thought_process": "財政・通商戦略の思考サマリー（150文字程度、大統領への提言を含む）",
   "tax_rate": 0.10から0.70の数値,
   "target_tariff_rates": {{
     "国名1": 関税率（0.0以上の数値）,
     "国名2": 関税率（0.0以上の数値）
-  }},
-  "reason": "財政決定の理由（30文字以内）"
+  }}
 }}
 """
     return common_ctx + analyst_section + instructions

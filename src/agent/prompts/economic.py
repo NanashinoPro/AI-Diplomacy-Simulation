@@ -31,12 +31,12 @@ A. 内政的解決（緊縮財政）：
 
 以下のJSONスキーマに従って出力してください。必ずJSONオブジェクトのみを出力してください。
 {
-  "thought_process": "戦略思考（150文字程度）",
+  "thought_process": "内政経済方針の思考サマリー（150文字程度、大統領への提言を含む）",
   "target_press_freedom": 0.0から1.0の数値,
-  "invest_economy": 0.0から1.0の数値,
-  "invest_welfare": 0.0から1.0の数値,
-  "invest_education_science": 0.0から1.0の数値,
-  "reason": "内政決定の理由（30文字以内）"
+  "request_invest_economy": 0.0から1.0の数値,
+  "request_invest_welfare": 0.0から1.0の数値,
+  "request_invest_education_science": 0.0から1.0の数値
 }
+※ request_invest_* は大統領への予算要求です。合計が1.0を超えてもかまいません（大統領が調停します）。
 """
     return common_ctx + instructions

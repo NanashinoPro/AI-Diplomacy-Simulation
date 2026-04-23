@@ -10,11 +10,12 @@ import summarizer
 import notifier
 from db_manager import DBManager
 
-def initialize_world() -> WorldState:
+def initialize_world(data_dir: str = None) -> WorldState:
     """初期の歴史的状況をCSV(initial_stats.csv, initial_relations.csv)から読み込んでWorldStateを返す"""
     import csv
+    base_data_dir = data_dir if data_dir else os.path.join(os.path.dirname(__file__), "..", "data")
     countries = {}
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "initial_stats.csv")
+    csv_path = os.path.join(base_data_dir, "initial_stats.csv")
     
     with open(csv_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -74,7 +75,7 @@ def initialize_world() -> WorldState:
     active_sanctions = []
     initial_aid_proposals = []
     initial_aid_entries = []
-    relations_csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "initial_relations.csv")
+    relations_csv_path = os.path.join(base_data_dir, "initial_relations.csv")
     
     if os.path.exists(relations_csv_path):
         with open(relations_csv_path, "r", encoding="utf-8") as f:
@@ -186,6 +187,8 @@ def main():
     parser.add_argument("--resume", type=str, help="Path to a simulation log file (.jsonl) to resume from", default=None)
     parser.add_argument("--resume-turn", type=int, help="指定ターンの状態から再開する（--resumeと併用必須）", default=None, dest="resume_turn")
     parser.add_argument("--seed", type=int, default=None, help="乱数シード（再現性のために設定推奨）")
+    parser.add_argument("--data-dir", type=str, default=None, dest="data_dir",
+                        help="カスタムデータディレクトリ（例: data/test でtest_stats.csv/test_relations.csvを使用）")
     args = parser.parse_args()
     
     # バリデーション: --resume-turn は --resume と併用必須
@@ -279,7 +282,8 @@ def main():
             logger.sys_log(f"[Reproducibility] 乱数シード: {current_seed}")
     else:
         # システム初期化
-        world_state = initialize_world()
+        data_dir = os.path.join(os.path.dirname(__file__), "..", args.data_dir) if args.data_dir else None
+        world_state = initialize_world(data_dir=data_dir)
         logger = SimulationLogger()
         logger.sys_log(f"[Reproducibility] 乱数シード: {current_seed}")
 
