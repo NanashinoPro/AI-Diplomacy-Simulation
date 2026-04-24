@@ -191,6 +191,22 @@ def initialize_world(data_dir: str = None) -> WorldState:
         news_events=initial_news,
         recurring_aid_contracts=initial_recurring_aids
     )
+
+    # ==========================================================
+    # 初期ホルムズ海峡封鎖（2026年Q1: イランが開戦と同時に封鎖宣言）
+    # ==========================================================
+    world.active_strait_blockades.append("ホルムズ海峡")
+    world.strait_blockade_owners["ホルムズ海峡"] = "イラン"
+    # 産油国の輸出を停止（サウジ・イランは輸出ルートが遮断される）
+    for _blocked in ["サウジアラビア", "イラン"]:
+        if _blocked in world.countries:
+            world.countries[_blocked].energy_export_blocked = True
+    initial_news.append(
+        "🚨【ホルムズ海峡封鎖】イランが開戦と同時にホルムズ海峡の封鎖を宣言。"
+        "中東産油国からのエネルギー輸入が遮断されました。"
+        "日本・フィリピンなど輸入依存国に深刻な影響が及ぶ見通しです。"
+    )
+
     return world
 
 def main():

@@ -1,7 +1,7 @@
 name,government_type,ideology,economy,military,intelligence_level,area,approval_rating,turns_until_election,rebellion_risk,press_freedom,human_capital_index,mean_years_schooling,population,capital_lat,capital_lon,has_dissolution_power,energy_self_sufficiency,energy_reserve_target_turns
-日本,democracy,,4200.0,55.0,55.0,377975.0,43.0,14,,0.55,3.500,13.4,124.0,35.68,139.69,true,0.13,2.8
-アメリカ,democracy,,29500.0,930.0,120.0,9833520.0,40.0,12,,0.65,3.774,13.7,335.0,38.90,-77.04,false,0.87,3.5
+日本,democracy,,4200.0,55.0,55.0,377975.0,62.0,14,,0.55,3.500,13.4,124.0,35.68,139.69,true,0.13,2.8
+アメリカ,democracy,,29500.0,930.0,120.0,9833520.0,42.0,12,,0.65,3.774,13.7,335.0,38.90,-77.04,false,0.87,3.5
 中国,authoritarian,,19500.0,250.0,110.0,9596960.0,90,,,0.02,0.71,8.0,1409.0,39.90,116.40,,0.78,1.0
 イラン,authoritarian,,370.0,25.0,50.0,1648195.0,60,,,0.05,0.56,10.1,86.7,35.69,51.42,,0.92,2.0
 サウジアラビア,authoritarian,,900.0,80.0,40.0,2149690.0,70,,,0.03,0.64,9.0,35.0,24.68,46.73,,0.95,2.0
-フィリピン,democracy,,400.0,35.0,55.0,300000.0,50,6,,0.40,0.60,9.3,115.0,14.60,121.00,false,0.05,0.6
+フィリピン,democracy,,400.0,35.0,55.0,300000.0,36.0,6,,0.40,0.60,9.3,115.0,14.60,121.00,false,0.05,0.6
