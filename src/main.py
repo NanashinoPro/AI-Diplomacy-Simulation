@@ -2,7 +2,7 @@ import time
 import json
 import os
 import random
-from models import WorldState, CountryState, GovernmentType, RelationType, TradeState, SanctionState, WarState, PendingAidProposal
+from models import WorldState, CountryState, GovernmentType, RelationType, TradeState, SanctionState, WarState, PendingAidProposal, RecurringAid
 from engine import WorldEngine
 from agent import AgentSystem
 from logger import SimulationLogger
@@ -10,11 +10,21 @@ import summarizer
 import notifier
 from db_manager import DBManager
 
-def initialize_world() -> WorldState:
+def _safe_float(value: str, default: float) -> float:
+    """CSVから読み込んだ文字列を安全に float に変換する。空文字列や非数値はデフォルト値を返す。"""
+    if not value or not value.strip():
+        return default
+    try:
+        return float(value.strip())
+    except (ValueError, TypeError):
+        return default
+
+def initialize_world(data_dir: str = None) -> WorldState:
     """初期の歴史的状況をCSV(initial_stats.csv, initial_relations.csv)から読み込んでWorldStateを返す"""
     import csv
+    base_data_dir = data_dir if data_dir else os.path.join(os.path.dirname(__file__), "..", "data")
     countries = {}
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "initial_stats.csv")
+    csv_path = os.path.join(base_data_dir, "initial_stats.csv")
     
     with open(csv_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -43,10 +53,25 @@ def initialize_world() -> WorldState:
                 capital_lat=float(row.get("capital_lat", 0.0) or 0.0),
                 capital_lon=float(row.get("capital_lon", 0.0) or 0.0),
                 has_dissolution_power=row.get("has_dissolution_power", "").strip().lower() == "true",
-                iso_code=row.get("iso_code", "").strip(),
-                has_coastline=row.get("has_coastline", "true").strip().lower() != "false",
-                hidden_plans=""
+                hidden_plans="",
+                # 初期国家はシミュレーション開始時点で既に長年の政権が存在する
+                # クールダウン(4ターン)を大きく超える20ターン相当の政権期間を設定
+                # [学術的根拠] Polity IV: 既存政権の安定性は過去の継続期間に依存する
+                regime_duration=20,
+                # v1-2: エネルギー初期値（CSVから読み込む）
+                energy_self_sufficiency=_safe_float(row.get("energy_self_sufficiency"), 0.13),
+                energy_reserve_target_turns=_safe_float(row.get("energy_reserve_target_turns"), 1.0),
+                energy_reserve_turns=_safe_float(row.get("energy_reserve_target_turns"), 1.0),  # 初期備蓄は目標値でスタート
             )
+            # 専制主義国家は初期から支持率を対外偽装する
+            # CSVの approval_rating は政府の「公表値（偽装値）」であり、真の民意は不明
+            # → 真値を50.0（不明のためニュートラル）に設定し、公表値はCSVの値を使用
+            if government_type == GovernmentType.AUTHORITARIAN:
+                public_approval = float(row["approval_rating"])   # CSVの値 = 公表値
+                countries[name].approval_rating = 50.0            # 真値 = 不明なので50%
+                countries[name].reported_approval_rating = public_approval  # 公表値（偽装）
+
+
 
     # 関係性の初期化（全組み合わせをデフォルトNEUTRALに）
     relations = {}
@@ -63,7 +88,7 @@ def initialize_world() -> WorldState:
     active_sanctions = []
     initial_aid_proposals = []
     initial_aid_entries = []
-    relations_csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "initial_relations.csv")
+    relations_csv_path = os.path.join(base_data_dir, "initial_relations.csv")
     
     if os.path.exists(relations_csv_path):
         with open(relations_csv_path, "r", encoding="utf-8") as f:
@@ -128,6 +153,7 @@ def initialize_world() -> WorldState:
         print("⚠️ initial_relations.csv が見つかりません。全関係をNEUTRALで初期化します。")
 
     # 初期援助の即時適用（Turn 1開始時にすでに援助が流れている状態を再現）
+    initial_recurring_aids = []
     for aid in initial_aid_entries:
         donor_state = countries.get(aid["donor"])
         target_state = countries.get(aid["target"])
@@ -136,8 +162,8 @@ def initialize_world() -> WorldState:
             target_state.military += aid["mil"]
             target_state.economy += aid["eco"]
             print(f"  💰 初期援助即時反映: {aid['donor']}→{aid['target']} (経済+{aid['eco']:.1f}, 軍事+{aid['mil']:.1f})")
-            # ② 次ターン分: PendingAidProposalとして登録（AIが継続援助の参考にする）
-            initial_aid_proposals.append(PendingAidProposal(
+            # ② サブスク契約として登録（以降は毎ターン自動継続）
+            initial_recurring_aids.append(RecurringAid(
                 donor=aid["donor"], target=aid["target"],
                 amount_economy=aid["eco"], amount_military=aid["mil"]
             ))
@@ -155,7 +181,7 @@ def initialize_world() -> WorldState:
 
     world = WorldState(
         turn=1,
-        year=2025,
+        year=2026,
         quarter=1,
         countries=countries,
         relations=relations,
@@ -163,8 +189,24 @@ def initialize_world() -> WorldState:
         active_trades=active_trades,
         active_sanctions=active_sanctions,
         news_events=initial_news,
-        pending_aid_proposals=initial_aid_proposals
+        recurring_aid_contracts=initial_recurring_aids
     )
+
+    # ==========================================================
+    # 初期ホルムズ海峡封鎖（2026年Q1: イランが開戦と同時に封鎖宣言）
+    # ==========================================================
+    world.active_strait_blockades.append("ホルムズ海峡")
+    world.strait_blockade_owners["ホルムズ海峡"] = "イラン"
+    # 産油国の輸出を停止（サウジ・イランは輸出ルートが遮断される）
+    for _blocked in ["サウジアラビア", "イラン"]:
+        if _blocked in world.countries:
+            world.countries[_blocked].energy_export_blocked = True
+    initial_news.append(
+        "🚨【ホルムズ海峡封鎖】イランが開戦と同時にホルムズ海峡の封鎖を宣言。"
+        "中東産油国からのエネルギー輸入が遮断されました。"
+        "日本・フィリピンなど輸入依存国に深刻な影響が及ぶ見通しです。"
+    )
+
     return world
 
 def main():
@@ -174,6 +216,8 @@ def main():
     parser.add_argument("--resume", type=str, help="Path to a simulation log file (.jsonl) to resume from", default=None)
     parser.add_argument("--resume-turn", type=int, help="指定ターンの状態から再開する（--resumeと併用必須）", default=None, dest="resume_turn")
     parser.add_argument("--seed", type=int, default=None, help="乱数シード（再現性のために設定推奨）")
+    parser.add_argument("--data-dir", type=str, default=None, dest="data_dir",
+                        help="カスタムデータディレクトリ（例: data/test でtest_stats.csv/test_relations.csvを使用）")
     args = parser.parse_args()
     
     # バリデーション: --resume-turn は --resume と併用必須
@@ -267,7 +311,8 @@ def main():
             logger.sys_log(f"[Reproducibility] 乱数シード: {current_seed}")
     else:
         # システム初期化
-        world_state = initialize_world()
+        data_dir = os.path.join(os.path.dirname(__file__), "..", args.data_dir) if args.data_dir else None
+        world_state = initialize_world(data_dir=data_dir)
         logger = SimulationLogger()
         logger.sys_log(f"[Reproducibility] 乱数シード: {current_seed}")
 
@@ -375,7 +420,7 @@ def main():
             country.government_budget = max(0.0, total_revenue - interest_payment)
 
         print("\n⏳ 首脳AIが状況を分析し、行動を決定しています...")
-        actions, all_analyst_reports = agent_system.generate_actions(world_state, past_news=past_news_queue)
+        actions, all_analyst_reports, all_task_logs = agent_system.generate_actions(world_state, past_news=past_news_queue)
         
         # 6. 各国の意思決定
         logger.display_section_header("3. 各国の意思決定")
@@ -384,6 +429,9 @@ def main():
 
         # 7. エンジンによる世界の更新（判定フェーズ）
         world_state = engine.process_turn(actions)
+
+        # v1-2: タスクエージェント制の海峡封鎖決定を処理（diplomatic_policiesの仮想ターゲット方式）
+        engine._process_strait_blockade_actions(actions)
         
         # 8 & 9. 災害・技術革新、経済制裁などの抽出
         disaster_tech_events = [e for e in world_state.news_events if any(k in e for k in ["💡", "🚨", "技術"])]
@@ -570,7 +618,7 @@ def main():
 
         # ログの保存 (敗北国のアクションを除去した上で保存)
         safe_actions = {c: a for c, a in actions.items() if c in world_state.countries}
-        logger.save_turn_log(world_state, safe_actions, analyst_reports=all_analyst_reports)
+        logger.save_turn_log(world_state, safe_actions, analyst_reports=all_analyst_reports, task_logs=all_task_logs)
         
         # 10. ターン履歴の保存と時間進行
         past_news_queue.append(world_state.news_events.copy())
@@ -579,34 +627,24 @@ def main():
             
         engine.advance_time()
         
-        # 10.5 地図レンダリング
-        try:
-            from map.renderer import render_turn_map
-            map_path = render_turn_map(world_state, output_dir="output/maps")
-            logger.sys_log(f"[地図] ターン{world_state.turn - 1}の地図を出力: {map_path}")
-        except Exception as map_err:
-            logger.sys_log(f"[地図エラー] {map_err}", "WARNING")
-        
         # ターン進行のウェイト
         print("\n" + "="*50 + "\n")
         time.sleep(3)
 
     print("🏁 指定ターン数のシミュレーションが終了しました。")
-    print(f"シミュレーションログは {logger.sim_log_dir}/ に保存されています。")
-    print(f"システムログは {logger.sys_log_dir}/ に保存されています。")
-    
-    # 最後にシミュレーションの要約を自動生成 (コスト計算に含めるため先に実行)
-    try:
-        if hasattr(logger, 'sim_log_file'):
-            summary_info = summarizer.generate_summary(logger.sim_log_file, force=True)
-            if summary_info and "usage" in summary_info:
-                agent_system.token_usage["サマリー生成"] = {
-                    "model": "gemini-2.5-flash",
-                    "prompt_tokens": summary_info["usage"]["prompt_tokens"],
-                    "candidates_token_count": summary_info["usage"]["candidates_token_count"]
-                }
-    except Exception as e:
-        print(f"Failed to auto-generate summary: {e}")
+    # 最後にシミュレーションの要約を自動生成 (コスト計算に含めるため先に実行)　-> サマリーは別途作成するためスキップ
+    # try:
+    #     if hasattr(logger, 'sim_log_file'):
+    #         summary_info = summarizer.generate_summary(logger.sim_log_file, force=True)
+    #         if summary_info and "usage" in summary_info:
+    #             agent_system.token_usage["サマリー生成"] = {
+    #                 "model": "gemini-2.5-flash",
+    #                 "prompt_tokens": summary_info["usage"]["prompt_tokens"],
+    #                 "candidates_token_count": summary_info["usage"]["candidates_token_count"],
+    #                 "thoughts_token_count": summary_info["usage"].get("thoughts_token_count", 0)
+    #             }
+    # except Exception as e:
+    #     print(f"Failed to auto-generate summary: {e}")
 
     # コスト計算と出力
     print("\n" + "="*50)
@@ -618,23 +656,28 @@ def main():
         model = usage["model"]
         p_tokens = usage["prompt_tokens"]
         c_tokens = usage["candidates_token_count"]
+        t_tokens = usage.get("thoughts_token_count", 0)
         
         # 単価 (100万トークンあたり)
+        # 思考トークン単価 (Gemini 2.5系: Promptと同額)
         if "gemini-3.1-pro" in model.lower():
-            p_price, c_price = 2.00, 12.00
+            p_price, c_price, t_price = 2.00, 12.00, 2.00
         elif "gemini-2.5-pro" in model.lower():
-            p_price, c_price = 1.25, 10.00
+            p_price, c_price, t_price = 1.25, 10.00, 1.25
         elif "gemini-2.5-flash-lite" in model.lower():
-            p_price, c_price = 0.10, 0.40
+            p_price, c_price, t_price = 0.10, 0.40, 0.10
         elif "gemini-2.5-flash" in model.lower():
-            p_price, c_price = 0.30, 2.50
+            p_price, c_price, t_price = 0.30, 2.50, 0.30
         else: # 分からないモデルのフォールバック (flash扱い)
-            p_price, c_price = 0.30, 2.50
+            p_price, c_price, t_price = 0.30, 2.50, 0.30
             
-        cat_cost = (p_tokens / 1_000_000 * p_price) + (c_tokens / 1_000_000 * c_price)
+        cat_cost = (p_tokens / 1_000_000 * p_price) + (c_tokens / 1_000_000 * c_price) + (t_tokens / 1_000_000 * t_price)
         total_cost += cat_cost
         
-        report_line = f"- [{category}] {model}: Prompt {p_tokens} ({p_price}$/M), Output {c_tokens} ({c_price}$/M) -> ${cat_cost:.4f}"
+        if t_tokens > 0:
+            report_line = f"- [{category}] {model}: Prompt {p_tokens} ({p_price}$/M), Output {c_tokens} ({c_price}$/M), Thinking {t_tokens} ({t_price}$/M) -> ${cat_cost:.4f}"
+        else:
+            report_line = f"- [{category}] {model}: Prompt {p_tokens} ({p_price}$/M), Output {c_tokens} ({c_price}$/M) -> ${cat_cost:.4f}"
         print(report_line)
         cost_log_lines.append(report_line)
         
