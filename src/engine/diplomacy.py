@@ -356,7 +356,9 @@ class DiplomacyMixin:
                         # 双方合意 → 講和会談を実行
                         self.log_event(f"🕊️ {country_name}と{target_name}が停戦に合意しました。講和会談が開催されます。", involved_countries=[country_name, target_name, "global"])
                         self._execute_peace_conference(war)
-                        self.state.pending_ceasefires.remove(matched[0])
+                        # 安全削除: 並行処理や同ターンのaccept_ceasefireで既に削除済みの可能性を考慮
+                        if matched[0] in self.state.pending_ceasefires:
+                            self.state.pending_ceasefires.remove(matched[0])
                     else:
                         # 提案をキューに積む（翌ターン以降に相手が受諾すれば成立）
                         existing = [c for c in self.state.pending_ceasefires if c.proposer == country_name and c.target == target_name]
@@ -374,7 +376,9 @@ class DiplomacyMixin:
                     if war:
                         self.log_event(f"🕊️ {country_name}が{target_name}からの停戦提案を受諾しました。講和会談が開催されます。", involved_countries=[country_name, target_name, "global"])
                         self._execute_peace_conference(war)
-                        self.state.pending_ceasefires.remove(matched[0])
+                        # 安全削除: propose_ceasefireの双方合意処理で既に削除済みの可能性を考慮
+                        if matched[0] in self.state.pending_ceasefires:
+                            self.state.pending_ceasefires.remove(matched[0])
             
             # 降伏勧告（攻撃側のみ）
             if getattr(dip, 'demand_surrender', False):
