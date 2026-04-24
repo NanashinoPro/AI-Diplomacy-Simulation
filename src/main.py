@@ -10,6 +10,15 @@ import summarizer
 import notifier
 from db_manager import DBManager
 
+def _safe_float(value: str, default: float) -> float:
+    """CSVから読み込んだ文字列を安全に float に変換する。空文字列や非数値はデフォルト値を返す。"""
+    if not value or not value.strip():
+        return default
+    try:
+        return float(value.strip())
+    except (ValueError, TypeError):
+        return default
+
 def initialize_world(data_dir: str = None) -> WorldState:
     """初期の歴史的状況をCSV(initial_stats.csv, initial_relations.csv)から読み込んでWorldStateを返す"""
     import csv
@@ -49,6 +58,10 @@ def initialize_world(data_dir: str = None) -> WorldState:
                 # クールダウン(4ターン)を大きく超える20ターン相当の政権期間を設定
                 # [学術的根拠] Polity IV: 既存政権の安定性は過去の継続期間に依存する
                 regime_duration=20,
+                # v1-2: エネルギー初期値（CSVから読み込む）
+                energy_self_sufficiency=_safe_float(row.get("energy_self_sufficiency"), 0.13),
+                energy_reserve_target_turns=_safe_float(row.get("energy_reserve_target_turns"), 1.0),
+                energy_reserve_turns=_safe_float(row.get("energy_reserve_target_turns"), 1.0),  # 初期備蓄は目標値でスタート
             )
             # 専制主義国家は初期から支持率を対外偽装する
             # CSVの approval_rating は政府の「公表値（偽装値）」であり、真の民意は不明
@@ -168,7 +181,7 @@ def initialize_world(data_dir: str = None) -> WorldState:
 
     world = WorldState(
         turn=1,
-        year=2025,
+        year=2026,
         quarter=1,
         countries=countries,
         relations=relations,
@@ -178,6 +191,22 @@ def initialize_world(data_dir: str = None) -> WorldState:
         news_events=initial_news,
         recurring_aid_contracts=initial_recurring_aids
     )
+
+    # ==========================================================
+    # 初期ホルムズ海峡封鎖（2026年Q1: イランが開戦と同時に封鎖宣言）
+    # ==========================================================
+    world.active_strait_blockades.append("ホルムズ海峡")
+    world.strait_blockade_owners["ホルムズ海峡"] = "イラン"
+    # 産油国の輸出を停止（サウジ・イランは輸出ルートが遮断される）
+    for _blocked in ["サウジアラビア", "イラン"]:
+        if _blocked in world.countries:
+            world.countries[_blocked].energy_export_blocked = True
+    initial_news.append(
+        "🚨【ホルムズ海峡封鎖】イランが開戦と同時にホルムズ海峡の封鎖を宣言。"
+        "中東産油国からのエネルギー輸入が遮断されました。"
+        "日本・フィリピンなど輸入依存国に深刻な影響が及ぶ見通しです。"
+    )
+
     return world
 
 def main():
@@ -391,7 +420,7 @@ def main():
             country.government_budget = max(0.0, total_revenue - interest_payment)
 
         print("\n⏳ 首脳AIが状況を分析し、行動を決定しています...")
-        actions, all_analyst_reports = agent_system.generate_actions(world_state, past_news=past_news_queue)
+        actions, all_analyst_reports, all_task_logs = agent_system.generate_actions(world_state, past_news=past_news_queue)
         
         # 6. 各国の意思決定
         logger.display_section_header("3. 各国の意思決定")
@@ -400,6 +429,9 @@ def main():
 
         # 7. エンジンによる世界の更新（判定フェーズ）
         world_state = engine.process_turn(actions)
+
+        # v1-2: タスクエージェント制の海峡封鎖決定を処理（diplomatic_policiesの仮想ターゲット方式）
+        engine._process_strait_blockade_actions(actions)
         
         # 8 & 9. 災害・技術革新、経済制裁などの抽出
         disaster_tech_events = [e for e in world_state.news_events if any(k in e for k in ["💡", "🚨", "技術"])]
@@ -586,7 +618,7 @@ def main():
 
         # ログの保存 (敗北国のアクションを除去した上で保存)
         safe_actions = {c: a for c, a in actions.items() if c in world_state.countries}
-        logger.save_turn_log(world_state, safe_actions, analyst_reports=all_analyst_reports)
+        logger.save_turn_log(world_state, safe_actions, analyst_reports=all_analyst_reports, task_logs=all_task_logs)
         
         # 10. ターン履歴の保存と時間進行
         past_news_queue.append(world_state.news_events.copy())
