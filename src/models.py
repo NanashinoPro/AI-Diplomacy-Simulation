@@ -281,6 +281,32 @@ class PresidentDecision(BaseModel):
     )
 
 # ---------------------------------------------------------
+# タスクエージェント制（v2.0）: 大統領施政方針モデル
+# ---------------------------------------------------------
+
+class PresidentPolicy(BaseModel):
+    """
+    P-01: 大統領施政方針（Phase0でProモデルが生成）
+    各タスクエージェント（flash/flash-lite）がこれを参照して意思決定を行う。
+    """
+    stance: str = Field(
+        ...,
+        description="全体的な外交・内政スタンス（例: '拡張型', '防御型', '外交優先型', '経済優先型'）"
+    )
+    directives: List[str] = Field(
+        default_factory=list,
+        description="各タスクエージェントへの具体的な優先指示リスト（3〜5項目）"
+    )
+    hidden_plans: str = Field(
+        "",
+        description="非公開の戦略メモ（他国には見せない内部方針）。hidden_plansフィールドの更新に使用。"
+    )
+    sns_posts: List[str] = Field(
+        default_factory=list,
+        description="大統領/首相名義のSNS投稿（0〜2件・各100文字以内）"
+    )
+
+# ---------------------------------------------------------
 # 世界（World）の状態定義
 # ---------------------------------------------------------
 
