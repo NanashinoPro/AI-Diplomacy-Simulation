@@ -60,7 +60,17 @@ class EnergyMixin:
             if country_name.startswith("_"):
                 continue  # _comment, _format 等のメタキーをスキップ
             if country_name in self.state.countries:
-                self.state.countries[country_name].energy_import_sources = sources
+                # _note 等のメタキー（_ 始まり）を除外。
+                # ただし __中東 / __その他 等の域外ソースキー（__ 始まり）は除外しない。
+                clean = {}
+                for k, v in sources.items():
+                    if k.startswith("_") and not k.startswith("__"):
+                        continue  # _note, _comment 等のメタキーをスキップ
+                    try:
+                        clean[k] = float(v)
+                    except (TypeError, ValueError):
+                        pass
+                self.state.countries[country_name].energy_import_sources = clean
 
         self._add_log("[EnergyMixin] energy_import_sources.json を読み込みました。")
 
