@@ -10,6 +10,15 @@ import summarizer
 import notifier
 from db_manager import DBManager
 
+def _safe_float(value: str, default: float) -> float:
+    """CSVから読み込んだ文字列を安全に float に変換する。空文字列や非数値はデフォルト値を返す。"""
+    if not value or not value.strip():
+        return default
+    try:
+        return float(value.strip())
+    except (ValueError, TypeError):
+        return default
+
 def initialize_world(data_dir: str = None) -> WorldState:
     """初期の歴史的状況をCSV(initial_stats.csv, initial_relations.csv)から読み込んでWorldStateを返す"""
     import csv
@@ -49,6 +58,10 @@ def initialize_world(data_dir: str = None) -> WorldState:
                 # クールダウン(4ターン)を大きく超える20ターン相当の政権期間を設定
                 # [学術的根拠] Polity IV: 既存政権の安定性は過去の継続期間に依存する
                 regime_duration=20,
+                # v1-2: エネルギー初期値（CSVから読み込む）
+                energy_self_sufficiency=_safe_float(row.get("energy_self_sufficiency"), 0.13),
+                energy_reserve_target_turns=_safe_float(row.get("energy_reserve_target_turns"), 1.0),
+                energy_reserve_turns=_safe_float(row.get("energy_reserve_target_turns"), 1.0),  # 初期備蓄は目標値でスタート
             )
             # 専制主義国家は初期から支持率を対外偽装する
             # CSVの approval_rating は政府の「公表値（偽装値）」であり、真の民意は不明
@@ -298,6 +311,8 @@ def main():
 
     # S-2: AgentSystemのGemini感情分析器をエンジンに注入
     engine = WorldEngine(initial_state=world_state, analyzer=agent_system.sentiment_analyzer, db_manager=db_manager)
+    # v1-2: エンジン参照をAgentSystemに注入（大統領の海峡封鎖決定をエンジンに渡すため）
+    agent_system._engine_ref = engine
 
     if args.resume:
         # 復元されたstataは前ターンの終了時（時間進行前）のものなので、ここで時間を進めて次ターンを開始する
@@ -400,6 +415,10 @@ def main():
 
         # 7. エンジンによる世界の更新（判定フェーズ）
         world_state = engine.process_turn(actions)
+
+        # v1-2: 大統領の海峡封鎖決定を処理（_president_decisionsは各国のgenerate_actions内で格納済み）
+        engine._process_strait_blockade_actions()
+        engine._president_decisions.clear()  # 次ターンのためにクリア
         
         # 8 & 9. 災害・技術革新、経済制裁などの抽出
         disaster_tech_events = [e for e in world_state.news_events if any(k in e for k in ["💡", "🚨", "技術"])]

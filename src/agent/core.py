@@ -355,7 +355,10 @@ class AgentSystem:
             invest_welfare=float(d.get("invest_welfare", 0.25)),
             invest_education_science=float(d.get("invest_education_science", 0.05)),
             dissolve_parliament=bool(d.get("dissolve_parliament", False)),
-            major_diplomatic_actions=major_actions
+            major_diplomatic_actions=major_actions,
+            # v1-2: 海峡封鎖権限
+            declare_strait_blockade=d.get("declare_strait_blockade") or None,
+            resolve_strait_blockade=d.get("resolve_strait_blockade") or None,
         )
 
     @staticmethod
@@ -568,6 +571,11 @@ class AgentSystem:
         self.logger.sys_log_detail(f"{country_name} President Decision", final_text)
 
         president_dec = self._parse_president(final_text)
+
+        # v1-2: 大統領の海峡封鎖決定をエンジンに格納（エンジンに _president_decisions 属性がある場合）
+        engine = getattr(self, "_engine_ref", None)
+        if engine is not None:
+            engine._president_decisions[country_name] = president_dec
 
         # 全大臣決定をマージしてAgentActionを生成
         try:

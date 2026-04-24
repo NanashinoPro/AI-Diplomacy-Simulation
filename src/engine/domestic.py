@@ -367,7 +367,9 @@ class DomesticMixin:
         # 経済力がゼロ以下になるのを防ぐ
         country.economy = max(1.0, new_gdp_provisional)
 
-        
+        # v1-2: エネルギー備蓄ペナルティを適用（備蓄不足時に economy/approval にデバフ）
+        self._apply_energy_penalties(country_name)
+
         # ===== リチャードソン・モデル (Richardson 1960) =====
         # [学術的根拠] 軍拡競争の数理モデル。軍事負担率がGDP比で高くなるほど、
         # 維持費（疲弊係数α）が二次関数的に跳ね上がる。これにより、経済的に

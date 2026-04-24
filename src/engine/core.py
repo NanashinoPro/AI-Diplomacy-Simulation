@@ -7,12 +7,14 @@ from .constants import MAX_LOG_HISTORY
 from .domestic import DomesticMixin
 from .diplomacy import DiplomacyMixin
 from .economy import EconomyMixin
+from .energy import EnergyMixin
 from .military import MilitaryMixin
 from .events import EventsMixin
 from .public_opinion import PublicOpinionMixin
 from .utils import UtilsMixin
 
 class WorldEngine(
+    EnergyMixin,
     DomesticMixin,
     DiplomacyMixin,
     EconomyMixin,
@@ -47,6 +49,11 @@ class WorldEngine(
                 country.initial_human_capital_index = country.human_capital_index
             # [追加] 政権の存続期間をインクリメント
             country.regime_duration += 1
+
+        # v1-2: energy_import_sources.json を読み込んで各国フィールドを初期化
+        self._init_energy_import_sources()
+        # 大統領決定を格納する辞書（_process_strait_blockade_actions で参照）
+        self._president_decisions: dict = {}
 
     def _cleanup_eliminated_country(self, eliminated_name: str):
         """消滅した国家に関連する全データを一括クリーンアップする（DRY共通関数）
@@ -252,6 +259,9 @@ class WorldEngine(
         
         # 5. ランダムイベント（災害・技術革新）の判定
         self._process_random_events()
+
+        # 6. エネルギー備蓄の更新（v1-2追加）
+        self._process_energy_reserves()
         
         # 6. 時間進行とターン終了処理は外部 (main.py) から advance_time() を呼び出すよう変更
         
