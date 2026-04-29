@@ -6,7 +6,7 @@ from models import AgentAction, GovernmentType
 from .constants import (
     DEMOCRACY_WARN_APPROVAL, CRITICAL_APPROVAL,
     DEMOCRACY_MIN_EXECUTION_POWER,
-    DEBT_INTEREST_RATE, TAX_APPROVAL_PENALTY_MULTIPLIER, TAX_REDUCTION_APPROVAL_BONUS_MULTIPLIER, MAX_TAX_CHANGE_PER_TURN,
+    DEBT_INTEREST_RATE_ANNUAL, TURNS_PER_YEAR, TAX_APPROVAL_PENALTY_MULTIPLIER, TAX_REDUCTION_APPROVAL_BONUS_MULTIPLIER, MAX_TAX_CHANGE_PER_TURN,
     AUTHORITARIAN_BASE_SAVING_RATE, DEMOCRACY_BASE_SAVING_RATE,
     DEBT_REPAYMENT_CROWD_IN_MULTIPLIER, GOVERNMENT_CROWD_IN_MULTIPLIER, GOVERNMENT_CROWD_OUT_MULTIPLIER, BASE_INVESTMENT_RATE,
     ENDOGENOUS_GROWTH_ALPHA, DEBT_TO_GDP_PENALTY_THRESHOLD,
@@ -174,9 +174,8 @@ class DomesticMixin:
         # --- マクロ経済モデリング (SNAベース: Y = C + I + G + NX) ---
         old_gdp = country.economy
         
-        # 国家債務の利払い (利払い分だけ予算が減る、または債務が増える。ここでは簡単のため予算から天引き想定)
-        interest_payment = country.national_debt * DEBT_INTEREST_RATE
-        
+        # 注: 利払いと予算算出は engine/core.py の process_turn() で四半期化して実行済み
+        # ここでは government_budget は利払い後の可処分予算として使用する
         # 税収T = GDP * 税率 (※前ターンのGDPをベースにする)
         # 報道の自由度の更新とペナルティ計算
         # 自由度を急激に制限（下げる）すると、国民の不満によって支持率が大きく下落する
