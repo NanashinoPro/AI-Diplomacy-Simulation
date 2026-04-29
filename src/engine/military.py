@@ -165,8 +165,7 @@ class MilitaryMixin:
                 # 守り側が戦力逆転して反攻 → 攻め側の領土を逆占領
                 counter_occupation = abs(new_progress)  # 逆占領進捗（0〜100）
                 war.target_occupation_progress = 0.0
-                war.counter_occupation_progress = getattr(war, 'counter_occupation_progress', 0.0) + counter_occupation
-                war.counter_occupation_progress = min(100.0, war.counter_occupation_progress)
+                war.counter_occupation_progress = min(100.0, war.counter_occupation_progress + counter_occupation)
                 self.sys_logs_this_turn.append(
                     f"[反攻進行] {war.defender}が戦力逆転により{war.aggressor}領土への反攻を開始。"
                     f"逆占領進捗: {war.counter_occupation_progress:.1f}%"
@@ -174,7 +173,7 @@ class MilitaryMixin:
             else:
                 war.target_occupation_progress = min(100.0, new_progress)
                 # 攻め側が優勢に戻ったら逆占領進捗を減衰
-                if hasattr(war, 'counter_occupation_progress') and war.counter_occupation_progress > 0:
+                if war.counter_occupation_progress > 0:
                     war.counter_occupation_progress = max(0.0, war.counter_occupation_progress - abs(progress_change))
             
             # 支援国情報のログ文字列

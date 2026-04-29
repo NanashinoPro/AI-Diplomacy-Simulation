@@ -401,6 +401,7 @@ class WarState(BaseModel):
     defender_cumulative_military_loss: float = Field(0.0, description="防衛側の累積軍事損害額（講和時の賠償金計算用）")
     aggressor_cumulative_civilian_gdp_loss: float = Field(0.0, description="攻撃側の累積民間人GDP損害額（人口損失×一人当たりGDP）")
     defender_cumulative_civilian_gdp_loss: float = Field(0.0, description="防衛側の累積民間人GDP損害額（人口損失×一人当たりGDP）")
+    counter_occupation_progress: float = Field(0.0, ge=0.0, le=100.0, description="防衛側による攻撃側領土の逆占領進捗率（0-100）。防衛側が戦力逆転した場合に増加")
 
 class TradeState(BaseModel):
     """貿易協定を結んでいるペア"""
