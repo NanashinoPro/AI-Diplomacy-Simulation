@@ -212,14 +212,14 @@ class NuclearMixin:
             # 先制核攻撃: 自動宣戦布告を発生させる
             is_first_strike = True
             from .constants import DEFAULT_AGGRESSOR_COMMITMENT, DEFAULT_DEFENDER_COMMITMENT
-            war = WarState(
+            from models import RelationType, WarState as _WarState
+            war = _WarState(
                 aggressor=attacker_name, defender=target_name,
                 aggressor_commitment_ratio=DEFAULT_AGGRESSOR_COMMITMENT,
                 defender_commitment_ratio=DEFAULT_DEFENDER_COMMITMENT
             )
             self.state.active_wars.append(war)
             # 外交関係を戦争状態に更新
-            from models import RelationType
             self._update_relation(attacker_name, target_name, RelationType.AT_WAR)
             self.log_event(
                 f"☢️⚡ 【核先制攻撃 → 自動宣戦布告】{attacker_name}が{target_name}に対し"
@@ -295,13 +295,13 @@ class NuclearMixin:
         if not is_at_war:
             # 先制戦略核攻撃: 自動宣戦布告
             from .constants import DEFAULT_AGGRESSOR_COMMITMENT, DEFAULT_DEFENDER_COMMITMENT
-            war = WarState(
+            from models import RelationType, WarState as _WarState
+            war = _WarState(
                 aggressor=attacker_name, defender=target_name,
                 aggressor_commitment_ratio=DEFAULT_AGGRESSOR_COMMITMENT,
                 defender_commitment_ratio=DEFAULT_DEFENDER_COMMITMENT
             )
             self.state.active_wars.append(war)
-            from models import RelationType
             self._update_relation(attacker_name, target_name, RelationType.AT_WAR)
             self.log_event(
                 f"☢️⚡ 【戦略核先制攻撃 → 自動宣戦布告】{attacker_name}が{target_name}に対し"

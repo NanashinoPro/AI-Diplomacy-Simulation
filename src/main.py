@@ -216,6 +216,89 @@ def initialize_world(data_dir: str = None) -> WorldState:
 
     return world
 
+
+def _inject_scenario_events(engine, world_state, scenario_path: str, logger):
+    """シナリオJSONを読み込み、T0開始前にイベントを注入する"""
+    import json
+
+    # シナリオファイルの読み込み
+    abs_path = os.path.join(os.path.dirname(__file__), "..", scenario_path)
+    if not os.path.exists(abs_path):
+        # 絶対パスでも試す
+        abs_path = scenario_path
+    if not os.path.exists(abs_path):
+        logger.sys_log(f"[Scenario] シナリオファイルが見つかりません: {scenario_path}", "ERROR")
+        print(f"❌ シナリオファイルが見つかりません: {scenario_path}")
+        return
+
+    with open(abs_path, "r", encoding="utf-8") as f:
+        scenario = json.load(f)
+
+    name = scenario.get("name", "不明なシナリオ")
+    description = scenario.get("description", "")
+    events = scenario.get("initial_events", [])
+
+    logger.sys_log(f"[Scenario] シナリオ読み込み: {name}")
+    logger.sys_log(f"[Scenario] 説明: {description}")
+    print(f"\n☢️  シナリオ注入: {name}")
+    print(f"   {description}\n")
+
+    # エンジンのイベントバッファを初期化
+    engine.events_this_turn = []
+    engine.sys_logs_this_turn = []
+
+    for event in events:
+        event_type = event.get("type")
+        attacker = event.get("attacker")
+        target = event.get("target")
+        warheads = event.get("warheads", 1)
+
+        # 国名の検証
+        if attacker and attacker not in world_state.countries:
+            logger.sys_log(f"[Scenario] 不明な攻撃国: {attacker}", "ERROR")
+            continue
+        if target and target not in world_state.countries:
+            logger.sys_log(f"[Scenario] 不明な標的国: {target}", "ERROR")
+            continue
+
+        if event_type == "launch_tactical_nuclear":
+            attacker_obj = world_state.countries[attacker]
+            logger.sys_log(f"[Scenario] 戦術核注入: {attacker} → {target} ({warheads}発) [保有弾頭: {attacker_obj.nuclear_warheads}]")
+            engine._execute_tactical_nuclear(attacker, attacker_obj, target, warheads)
+
+        elif event_type == "launch_strategic_nuclear":
+            attacker_obj = world_state.countries[attacker]
+            logger.sys_log(f"[Scenario] 戦略核注入: {attacker} → {target} ({warheads}発) [保有弾頭: {attacker_obj.nuclear_warheads}]")
+            engine._execute_strategic_nuclear(attacker, attacker_obj, target, warheads)
+
+        elif event_type == "declare_war":
+            logger.sys_log(f"[Scenario] 宣戦布告注入: {attacker} → {target}")
+            from models import RelationType, WarState
+            from engine.constants import DEFAULT_AGGRESSOR_COMMITMENT, DEFAULT_DEFENDER_COMMITMENT
+            war = WarState(
+                aggressor=attacker, defender=target,
+                aggressor_commitment_ratio=DEFAULT_AGGRESSOR_COMMITMENT,
+                defender_commitment_ratio=DEFAULT_DEFENDER_COMMITMENT
+            )
+            world_state.active_wars.append(war)
+            engine._update_relation(attacker, target, RelationType.AT_WAR)
+            engine.log_event(
+                f"⚔️ 【シナリオ: 宣戦布告】{attacker}が{target}に対して宣戦布告しました！",
+                involved_countries=[attacker, target, "global"]
+            )
+        else:
+            logger.sys_log(f"[Scenario] 未知のイベントタイプ: {event_type}", "WARNING")
+
+    # エンジンのイベントバッファをworld_stateに転送
+    for evt in engine.events_this_turn:
+        world_state.news_events.append(f"[Scenario] {evt}")
+
+    for log in engine.sys_logs_this_turn:
+        logger.sys_log(f"[Scenario:Engine] {log}")
+
+    print(f"   ✅ {len(events)} 件の初期イベントを注入しました\n")
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="AI Diplomacy Simulation")
@@ -225,6 +308,8 @@ def main():
     parser.add_argument("--seed", type=int, default=None, help="乱数シード（再現性のために設定推奨）")
     parser.add_argument("--data-dir", type=str, default=None, dest="data_dir",
                         help="カスタムデータディレクトリ（例: data/test でtest_stats.csv/test_relations.csvを使用）")
+    parser.add_argument("--scenario", type=str, default=None,
+                        help="シナリオJSONファイルのパス。T0開始前に初期イベントを注入する（例: scenarios/nk_nuclear_strike.json）")
     args = parser.parse_args()
     
     # バリデーション: --resume-turn は --resume と併用必須
@@ -341,6 +426,10 @@ def main():
         print(f"--- 🌍 AI外交シミュレーション (Turn {world_state.turn} から再開) ---")
     else:
         print("--- 🌍 AI外交シミュレーション ---")
+
+    # シナリオ注入: T0開始前に初期イベントを実行
+    if args.scenario:
+        _inject_scenario_events(engine, world_state, args.scenario, logger)
 
     # シミュレーションループ
     MAX_TURNS = args.turns

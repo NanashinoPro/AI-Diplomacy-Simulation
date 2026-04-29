@@ -1,0 +1,12 @@
+{
+  "name": "北朝鮮の韓国への核先制攻撃",
+  "description": "北朝鮮が韓国に対し戦術核ミサイル1発を発射した直後の世界から開始するシナリオ。各国AIは核攻撃後の混沌とした国際情勢の中で意思決定を迫られる。",
+  "initial_events": [
+    {
+      "type": "launch_tactical_nuclear",
+      "attacker": "北朝鮮",
+      "target": "韓国",
+      "warheads": 1
+    }
+  ]
+}
