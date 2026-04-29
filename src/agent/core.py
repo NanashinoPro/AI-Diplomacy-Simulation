@@ -914,29 +914,47 @@ class AgentSystem:
         launch_tactical = major_dipl_dict.get("launch_tactical_nuclear")
         if launch_tactical:
             tac_count = major_dipl_dict.get("tactical_nuclear_count", 1)
-            nuke_key = f"__NUCLEAR_TACTICAL__{launch_tactical}:{tac_count}"
-            merged[nuke_key] = DiplomaticAction(
-                target_country=nuke_key,
-                reason=f"戦術核使用: {launch_tactical} ({tac_count}発)"
-            )
+            # LLMが辞書で返すことがある: {"target": "韓国", "nuclear_count": 3}
+            if isinstance(launch_tactical, dict):
+                tac_count = launch_tactical.get("nuclear_count", launch_tactical.get("count", tac_count))
+                launch_tactical = launch_tactical.get("target", launch_tactical.get("country", ""))
+            if launch_tactical and isinstance(launch_tactical, str):
+                tac_count = int(tac_count) if tac_count else 1
+                nuke_key = f"__NUCLEAR_TACTICAL__{launch_tactical}:{tac_count}"
+                merged[nuke_key] = DiplomaticAction(
+                    target_country=nuke_key,
+                    reason=f"戦術核: {launch_tactical}({tac_count}発)"[:50]
+                )
 
         launch_strategic = major_dipl_dict.get("launch_strategic_nuclear")
         if launch_strategic:
             count = major_dipl_dict.get("strategic_nuclear_count", 5)
-            nuke_key = f"__NUCLEAR_STRATEGIC__{launch_strategic}:{count}"
-            merged[nuke_key] = DiplomaticAction(
-                target_country=nuke_key,
-                reason=f"戦略核使用: {launch_strategic} ({count}発)"
-            )
+            # LLMが辞書で返すことがある
+            if isinstance(launch_strategic, dict):
+                count = launch_strategic.get("nuclear_count", launch_strategic.get("count", count))
+                launch_strategic = launch_strategic.get("target", launch_strategic.get("country", ""))
+            if launch_strategic and isinstance(launch_strategic, str):
+                count = int(count) if count else 5
+                nuke_key = f"__NUCLEAR_STRATEGIC__{launch_strategic}:{count}"
+                merged[nuke_key] = DiplomaticAction(
+                    target_country=nuke_key,
+                    reason=f"戦略核: {launch_strategic}({count}発)"[:50]
+                )
 
         deploy_ally = major_dipl_dict.get("deploy_nuclear_to_ally")
         if deploy_ally:
             deploy_count = major_dipl_dict.get("deploy_nuclear_count", 10)
-            nuke_key = f"__NUCLEAR_DEPLOY__{deploy_ally}:{deploy_count}"
-            merged[nuke_key] = DiplomaticAction(
-                target_country=nuke_key,
-                reason=f"核配備: {deploy_ally}に{deploy_count}発"
-            )
+            # LLMが辞書で返すことがある
+            if isinstance(deploy_ally, dict):
+                deploy_count = deploy_ally.get("count", deploy_ally.get("nuclear_count", deploy_count))
+                deploy_ally = deploy_ally.get("target", deploy_ally.get("country", ""))
+            if deploy_ally and isinstance(deploy_ally, str):
+                deploy_count = int(deploy_count) if deploy_count else 10
+                nuke_key = f"__NUCLEAR_DEPLOY__{deploy_ally}:{deploy_count}"
+                merged[nuke_key] = DiplomaticAction(
+                    target_country=nuke_key,
+                    reason=f"核配備: {deploy_ally}に{deploy_count}発"[:50]
+                )
 
         if major_dipl_dict.get("remove_hosted_nuclear"):
             merged["__NUCLEAR_REMOVE_HOSTED__"] = DiplomaticAction(
