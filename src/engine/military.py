@@ -138,7 +138,7 @@ class MilitaryMixin:
             aggressor.approval_rating -= 1.0
             
             # 防衛側: Rally 'round the flag 効果 (Mueller 1970, 1973)
-            war_turns = getattr(war, 'war_turns_elapsed', 0)
+            war_turns = war.war_turns_elapsed
             if war_turns <= 4:
                 rally_bonus = max(0.0, 10.0 - (war_turns * 2.5))
                 defender.approval_rating = min(100.0, defender.approval_rating + rally_bonus)
@@ -206,7 +206,7 @@ class MilitaryMixin:
                 # 防衛側が反撃で攻め側の軍事力を壊滅させた → 攻め側の敗北
                 self._handle_defeat(aggressor.name, defender.name)
                 war_ended = True
-            elif getattr(war, 'counter_occupation_progress', 0.0) >= 100.0:
+            elif war.counter_occupation_progress >= 100.0:
                 # 防衛側が逆占領を完成させた → 攻め側の領土を奪取して勝利
                 self.log_event(
                     f"🔄 【戦局逆転・反攻成功】{war.defender}が{war.aggressor}の領土を完全占領しました！"
