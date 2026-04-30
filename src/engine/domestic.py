@@ -327,6 +327,23 @@ class DomesticMixin:
         # 四半期GDPを年間GDPに変換して country.economy に格納
         new_gdp_provisional = new_quarterly_gdp * TURNS_PER_YEAR
         
+        # --- SNAモデル ブレークダウンログ ---
+        sna_growth_raw = (new_gdp_provisional - old_gdp) / max(1.0, old_gdp) * 100
+        self.sys_logs_this_turn.append(
+            f"[{country.name} SNA詳細] "
+            f"旧GDP(年):{old_gdp:.1f} → 新GDP(年):{new_gdp_provisional:.1f} (生成長率:{sna_growth_raw:+.1f}%)\n"
+            f"  四半期GDP:{quarterly_gdp:.1f} | 税収_q:{tax_revenue_q:.1f} | 貯蓄率:{saving_rate:.2f}\n"
+            f"  C_q:{C:.1f} ({C/quarterly_gdp*100:.1f}%GDP) | "
+            f"I_q:{I:.1f} ({I/quarterly_gdp*100:.1f}%GDP) [base:{base_investment:.1f}, induced:{induced_investment:.1f}] | "
+            f"G_q:{G:.1f} ({G/quarterly_gdp*100:.1f}%GDP)\n"
+            f"  NX:{country.last_turn_nx:+.1f} | HCI乗数:{h_ratio_capped:.3f} | "
+            f"内生成長:{endogenous_growth_bonus:.4f} | "
+            f"C+I+G(q):{C+I+G:.1f} → 需要_q:{base_aggregated_demand_q:.1f} → 新Q:{new_quarterly_gdp:.1f}\n"
+            f"  投資配分: 経済{inv_econ:.0%} 軍事{inv_mil:.0%} 福祉{inv_wel:.0%} 教育{inv_edu:.0%} 諜報{inv_intel:.0%} | "
+            f"実行力:{execution_power:.2f} | "
+            f"g_econ:{g_econ:.1f} g_mil:{g_mil:.1f} g_wel:{g_wel:.1f} g_edu:{g_edu:.1f}"
+        )
+        
         # 災害ダメージは当期の経済から直接引く（巨大な資本破壊）
         if disaster_damage_sum > 0:
             damage_amount = old_gdp * (disaster_damage_sum / 100.0)
