@@ -488,7 +488,7 @@ class DomesticMixin:
             
         self.sys_logs_this_turn.append(
             f"内政更新完了: {country.name} | "
-            f"税率:{new_tax_rate:.1%} (税収:{tax_revenue:.1f}) | 予算(G):{budget:.1f} | "
+            f"税率:{new_tax_rate:.1%} (税収:{tax_revenue_q:.1f}) | 予算(G):{budget:.1f} | "
             f"1人当GDP:{gdp_per_capita:.1f} -> {new_gdp_per_capita:.1f} ({gdp_growth_rate:+.1f}%) | "
             f"人口:{old_pop:.1f} -> {country.population:.1f} ({pop_growth_rate*100:+.2f}%) | "
             f"動員率:{mobilization_rate:.1%}{mobilization_penalty_text}\n"
