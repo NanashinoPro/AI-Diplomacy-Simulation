@@ -65,6 +65,29 @@ from agent.modules import summit, media, intelligence
 load_dotenv()
 
 
+def _safe_float(val, default=0.0):
+    """LLMが辞書/リスト/文字列/Noneで返す場合の安全なfloat変換"""
+    if val is None:
+        return default
+    if isinstance(val, (int, float)):
+        return float(val)
+    if isinstance(val, dict):
+        # {"amount": 5.0} や {"value": 5.0} のようなケースに対応
+        for key in ('amount', 'value', 'count', 'ratio', 'rate', 'bid'):
+            if key in val:
+                try:
+                    return float(val[key])
+                except (TypeError, ValueError):
+                    pass
+        return default
+    if isinstance(val, list):
+        return default
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return default
+
+
 class AgentSystem:
     """タスクエージェント制: 大統領施政方針(Pro) → 各タスクエージェント(flash/flash-lite) の多段構造"""
 
@@ -525,10 +548,10 @@ class AgentSystem:
                 build_military_invest_prompt(country_name, country_state, world_state, policy, analyst_reports, past_news),
                 "mil_invest", "gemini-2.5-flash")
             d = self._safe_json(raw)
-            result["request_military"] = max(0.0, float(d.get("request_military", default_mil)))
+            result["request_military"] = max(0.0, _safe_float(d.get("request_military", default_mil)))
             result["reasoning_for_military_investment"] = d.get("reasoning_for_military_investment") or ""
             # v1-3: 核開発投資と核使用提言
-            result["request_nuclear"] = max(0.0, float(d.get("request_nuclear", 0.0)))
+            result["request_nuclear"] = max(0.0, _safe_float(d.get("request_nuclear", 0.0)))
             nuke_rec = d.get("nuclear_use_recommendation")
             if nuke_rec:
                 self.logger.sys_log(f"[{country_name}:M-01] 核使用提言: {nuke_rec}")
@@ -548,7 +571,7 @@ class AgentSystem:
                 build_intel_invest_prompt(country_name, country_state, world_state, policy, past_news),
                 "mil_intel", "gemini-2.5-flash-lite")
             d = self._safe_json(raw)
-            result["request_intelligence"] = max(0.0, float(d.get("request_intelligence", default_intel)))
+            result["request_intelligence"] = max(0.0, _safe_float(d.get("request_intelligence", default_intel)))
         except Exception as e:
             self.logger.sys_log(f"[{country_name}:M-02] エラー: {e}", "ERROR")
 
@@ -631,7 +654,7 @@ class AgentSystem:
                 build_tax_rate_prompt(country_name, country_state, world_state, policy, past_news),
                 "dom_tax", "gemini-2.5-flash-lite")
             d = self._safe_json(raw)
-            tax_rate = float(d.get("tax_rate", tax_rate))
+            tax_rate = _safe_float(d.get("tax_rate", tax_rate), tax_rate)
         except Exception as e:
             self.logger.sys_log(f"[{country_name}:I-01] エラー: {e}", "ERROR")
 
@@ -652,7 +675,7 @@ class AgentSystem:
                 build_economy_invest_prompt(country_name, country_state, world_state, policy, past_news),
                 "dom_econ", "gemini-2.5-flash-lite")
             d = self._safe_json(raw)
-            request_economy = max(0.0, float(d.get("request_economy", request_economy)))
+            request_economy = max(0.0, _safe_float(d.get("request_economy", request_economy)))
         except Exception as e:
             self.logger.sys_log(f"[{country_name}:I-03] エラー: {e}", "ERROR")
 
@@ -662,7 +685,7 @@ class AgentSystem:
                 build_welfare_invest_prompt(country_name, country_state, world_state, policy, past_news),
                 "dom_welfare", "gemini-2.5-flash-lite")
             d = self._safe_json(raw)
-            request_welfare = max(0.0, float(d.get("request_welfare", request_welfare)))
+            request_welfare = max(0.0, _safe_float(d.get("request_welfare", request_welfare)))
         except Exception as e:
             self.logger.sys_log(f"[{country_name}:I-04] エラー: {e}", "ERROR")
 
@@ -672,7 +695,7 @@ class AgentSystem:
                 build_education_invest_prompt(country_name, country_state, world_state, policy, past_news),
                 "dom_education", "gemini-2.5-flash-lite")
             d = self._safe_json(raw)
-            request_education = max(0.0, float(d.get("request_education", request_education)))
+            request_education = max(0.0, _safe_float(d.get("request_education", request_education)))
         except Exception as e:
             self.logger.sys_log(f"[{country_name}:I-05] エラー: {e}", "ERROR")
 
@@ -682,7 +705,7 @@ class AgentSystem:
                 build_press_freedom_prompt(country_name, country_state, world_state, policy, past_news),
                 "dom_press", "gemini-2.5-flash-lite")
             d = self._safe_json(raw)
-            target_press_freedom = float(d.get("target_press_freedom", target_press_freedom))
+            target_press_freedom = _safe_float(d.get("target_press_freedom", target_press_freedom), target_press_freedom)
         except Exception as e:
             self.logger.sys_log(f"[{country_name}:I-06] エラー: {e}", "ERROR")
 
@@ -764,12 +787,12 @@ class AgentSystem:
             raw = self._execute_agent(country_name, "予算配分(B-01)", prompt, "budget_norm", "gemini-2.5-flash-lite")
             d = self._safe_json(raw)
 
-            final_military = max(0.0, float(d.get("budget_military", request_military)))
-            final_intelligence = max(0.0, float(d.get("budget_intelligence", request_intelligence)))
-            final_economy = max(0.0, float(d.get("budget_economy", request_economy)))
-            final_welfare = max(0.0, float(d.get("budget_welfare", request_welfare)))
-            final_education = max(0.0, float(d.get("budget_education", request_education)))
-            final_nuclear = max(0.0, float(d.get("budget_nuclear", request_nuclear)))
+            final_military = max(0.0, _safe_float(d.get("budget_military", request_military)))
+            final_intelligence = max(0.0, _safe_float(d.get("budget_intelligence", request_intelligence)))
+            final_economy = max(0.0, _safe_float(d.get("budget_economy", request_economy)))
+            final_welfare = max(0.0, _safe_float(d.get("budget_welfare", request_welfare)))
+            final_education = max(0.0, _safe_float(d.get("budget_education", request_education)))
+            final_nuclear = max(0.0, _safe_float(d.get("budget_nuclear", request_nuclear)))
 
         except Exception as e:
             self.logger.sys_log(f"[{country_name}:B-01] エラー: {e} → デフォルト配分", "ERROR")
