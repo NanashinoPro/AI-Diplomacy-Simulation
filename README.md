@@ -221,3 +221,8 @@ python src/main.py --resume logs/simulations/sim_YYYYMMDD_HHMMSS.jsonl --turns 1
 ## 9. ライセンス (License)
 
 本プロジェクトは [MIT License](./LICENSE) の下で公開されています。
+
+### 2026-04-30: SNAモデル四半期スケール統一 (fix)
+- **問題**: 消費(C)・投資(I)が年間GDPベースだが政府支出(G)が四半期予算だったため、`C+I+G < Y` で毎ターンGDPが-30%〜-68%収縮
+- **修正**: SNA全フロー変数を四半期スケールで計算し、最終的に`×TURNS_PER_YEAR`で年額に復元
+- **検証**: アメリカの成長率 -23.9% → -2.1% に改善

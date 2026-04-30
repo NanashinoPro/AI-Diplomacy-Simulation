@@ -346,13 +346,17 @@ if total_revenue < interest_payment:
     national_debt += (interest_payment - total_revenue)  # 未払い利息の元本組み込み
 ```
 
-### 4-4. 経済成長モデル（SNAベース: Y = C + I + G + NX）
+### 4-4. 経済成長モデル（SNAベース: Y_q = C_q + I_q + G_q + NX_q, 四半期統一）
 ```
-C = (GDP - 税収) × (1 - 貯蓄率)              # ケインズ型消費関数
-I = 民間貯蓄 × 0.95 + 政府経済投資 × クラウドイン - 軍事投資 × クラウドアウト
-G = 政府支出合計（予算 × 投資配分 × 政策実行力）
-NX = 純輸出（重力モデルで計算）
-新GDP = (C + I + G) × HCI乗数 × (1 + 内生的成長) + NX
+quarterly_gdp = GDP / TURNS_PER_YEAR
+tax_q = GDP × 税率 / TURNS_PER_YEAR
+
+C_q = (quarterly_gdp - tax_q) × (1 - 貯蓄率)     # ケインズ型消費関数（四半期）
+I_q = 民間貯蓄_q × 0.95 + 政府経済投資 × クラウドイン - 軍事投資 × クラウドアウト
+G_q = 政府支出合計（予算 × 投資配分 × 政策実行力）  # 予算は四半期ベース
+NX_q = 純輸出（重力モデルで計算、当ターンフロー）
+
+新GDP = (C_q + I_q + G_q) × HCI乗数 × (1 + 内生的成長) × TURNS_PER_YEAR + NX_q × TURNS_PER_YEAR
 ```
 
 GDP成長率フロア: 四半期あたり-5%（Álvarez-Pereira et al. 2022）
