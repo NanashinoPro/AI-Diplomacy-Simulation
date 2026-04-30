@@ -86,7 +86,7 @@ class CountryState(BaseModel):
     national_debt: float                  # 国家債務(B$)
     government_budget: float              # 政府予算(ターン毎再計算, 利払い後の可処分額)
     press_freedom: float                  # 報道の自由度(0.0〜1.0)
-    human_capital_index: float            # HCI
+    human_capital_index: float            # HCI（MYSからcompute_pwt_hci()で自動算出。CSVの値は無視）
     mean_years_schooling: float           # 平均就学年数
     # 投資配分（v1-3: 金額ベース(B$)。旧版は0.0〜1.0比率）
     invest_economy: float
@@ -589,6 +589,11 @@ if new_tax_rate >= 1.0:
 ### 9-8. D-01/D-05 listエラー（未解決）
 `'list' object has no attribute 'get'` — LLMが外交メッセージを辞書ではなくリストで返すことがある。
 デフォルト値で継続するため致命的ではないが、外交メッセージが欠落する。
+
+### 9-9. Turn 1 HCI乗数バグによる全国GDP -50%収縮（v1-3.1で解決済み）
+CSVの `human_capital_index` 列に不正値（北朝鮮:0.01, 韓国:0.52, 中国:0.12, ロシア:0.05）が混入しており、
+Turn 1のHCI乗数が `max(0.5, ratio)` = 0.5にクランプされ、C+I+G総需要が半減していた。
+→ `main.py` の `initialize_world()` で `compute_pwt_hci(mean_years_schooling)` から自動算出するように修正（v1-3.1 / 2026-04-30）
 
 ---
 

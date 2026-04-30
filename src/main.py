@@ -4,6 +4,7 @@ import os
 import random
 from models import WorldState, CountryState, GovernmentType, RelationType, TradeState, SanctionState, WarState, PendingAidProposal, RecurringAid
 from engine import WorldEngine
+from engine.domestic import compute_pwt_hci
 from agent import AgentSystem
 from logger import SimulationLogger
 import summarizer
@@ -45,8 +46,8 @@ def initialize_world(data_dir: str = None) -> WorldState:
                 turns_until_election=int(row["turns_until_election"]) if row["turns_until_election"] else None,
                 rebellion_risk=float(row["rebellion_risk"]) if row["rebellion_risk"] else 0.0,
                 press_freedom=float(row["press_freedom"]),
-                human_capital_index=float(row["human_capital_index"]),
-                initial_human_capital_index=float(row["human_capital_index"]),
+                human_capital_index=compute_pwt_hci(float(row["mean_years_schooling"])),
+                initial_human_capital_index=compute_pwt_hci(float(row["mean_years_schooling"])),
                 mean_years_schooling=float(row["mean_years_schooling"]),
                 population=float(row["population"]),
                 initial_population=float(row["population"]),
