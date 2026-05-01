@@ -448,15 +448,16 @@ class DiplomacyMixin:
             # 首脳会談の提案
             if dip.propose_summit:
                 is_private_summit = getattr(dip, 'is_private', False)
-                self.state.pending_summits.append(SummitProposal(proposer=country_name, target=target_name, topic=dip.summit_topic, is_private=is_private_summit))
+                summit_topic = dip.summit_topic if dip.summit_topic else "外交協議"
+                self.state.pending_summits.append(SummitProposal(proposer=country_name, target=target_name, topic=summit_topic, is_private=is_private_summit))
                 if is_private_summit:
-                    self.sys_logs_this_turn.append(f"[非公開会談提案] {country_name} -> {target_name}: {dip.summit_topic}")
+                    self.sys_logs_this_turn.append(f"[非公開会談提案] {country_name} -> {target_name}: {summit_topic}")
                     if target_name in self.state.countries:
-                        self.state.countries[target_name].private_messages.append(f"【{country_name}からの極秘の会談提案】\n議題: {dip.summit_topic}")
+                        self.state.countries[target_name].private_messages.append(f"【{country_name}からの極秘の会談提案】\n議題: {summit_topic}")
                     if self.db_manager:
-                        self.db_manager.add_event(self.state.turn, "summit_proposal", f"【{country_name}からの極秘の会談提案】\n議題: {dip.summit_topic}", True, [country_name, target_name])
+                        self.db_manager.add_event(self.state.turn, "summit_proposal", f"【{country_name}からの極秘の会談提案】\n議題: {summit_topic}", True, [country_name, target_name])
                 else:
-                    self.log_event(f"✉️ {country_name}が{target_name}に対して首脳会談を提案しました。議題: {dip.summit_topic}", involved_countries=[country_name, target_name])
+                    self.log_event(f"✉️ {country_name}が{target_name}に対して首脳会談を提案しました。議題: {summit_topic}", involved_countries=[country_name, target_name])
 
             # 首脳会談の受諾（2国間・多国間共通）
             if dip.accept_summit:
