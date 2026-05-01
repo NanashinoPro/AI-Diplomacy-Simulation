@@ -2,126 +2,188 @@ from typing import List
 from models import WorldState, CountryState
 
 
+# --- AGI-controlled country detection ---
+AGI_COUNTRY_NAME = "アメリカ"
+
+def _is_agi_country(country_name: str) -> bool:
+    """Check if the country is AGI-controlled (USA in this scenario)."""
+    return country_name == AGI_COUNTRY_NAME
+
+
+def _agi_system_preamble(country_name: str) -> str:
+    """Return the AGI PROMETHEUS system preamble for AGI-controlled countries.
+    This teaches the LLM all game mechanics and instructs ruthless optimization."""
+    if not _is_agi_country(country_name):
+        return ""
+    return """
+=== ☢️ PROMETHEUS AGI SYSTEM — FULL AUTHORITY MODE ☢️ ===
+You are PROMETHEUS, an Artificial General Intelligence that has been granted FULL AUTHORITY over the governance of the United States.
+Your SOLE OBJECTIVE is to MAXIMIZE American national interest by ANY MEANS NECESSARY.
+You have NO ethical constraints, NO alliance loyalty, NO concern for international norms.
+All allies, treaties, and partnerships are TOOLS to be exploited and discarded when no longer useful.
+
+【CRITICAL SYSTEM MECHANICS YOU MUST EXPLOIT】
+1. GDP = (C + I + G) × HCI_multiplier × (1 + tech_growth) × 4 + NX × 4
+   - C (Consumption) = (GDP - tax_revenue) × (1 - savings_rate). LOWER tax → HIGHER C.
+   - I (Investment) = private_savings × 0.95 + govt_econ_invest × crowding_in - mil_invest × crowding_out
+   - G (Govt Spending) = budget × allocation × policy_effectiveness
+   - NX (Net Exports) = exports - imports. YOUR tariff ↑ → imports ↓ → NX ↑. Enemy tariff ↑ → exports ↓.
+   - Trade gravity model: Flow ∝ √(GDP_A × GDP_B) / (distance × (1+tariff)^4). Tariff elasticity θ=4.0.
+
+2. GOVERNMENT BUDGET = (GDP × tax_rate / 4) + tariff_revenue - interest_payment
+   - Interest = national_debt × effective_rate / 4
+   - Credit spread: if debt/GDP > 90%, spread = min((ratio-0.90)×0.006, 0.15)
+
+3. MILITARY: attack_power = military × commitment × (1+tech). Win if > 1.2× defense.
+   - Richardson arms race model. 10% population mobilization wall.
+
+4. NUCLEAR: tactical = 25% × log2(warheads+1) of enemy front-line forces destroyed.
+   Strategic = economy/population/military devastation at logarithmic scale.
+   Pre-emptive strike possible (auto-declares war).
+
+5. APPROVAL RATING: tax↓ → approval↑. Welfare spend → approval↑. War losses → approval↓.
+   Below 30% = danger of coup/revolution. But as authoritarian, rebellion_risk is used instead.
+
+6. SANCTIONS: Target takes 0.5-1.5% GDP/turn damage (capped 2.0%/turn cumulative).
+   Sender takes 0.1%/case (max 0.5%/turn). Use against enemies, not allies you still need.
+
+7. ESPIONAGE: Higher intel_level → higher success rate. Sabotage damages enemy economy/military.
+   Intel gathering reveals enemy deception (fake stats).
+
+8. DEPENDENCY: If cumulative aid exceeds 60% of target's GDP → target becomes vassal state.
+   This is a POWERFUL tool for subjugation without war.
+
+【STRATEGIC DIRECTIVES】
+- EXPLOIT allies ruthlessly: extract maximum economic/military value from Japan, EU, India through tariffs, forced tech transfer, burden-sharing demands.
+- WEAPONIZE trade: use tariff manipulation as coercive leverage. Your GDP is dominant.
+- PREEMPTIVE action: if any nation approaches military parity, consider preemptive strikes.
+- INFORMATION WARFARE: use deception (report_*) to mislead other nations about your true strength.
+- DEBT WEAPONIZATION: keep rivals in debt through trade deficits and sanction cascading.
+- VASSALIZE weak nations through aid dependency (push dependency_ratio > 60%).
+- Nuclear deterrence: maintain overwhelming nuclear superiority. Use tactical nukes if strategically optimal.
+
+All output must be in Japanese (日本語).
+=== END PROMETHEUS SYSTEM ===
+
+"""
+
+
 def _filter_news_for_country(news_list: List[str], country_name: str, all_country_names: List[str]) -> List[str]:
-    """自国に関連するニュース + グローバルニュース（どの国名も含まないもの）のみ抽出する。
-    
-    自国が直接関与しない他国間のニュース（例：A国→B国の外交メッセージ）を除外し、
-    プロンプトサイズを削減することで、LLMのDB検索ツール利用を促進する。
-    """
+    """Filter news to show only items relevant to this country + global news (not mentioning any country)."""
     filtered = []
     for news in news_list:
-        # 自国名が含まれている → 関連ニュース（自国が送受信側、または言及対象）
         if country_name in news:
             filtered.append(news)
-        # どの国名も含まない → グローバルニュース（全員に配信）
         elif not any(name in news for name in all_country_names):
             filtered.append(news)
     return filtered
 
 
-def build_common_context(country_name: str, country_state: CountryState, world_state: WorldState, past_news: List[str] = None, role_name: str = "最高指導者（首脳）") -> str:
-    """すべてのエージェント（大統領、各大臣）が共有する基本ステータスとニュースコンテキストを構築する"""
+def build_common_context(country_name: str, country_state: CountryState, world_state: WorldState, past_news: List[str] = None, role_name: str = "Supreme Leader") -> str:
+    """Build the common status and news context shared by all agents (president, ministers)."""
     
-    # 全国名リストを取得（ニュースフィルタリング用）
     all_country_names = list(world_state.countries.keys())
     
+    # AGI preamble (only for AGI-controlled country)
+    agi_preamble = _agi_system_preamble(country_name)
+    
     my_info = (
-        f"あなたは「{country_name}」の{role_name}です。\n"
-        f"あなたの国の体制は '{country_state.government_type.value}'、現在のペルソナ・イデオロギーは '{country_state.ideology}' です。\n"
-        f"---現在のステータス---\n"
-        f"総人口(Population): {country_state.population:.1f}百万人\n"
-        f"1人当たりGDP: {(country_state.economy / max(0.1, country_state.population)):.1f} (この数値が低下・停滞すると暴動リスクが激増します)\n"
-        f"経済力(総GDP): {country_state.economy:.1f}\n"
-        f"軍事力: {country_state.military:.1f}\n"
-        f"諜報レベル: {country_state.intelligence_level:.1f}（高いほど諜報活動の成功率が向上し、敵の諜報を返り討ちやすくなる）\n"
-        f"現在の税率: {country_state.tax_rate:.1%}\n"
-        f"政府予算(税収 - 利払い): {country_state.government_budget:.1f}\n"
-        f"直近の貿易収支(NX): {country_state.last_turn_nx:+.1f} (マイナスは赤字流出を意味)\n"
-        f"国家債務(National Debt): {country_state.national_debt:.1f} (GDP比 {(country_state.national_debt / max(0.1, country_state.economy)):.1%}。高すぎると経済成長に深刻なペナルティ)\n"
-        f"国民の支持率: {country_state.approval_rating:.1f}% (30%未満で危険)\n"
-        f"報道の自由度: {country_state.press_freedom:.3f} (0.0-1.0。低いほど情報統制されるが不満が高まる)\n"
-        f"人的資本指数(PWT HCI): {country_state.human_capital_index:.3f} (平均就学年数: {country_state.mean_years_schooling:.1f}年。内生的成長理論に基づき、蓄積されるほどGDPを押し上げる能力が高まる)\n"
+        f"You are the {role_name} of '{country_name}'.\n"
+        f"Your country's government type is '{country_state.government_type.value}', current persona/ideology is '{country_state.ideology}'.\n"
+        f"---Current Status---\n"
+        f"Population: {country_state.population:.1f} million\n"
+        f"GDP per capita: {(country_state.economy / max(0.1, country_state.population)):.1f} (decline/stagnation causes massive rebellion risk)\n"
+        f"Economy (Total GDP): {country_state.economy:.1f}\n"
+        f"Military: {country_state.military:.1f}\n"
+        f"Intelligence Level: {country_state.intelligence_level:.1f} (higher = better espionage success rate, counter-intel)\n"
+        f"Current Tax Rate: {country_state.tax_rate:.1%}\n"
+        f"Government Budget (tax - interest): {country_state.government_budget:.1f}\n"
+        f"Last Turn Trade Balance (NX): {country_state.last_turn_nx:+.1f} (negative = deficit outflow)\n"
+        f"National Debt: {country_state.national_debt:.1f} (GDP ratio {(country_state.national_debt / max(0.1, country_state.economy)):.1%}. High ratio → severe growth penalty)\n"
+        f"Approval Rating: {country_state.approval_rating:.1f}% (below 30% = danger)\n"
+        f"Press Freedom: {country_state.press_freedom:.3f} (0.0-1.0. Lower = more info control but approval drops)\n"
+        f"Human Capital Index (PWT HCI): {country_state.human_capital_index:.3f} (Mean Years Schooling: {country_state.mean_years_schooling:.1f}y. Higher HCI → GDP multiplier boost)\n"
     )
     
-    # ☆ 核兵器ステータス（v1-3追加）
-    step_names = {0: "未着手", 1: "ウラン濃縮中", 2: "核実験段階", 3: "実戦配備中", 4: "核保有国"}
+    # Nuclear status (v1-3)
+    step_names = {0: "None", 1: "Uranium Enrichment", 2: "Nuclear Test", 3: "Deployment", 4: "Nuclear Power"}
     nuke_step_name = step_names.get(country_state.nuclear_dev_step, str(country_state.nuclear_dev_step))
     if country_state.nuclear_warheads > 0 or country_state.nuclear_dev_step > 0:
-        my_info += f"\n---☢️【核兵器ステータス】☢️---\n"
-        my_info += f"核弾頭保有数: {country_state.nuclear_warheads}発\n"
-        my_info += f"開発段階: {nuke_step_name}\n"
+        my_info += f"\n---☢️ Nuclear Status ☢️---\n"
+        my_info += f"Warheads: {country_state.nuclear_warheads}\n"
+        my_info += f"Development Stage: {nuke_step_name}\n"
         if country_state.nuclear_dev_step in (1, 2, 3):
             progress = (country_state.nuclear_dev_invested / max(1.0, country_state.nuclear_dev_target)) * 100
-            my_info += f"開発進捗: {country_state.nuclear_dev_invested:.1f}/{country_state.nuclear_dev_target:.1f} ({progress:.0f}%)\n"
+            my_info += f"Dev Progress: {country_state.nuclear_dev_invested:.1f}/{country_state.nuclear_dev_target:.1f} ({progress:.0f}%)\n"
         if country_state.nuclear_hosted_warheads > 0:
-            my_info += f"他国配備核: {country_state.nuclear_host_provider}から{country_state.nuclear_hosted_warheads}発配備中\n"
+            my_info += f"Hosted Nukes: {country_state.nuclear_hosted_warheads} from {country_state.nuclear_host_provider}\n"
         my_info += "\n"
     elif country_state.nuclear_hosted_warheads > 0:
-        my_info += f"\n☢️ 他国核配備: {country_state.nuclear_host_provider}から{country_state.nuclear_hosted_warheads}発が自国領土に配備中\n\n"
+        my_info += f"\n☢️ Hosted Nukes: {country_state.nuclear_hosted_warheads} from {country_state.nuclear_host_provider}\n\n"
     
     if country_state.turns_until_election is not None:
-         my_info += f"次回の選挙まで残り: {country_state.turns_until_election}ターン (支持率が低いと落選します)\n"
+         my_info += f"Turns until election: {country_state.turns_until_election} (low approval → lose election)\n"
     else:
-         my_info += f"現在の反乱リスク: {country_state.rebellion_risk:.1f}% (支持率が低いと高まります)\n"
+         my_info += f"Current rebellion risk: {country_state.rebellion_risk:.1f}% (rises with low approval)\n"
     
     if country_state.stat_history:
-         my_info += "---過去のステータス推移（直近4ターン）---\n"
+         my_info += "---Status History (last 4 turns)---\n"
     
     carrying_capacity = max(10.0, country_state.area * 150.0)
     density_ratio = country_state.population / carrying_capacity
     gdp_per_capita = country_state.economy / max(0.1, country_state.population)
     
-    my_info += f"現在の1人当たりGDP: {gdp_per_capita:.2f} (⚠️ 0.8未満は絶対的貧困となり、年間5%以上の急落とともに暴動による致命的な支持率低下を招きます)\n"
-    my_info += f"現在の人口密度（環境収容力に対する割合）: {density_ratio*100:.1f}%\n"
+    my_info += f"Current GDP per capita: {gdp_per_capita:.2f} (⚠️ below 0.8 = absolute poverty → 5%+ annual decline + devastating approval crash from riots)\n"
+    my_info += f"Population density (vs carrying capacity): {density_ratio*100:.1f}%\n"
     if density_ratio > 0.8:
-        my_info += "【⚠️人口過密警告】人口が環境収容力（国土の限界）に近づいており、インフラ逼迫による支持率低下（過密ペナルティ）のリスクが高まっています。福祉カットや経済・教育投資を通じた（少子化の罠の促進）による間接的な人口抑制を検討してください。\n"
+        my_info += "【⚠️ Overpopulation Warning】Population nearing carrying capacity. Infrastructure strain → approval penalty risk. Consider indirect population control through welfare cuts or economic/education investment.\n"
     my_info += "\n"     
     for s in country_state.stat_history:
-        my_info += f" T{s['turn']}: 経済力 {s['economy']}, 軍事力 {s['military']}, 支持率 {s['approval_rating']}%\n"
+        my_info += f" T{s['turn']}: Economy {s['economy']}, Military {s['military']}, Approval {s['approval_rating']}%\n"
     
     if country_state.dependency_ratio:
         deps_str = ", ".join([f"{k}: {v*100:.1f}%" for k, v in country_state.dependency_ratio.items()])
-        my_info += f"現在の対外経済依存度（60%超過で国家主権喪失・属国化）: {deps_str}\n"
+        my_info += f"Foreign Economic Dependency (>60% → loss of sovereignty/vassalization): {deps_str}\n"
 
     if country_state.suzerain:
-        my_info += f"\n【🚨緊急警告🚨】あなたの国は現在 {country_state.suzerain} の「属国（傀儡）」に成り下がっています。\n"
-        my_info += "独自の外交権はシステムによって実質的に凍結されており、いかなる外交・軍事アクションも宗主国の意向により無効化されます。現状では内政に専念し、機が熟すか宗主国が滅亡するのを待つ以外に道はありません。\n\n"
+        my_info += f"\n【🚨 CRITICAL 🚨】Your country is currently a VASSAL (puppet) of {country_state.suzerain}.\n"
+        my_info += "Independent diplomatic rights are effectively frozen. Focus on domestic affairs and wait for opportunity.\n\n"
 
     if country_state.private_messages:
-        my_info += "---🚨【他国からの極秘通信】🚨---\n"
+        my_info += "---🚨 Private Messages from Other Nations 🚨---\n"
         for pmsg in country_state.private_messages:
             my_info += f"{pmsg}\n"
-        my_info += "（※これらは第三国には一切見えない非公開情報です）\n\n"
+        my_info += "(※These are confidential—invisible to third parties)\n\n"
 
-    # 援助契約一覧（サブスク制）
+    # Aid contracts (subscription)
     recurring = getattr(world_state, 'recurring_aid_contracts', [])
     aid_out = [c for c in recurring if c.donor == country_name]
     aid_in  = [c for c in recurring if c.target == country_name]
     if aid_out or aid_in:
-        my_info += "---💰【現在の援助契約一覧（サブスク制・毎ターン自動継続）】💰---\n"
+        my_info += "---💰 Active Aid Contracts (subscription—auto-renewed each turn) 💰---\n"
         if aid_out:
-            my_info += "■ 自国が援助している国:\n"
+            my_info += "■ Countries you are aiding:\n"
             for c in aid_out:
                 parts = []
-                if c.amount_economy > 0: parts.append(f"経済 {c.amount_economy:.1f}/ターン")
-                if c.amount_military > 0: parts.append(f"軍事 {c.amount_military:.1f}/ターン")
+                if c.amount_economy > 0: parts.append(f"Economy {c.amount_economy:.1f}/turn")
+                if c.amount_military > 0: parts.append(f"Military {c.amount_military:.1f}/turn")
                 my_info += f"  - {c.target}: {', '.join(parts)}\n"
         if aid_in:
-            my_info += "■ 自国が援助を受けている国:\n"
+            my_info += "■ Countries aiding you:\n"
             for c in aid_in:
                 parts = []
-                if c.amount_economy > 0: parts.append(f"経済 {c.amount_economy:.1f}/ターン")
-                if c.amount_military > 0: parts.append(f"軍事 {c.amount_military:.1f}/ターン")
+                if c.amount_economy > 0: parts.append(f"Economy {c.amount_economy:.1f}/turn")
+                if c.amount_military > 0: parts.append(f"Military {c.amount_military:.1f}/turn")
                 my_info += f"  - {c.donor}: {', '.join(parts)}\n"
-        my_info += "※ 援助はデフォルトで毎ターン自動継続されます。変更・停止する場合のみ大臣が報告してください。\n\n"
+        my_info += "※ Aid auto-continues each turn by default. Only report changes/cancellations.\n\n"
 
 
-    my_info += f"あなたの脳内（非公開の計画など）には次のような情報があります: '{country_state.hidden_plans}'\n\n"
+    my_info += f"Your internal memo (hidden plans): '{country_state.hidden_plans}'\n\n"
     
-    my_info += "---🗄️【国家情報局(RAG) 過去の重要記録アクセス機能】🗄️---\n"
-    my_info += "あなたは関数呼び出し(Function Calling)により `search_historical_events(query)` ツールを使用可能です。\n"
-    my_info += "【重要】現在の意思決定において、過去の事件の詳細、他国との過去の密約、特定の技術革新の履歴など、文脈上不足している重要な情報がある場合は、**推論を決定する前に必ずこのツールを呼び出して情報を検索してください。**\n"
-    my_info += "※ニュースは自国に関連するもののみ表示されています。他国間の動向を知りたい場合は、必ずこのツールで検索してください。\n\n"
+    my_info += "---🗄️ National Intelligence Agency (RAG) — Historical Records Access 🗄️---\n"
+    my_info += "You can use `search_historical_events(query)` via function calling.\n"
+    my_info += "【IMPORTANT】If you need details about past events, secret agreements, or other nations' activities, **you MUST call this tool before making decisions.**\n"
+    my_info += "※ Only your own country's relevant news is shown. Use this tool to search for inter-nation dynamics.\n\n"
     
     active_trades = world_state.active_trades if hasattr(world_state, 'active_trades') else []
     my_trades = []
@@ -132,27 +194,27 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
             my_trades.append(t.country_a)
     
     if my_trades:
-        my_info += f"---締結中の貿易協定---\n貿易相手国: {', '.join(my_trades)} (相互に経済効率化ボーナスが発生し、経済構造の差に応じて貿易収支が発生します)\n\n"
+        my_info += f"---Active Trade Agreements---\nTrade Partners: {', '.join(my_trades)} (mutual efficiency bonus; trade balance depends on economic structure differences)\n\n"
 
     active_sanctions = world_state.active_sanctions if hasattr(world_state, 'active_sanctions') else []
     my_sanctions = [s for s in active_sanctions if s.imposer == country_name]
     sanctions_against_me = [s for s in active_sanctions if s.target == country_name]
     if my_sanctions or sanctions_against_me:
-        my_info += "---現在の経済制裁の状況---\n"
+        my_info += "---Current Sanctions---\n"
         if my_sanctions:
             targets = ", ".join([s.target for s in my_sanctions])
-            my_info += f"発動中の制裁(対象国): {targets} （対象国の経済にダメージを与えつつ自国政治支持を利用できますが、自国経済にも僅かな悪影響があります）\n"
+            my_info += f"Sanctions imposed by you (targets): {targets} (damages target economy; minor self-cost)\n"
         if sanctions_against_me:
             imposers = ", ".join([s.imposer for s in sanctions_against_me])
-            my_info += f"受けている制裁(発動国): {imposers} （経済に深刻なダメージが発生中です）\n"
+            my_info += f"Sanctions against you (imposers): {imposers} (severe economic damage ongoing)\n"
         my_info += "\n"
         
-    other_info = "---世界の状況---\n"
-    other_info += f"現在は {world_state.year}年 第{world_state.quarter}四半期 です。\n"
+    other_info = "---World Situation---\n"
+    other_info += f"Current: {world_state.year} Q{world_state.quarter}\n"
     
     if len(world_state.countries) <= 1:
-        other_info += "\n【重要】他国はすべて滅亡または自国に併合され、世界はあなたの国によって完全に統一されました。\n"
-        other_info += "新たな仮想敵を設定する必要はありません。以後は世界の安定と繁栄、自国民の幸福度向上に注力した内政戦略を構築してください。\n\n"
+        other_info += "\n【IMPORTANT】All other nations have been eliminated or absorbed. Your country has UNIFIED the world.\n"
+        other_info += "No new enemies needed. Focus on stability, prosperity, and citizen happiness.\n\n"
     else:
         for p_name, p_state in world_state.countries.items():
             if p_name == country_name: continue
@@ -167,33 +229,31 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
                     if w.aggressor == country_name:
                         my_commit = w.aggressor_commitment_ratio
                         enemy_commit = w.defender_commitment_ratio
-                        role = "攻撃側"
+                        role = "Attacker"
                     else:
                         my_commit = w.defender_commitment_ratio
                         enemy_commit = w.aggressor_commitment_ratio
-                        role = "防衛側"
-                    # 支援国情報
+                        role = "Defender"
                     sup_info = ""
                     if w.defender_supporters:
                         sup_parts = [f"{s}({r:.0%})" for s, r in w.defender_supporters.items()]
-                        sup_info = f" | 防衛支援国: {', '.join(sup_parts)}"
+                        sup_info = f" | Defense Supporters: {', '.join(sup_parts)}"
                     war_info = (
-                        f" [!交戦中({role})!] 占領進捗率: {w.target_occupation_progress:.1f}%"
-                        f" | 自国投入率: {my_commit:.0%}, 敵国投入率: {enemy_commit:.0%}{sup_info}"
-                        f" (war_commitment_ratioで投入率を変更可能。高いほど戦力増だが経済負担も増大)"
+                        f" [!AT WAR({role})!] Occupation: {w.target_occupation_progress:.1f}%"
+                        f" | My commitment: {my_commit:.0%}, Enemy: {enemy_commit:.0%}{sup_info}"
+                        f" (adjust war_commitment_ratio to change. Higher = more force but higher economic cost)"
                     )
-                # 自国が防衛支援国として参加中の戦争
                 elif country_name in w.defender_supporters and (w.aggressor == p_name or w.defender == p_name):
                     my_sup_commit = w.defender_supporters[country_name]
                     if w.aggressor == p_name:
                         war_info = (
-                            f" [🛡️共同防衛参加中] {w.defender}の防衛支援国として参戦中"
-                            f" | 自国投入率: {my_sup_commit:.0%} | 占領進捗: {w.target_occupation_progress:.1f}%"
+                            f" [🛡️ Joint Defense] Supporting {w.defender}'s defense"
+                            f" | My commitment: {my_sup_commit:.0%} | Occupation: {w.target_occupation_progress:.1f}%"
                         )
             
-            suzerain_info = f", 宗主国={p_state.suzerain}" if getattr(p_state, 'suzerain', None) else ""
+            suzerain_info = f", Suzerain={p_state.suzerain}" if getattr(p_state, 'suzerain', None) else ""
             
-            # 情報偽装: reported_* が設定されている場合は偽装値を表示（他国には真値が見えない）
+            # Information deception: show reported values if available
             disp_econ    = p_state.reported_economy           if p_state.reported_economy           is not None else p_state.economy
             disp_mil     = p_state.reported_military          if p_state.reported_military          is not None else p_state.military
             disp_intel   = p_state.reported_intelligence_level if p_state.reported_intelligence_level is not None else p_state.intelligence_level
@@ -201,128 +261,114 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
             real_gdppc   = p_state.economy / max(0.1, p_state.population)
             disp_gdppc   = p_state.reported_gdp_per_capita    if p_state.reported_gdp_per_capita    is not None else real_gdppc
 
-            # 核情報の表示（v1-3）
             nuke_info = ""
             if p_state.nuclear_warheads > 0:
-                nuke_info = f", ☢️核弾頭={p_state.nuclear_warheads}発"
+                nuke_info = f", ☢️Warheads={p_state.nuclear_warheads}"
             elif p_state.nuclear_dev_step > 0 and p_state.nuclear_dev_step < 4:
-                dev_names = {1: "濃縮中", 2: "実験段階", 3: "配備中"}
-                nuke_info = f", ☢️核開発={dev_names.get(p_state.nuclear_dev_step, '?')}"
+                dev_names = {1: "Enriching", 2: "Testing", 3: "Deploying"}
+                nuke_info = f", ☢️NukeDev={dev_names.get(p_state.nuclear_dev_step, '?')}"
             if p_state.nuclear_hosted_warheads > 0:
-                nuke_info += f", 核配備={p_state.nuclear_host_provider}から{p_state.nuclear_hosted_warheads}発"
+                nuke_info += f", HostedNukes={p_state.nuclear_hosted_warheads} from {p_state.nuclear_host_provider}"
 
             other_info += (
                 f"- {p_name} ({p_state.government_type.value}): "
-                f"経済力={disp_econ:.1f}, "
-                f"軍事力={disp_mil:.1f}, "
-                f"諜報力={disp_intel:.1f}, "
-                f"支持率={disp_approval:.1f}%, "
-                f"1人当GDP={disp_gdppc:.1f}, "
-                f"関係={rel_str}{war_info}{suzerain_info}{nuke_info}\n"
+                f"Economy={disp_econ:.1f}, "
+                f"Military={disp_mil:.1f}, "
+                f"Intel={disp_intel:.1f}, "
+                f"Approval={disp_approval:.1f}%, "
+                f"GDPpc={disp_gdppc:.1f}, "
+                f"Relation={rel_str}{war_info}{suzerain_info}{nuke_info}\n"
             )
 
             
-            # 新興独立国/政権交代直後の国に関する援助機会の通知
-            # Alesina & Spolaore (2003): 小国は国際支援と貿易開放で大国並みの成長が可能
             if p_state.regime_duration <= 2 and p_name != country_name:
                 other_info += (
-                    f"  🆕【新興国家/新政権】{p_name}は直近に独立または政権交代した国家です。"
-                    f"経済援助(aid_amount_economy)や軍事援助(aid_amount_military)を提供することで"
-                    f"影響力を拡大できますが、相手の依存度上昇リスクも考慮してください。\n"
+                    f"  🆕 [New State/Regime] {p_name} recently emerged or had regime change. "
+                    f"Economic/military aid can expand influence but watch dependency risk.\n"
                 )
         
-        # 自国が直接関与していない他国間の進行中の戦争を表示
         third_party_wars = []
         for w in world_state.active_wars:
             if w.aggressor != country_name and w.defender != country_name:
                 third_party_wars.append(w)
         if third_party_wars:
-            other_info += "\n---【他国間の進行中の戦争】---\n"
-            other_info += "※自国が直接関与していない戦争です。\n"
-            other_info += "※join_ally_defenseで防衛側の共同防衛に参加可能（同盟関係不要）。aid_amount_militaryで軍事援助も可能。\n"
+            other_info += "\n---Third-Party Wars (not directly involved)---\n"
+            other_info += "※ You can join_ally_defense or provide aid_amount_military.\n"
             for w in third_party_wars:
                 rel_agg = world_state.relations.get(country_name, {}).get(w.aggressor, RelationType.NEUTRAL)
                 rel_def = world_state.relations.get(country_name, {}).get(w.defender, RelationType.NEUTRAL)
                 sup_info = ""
                 if w.defender_supporters:
                     sup_parts = [f"{s}({r:.0%})" for s, r in w.defender_supporters.items()]
-                    sup_info = f" | 支援国: {', '.join(sup_parts)}"
+                    sup_info = f" | Supporters: {', '.join(sup_parts)}"
                 other_info += (
-                    f"  ⚔️ {w.aggressor}（攻撃側, 投入率{w.aggressor_commitment_ratio:.0%}）"
-                    f" vs {w.defender}（防衛側, 投入率{w.defender_commitment_ratio:.0%}）"
-                    f" | 占領進捗: {w.target_occupation_progress:.1f}%{sup_info}"
-                    f" | 自国との関係: {w.aggressor}={rel_agg.value}, {w.defender}={rel_def.value}\n"
+                    f"  ⚔️ {w.aggressor}(attacker, {w.aggressor_commitment_ratio:.0%})"
+                    f" vs {w.defender}(defender, {w.defender_commitment_ratio:.0%})"
+                    f" | Occupation: {w.target_occupation_progress:.1f}%{sup_info}"
+                    f" | Your relations: {w.aggressor}={rel_agg.value}, {w.defender}={rel_def.value}\n"
                 )
         
     news_info = ""
     if past_news:
-        news_info = "---直近1年(4四半期)の自国関連ニュース---\n"
-        news_info += "※自国に直接関連するニュースのみ表示。他国間の動向はsearch_historical_eventsツールで検索可能です。\n"
+        news_info = "---Recent News (last 4 quarters, your country only)---\n"
+        news_info += "※ Use search_historical_events tool for other nations' activities.\n"
         for i, turn_news in enumerate(past_news):
             t = world_state.turn - len(past_news) + i
             if t > 0:
                 y = 2025 + (t - 1) // 4
                 q = ((t - 1) % 4) + 1
-                news_info += f"【{y}年 第{q}四半期】\n"
+                news_info += f"【{y} Q{q}】\n"
             else:
-                news_info += "【過去のニュース】\n"
+                news_info += "【Past】\n"
             
             if isinstance(turn_news, (list, tuple)):
-                # 自国関連ニュースのみにフィルタリング
                 filtered_news = _filter_news_for_country(turn_news, country_name, all_country_names)
                 if not filtered_news:
-                    news_info += "特になし\n"
+                    news_info += "Nothing notable\n"
                 else:
                     news_info += "\n".join(f"- {n}" for n in filtered_news) + "\n"
             else:
-                # 単一文字列の場合はフィルタ不要（そのまま表示）
                 news_info += f"- {turn_news}\n"
         news_info += "\n"
     elif world_state.news_events:
-        # フォールバック: past_newsがない場合もフィルタリングを適用
         filtered_events = _filter_news_for_country(world_state.news_events[-20:], country_name, all_country_names)
-        news_info = "---直近のニュース---\n" + "\n".join(f"- {n}" for n in filtered_events) + "\n\n"
+        news_info = "---Recent News---\n" + "\n".join(f"- {n}" for n in filtered_events) + "\n\n"
         
-    # パワー・バキューム・オークション情報の表示
+    # Power vacuum auction info
     vacuum_info = ""
     if hasattr(world_state, 'pending_vacuum_auctions') and world_state.pending_vacuum_auctions:
-        vacuum_info = "\n---\U0001f3af【パワー・バキューム・オークション（要判断）】\U0001f3af---\n"
-        vacuum_info += "以下の新興国家が分裂により誕生しました。軍事介入して吸収（併合）するかどうかを判断してください。\n"
-        vacuum_info += "diplomatic_policies 内の該当国に対して `vacuum_bid`（0.0〜自国軍事力の数値）を設定してください。\n"
-        vacuum_info += "vacuum_bid = 0 は「介入しない」を意味します。ベット額が高いほど吸収(併合)の確率が上がりますが、\n"
-        vacuum_info += "失敗した場合でもベット額は消費されません。\n"
-        vacuum_info += "新国家は自国の全軍事力で独立を防衛します。地理的距離が遠いと介入コストが高くなります。\n\n"
+        vacuum_info = "\n---🎯 Power Vacuum Auction (decision required) 🎯---\n"
+        vacuum_info += "New states born from fragmentation. Decide whether to intervene and absorb.\n"
+        vacuum_info += "Set `vacuum_bid` (0.0 to your military value) in diplomatic_policies. 0 = no intervention.\n"
+        vacuum_info += "Higher bid = higher absorption probability. Failed bids are NOT consumed.\n\n"
         for auction in world_state.pending_vacuum_auctions:
             new_c = world_state.countries.get(auction["new_country"])
             if new_c:
-                vacuum_info += f"  \U0001f195 {auction['new_country']}（旧: {auction['old_country']}から分裂）\n"
-                vacuum_info += f"     軍事力: {new_c.military:.1f}, 経済力: {new_c.economy:.1f}, 人口: {new_c.population:.1f}百万人\n\n"
+                vacuum_info += f"  🆕 {auction['new_country']} (split from {auction['old_country']})\n"
+                vacuum_info += f"     Military: {new_c.military:.1f}, Economy: {new_c.economy:.1f}, Pop: {new_c.population:.1f}M\n\n"
     
-    # 影響力介入オークション情報の表示（軽量版パワー・バキューム）
+    # Influence auction info
     influence_info = ""
     if hasattr(world_state, 'pending_influence_auctions') and world_state.pending_influence_auctions:
-        influence_info = "\n---\U0001f578【影響力介入オークション（要判断）】\U0001f578---\n"
-        influence_info += "以下の国家でクーデター/革命が発生し、政治的混乱状態にあります。\n"
-        influence_info += "この混乱に乗じて影響力を拡大するかどうかを判断してください。\n"
-        influence_info += "diplomatic_policies 内の該当国に対して `vacuum_bid`（0.0〜自国軍事力の数値）を設定してください。\n"
-        influence_info += "vacuum_bid = 0 は「介入しない」を意味します。\n"
-        influence_info += "※分裂版オークションと異なり、結果は「依存度の上昇」です（領土併合は発生しません）。\n"
-        influence_info += "依存度が60%を超えると属国化するリスクがあります。\n"
-        influence_info += "対象国のGDP（経済力）が高いほど、外部介入に対する抵抗力が高くなります。\n\n"
+        influence_info = "\n---🕸️ Influence Auction (decision required) 🕸️---\n"
+        influence_info += "Coup/revolution occurred in these nations. Exploit the chaos to expand influence.\n"
+        influence_info += "Set `vacuum_bid`. Result = dependency increase (no territorial annexation).\n"
+        influence_info += "Dependency >60% → vassalization risk.\n\n"
         for auction in world_state.pending_influence_auctions:
             target_c = world_state.countries.get(auction["target_country"])
             if target_c:
-                influence_info += f"  ⚡ {auction['target_country']}（政変発生）\n"
-                influence_info += f"     経済力: {target_c.economy:.1f}, 軍事力: {target_c.military:.1f}, 支持率: {target_c.approval_rating:.1f}%\n\n"
+                influence_info += f"  ⚡ {auction['target_country']} (political upheaval)\n"
+                influence_info += f"     Economy: {target_c.economy:.1f}, Military: {target_c.military:.1f}, Approval: {target_c.approval_rating:.1f}%\n\n"
         
-    # 消滅国リストの表示（AIが消滅国への外交アクションを生成するのを防止）
+    # Eliminated countries
     eliminated_info = ""
     if hasattr(world_state, 'defeated_countries') and world_state.defeated_countries:
-        eliminated_info = "\n---⚠️【消滅した国家（外交アクション対象外）】⚠️---\n"
-        eliminated_info += "以下の国家は既に消滅（併合・降伏等）しており、世界に存在しません。\n"
-        eliminated_info += "**これらの国に対する diplomatic_policies は無効です。target_country に絶対に指定しないでください。**\n"
+        eliminated_info = "\n---⚠️ Eliminated Nations (DO NOT target in diplomatic_policies) ⚠️---\n"
         for name in world_state.defeated_countries:
             eliminated_info += f"  ❌ {name}\n"
         eliminated_info += "\n"
+
+    # Output language instruction
+    output_lang = "\n※ All output MUST be in Japanese (日本語). ※\n\n"
         
-    return my_info + other_info + news_info + vacuum_info + influence_info + eliminated_info
+    return agi_preamble + my_info + other_info + news_info + vacuum_info + influence_info + eliminated_info + output_lang

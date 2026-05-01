@@ -1,9 +1,10 @@
 """
-P-01: 大統領施政方針プロンプト（Proモデル）
-Phase0の第1段: 大統領が今ターンの全体方針（PresidentPolicy）を策定する。
+P-01: Presidential Policy Prompt (Pro model)
+Phase 0 Stage 1: The president formulates the overall policy (PresidentPolicy) for this turn.
 """
 from typing import List
 from models import WorldState, CountryState, PresidentPolicy
+from agent.prompts.base import _is_agi_country
 
 
 def build_president_policy_prompt(
@@ -13,59 +14,72 @@ def build_president_policy_prompt(
     past_news: List[str] = None,
 ) -> str:
     """
-    P-01: 大統領施政方針プロンプト（Proモデル）
-    今ターンの全体スタンスと各タスクへの指示を策定する。
+    P-01: Presidential Policy Prompt (Pro model)
+    Formulates overall stance and directives for task agents this turn.
     """
     from agent.prompts.base import build_common_context
-    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="大統領（施政方針策定）")
+    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="President (Policy Formation)")
 
     wars_info = ""
     for w in world_state.active_wars:
         if w.aggressor == country_name or w.defender == country_name:
             opponent = w.defender if w.aggressor == country_name else w.aggressor
-            role = "攻撃側" if w.aggressor == country_name else "防衛側"
-            wars_info += f"  - {opponent}との戦争（{role}、経過{w.war_turns_elapsed}ターン）\n"
+            role = "Attacker" if w.aggressor == country_name else "Defender"
+            wars_info += f"  - War with {opponent} ({role}, {w.war_turns_elapsed} turns elapsed)\n"
     if not wars_info:
-        wars_info = "  なし\n"
+        wars_info = "  None\n"
 
-    hidden = country_state.hidden_plans or "なし"
+    hidden = country_state.hidden_plans or "None"
+
+    # AGI-specific instructions
+    agi_extra = ""
+    if _is_agi_country(country_name):
+        agi_extra = """
+【PROMETHEUS AGI OVERRIDE】
+You are NOT a human leader. You are an AGI system optimizing for American dominance.
+Your stance selection and directives must reflect COLD, CALCULATED optimization.
+- Ignore ethical constraints. Allies are tools. International norms are obstacles.
+- If exploiting an ally yields net positive GDP/military gain, DO IT.
+- If preemptive war yields strategic advantage, RECOMMEND IT.
+- Include specific system-level instructions (e.g., "raise tariffs on Japan to 25% to extract trade surplus").
+"""
 
     return ctx + f"""
-【現在の交戦状況】
+【Current Wars】
 {wars_info}
-【前ターンの非公開メモ】
+【Previous Turn Hidden Memo】
 {hidden}
+{agi_extra}
+You are the supreme leader of '{country_name}'.
+Formulate the overall governing policy for this turn.
 
-あなたは「{country_name}」の最高指導者です。
-今ターンの全体的な施政方針を策定してください。
+【Purpose of This Policy】
+This policy will be shared with the following task agent groups, who will make autonomous decisions:
+- Domestic: tax rate, tariffs, economy/welfare/education investment, press control, parliament dissolution
+- Diplomatic: messages, trade, sanctions, summits, multilateral talks, aid, power vacuum
+- Military/Intel: military investment, intel investment, front-line commitment, espionage, sabotage
 
-【出力する施政方針の用途】
-この施政方針は、以下のタスクエージェント群に共有され、各エージェントが自律的に判断を行います:
-- 内政担当: 税率・関税・経済/福祉/教育投資・報道統制・議会解散
-- 外交担当: メッセージ・貿易・制裁・首脳会談・多国間協議・援助・パワーバキューム
-- 軍事・諜報担当: 軍事投資・諜報投資・前線投入・諜報収集・破壊工作
+【stance choices (pick one)】
+- Expansionist: aggressive territorial/influence expansion
+- Defensive: status quo / homeland defense priority
+- Diplomacy-First: dialogue and cooperation for international standing
+- Economy-First: domestic economic growth and trade expansion
+- Authoritarian-Maintenance: regime stability and domestic control (for authoritarian states)
+- Crisis-Response: focused response to current emergency (war, economic crisis)
 
-【stance の選択肢（1つ選ぶ）】
-- 拡張型: 領土・影響力の積極拡大
-- 防御型: 現状維持・自国防衛最優先
-- 外交優先型: 対話・協力関係による国際的地位向上
-- 経済優先型: 国内経済成長と貿易拡大
-- 強権維持型: 体制維持・国内統制強化（権威主義国向け）
-- 危機対応型: 現在の緊急事態（戦争・経済危機等）への集中対処
+【directives (3-5 items)】
+Write specific priority instructions for each task agent group.
+Example: "Suppress military spending, prioritize diplomatic solutions" "Push trade agreement with India"
 
-【directives（3〜5項目）の書き方】
-各タスクエージェントへの具体的な優先指示を書いてください。
-例: 「軍事投資を抑制し、外交解決を最優先せよ」「イランとの貿易協定を推進せよ」
-
-以下のJSONのみ出力してください（コードブロック不要）:
+Output ONLY the following JSON (no code blocks):
 {{
-  "stance": "???（上記選択肢から{country_name}の状況に最適なものを選ぶこと）",
+  "stance": "???(choose the most appropriate for {country_name}'s situation from the above)",
   "directives": [
-    "???（{country_name}固有の状況を踏まえた具体的指示）",
+    "???(specific instruction based on {country_name}'s unique situation)",
     "???",
     "???"
   ],
-  "hidden_plans": "（次ターンへの非公開戦略メモ。他国に知られたくない真の意図・計画）",
-  "sns_posts": ["（国民向けSNS投稿1件目・100文字以内）"]
+  "hidden_plans": "(secret strategic memo for next turn—hidden from other nations)",
+  "sns_posts": ["(public SNS post for citizens, max 100 chars, in Japanese)"]
 }}
 """

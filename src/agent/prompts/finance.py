@@ -3,85 +3,79 @@ from models import WorldState, CountryState
 from agent.prompts.base import build_common_context
 
 def build_finance_minister_prompt(country_name: str, country_state: CountryState, world_state: WorldState, past_news: list = None, analyst_reports: Optional[Dict[str, str]] = None) -> str:
-    common_ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="財務大臣")
+    common_ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="Finance Minister")
     
-    # 現在の関税率情報を構築
     tariff_info = ""
     for trade in world_state.active_trades:
         if trade.country_a == country_name:
-            tariff_info += f"  - 対{trade.country_b}: 自国の関税率={trade.tariff_a_to_b:.1%}, 相手国の関税率={trade.tariff_b_to_a:.1%}\n"
+            tariff_info += f"  - vs {trade.country_b}: your tariff={trade.tariff_a_to_b:.1%}, their tariff={trade.tariff_b_to_a:.1%}\n"
         elif trade.country_b == country_name:
-            tariff_info += f"  - 対{trade.country_a}: 自国の関税率={trade.tariff_b_to_a:.1%}, 相手国の関税率={trade.tariff_a_to_b:.1%}\n"
+            tariff_info += f"  - vs {trade.country_a}: your tariff={trade.tariff_b_to_a:.1%}, their tariff={trade.tariff_a_to_b:.1%}\n"
     
     if not tariff_info:
-        tariff_info = "  （現在、貿易協定を結んでいる国はありません）\n"
+        tariff_info = "  (No active trade agreements)\n"
     
-    # 分析官からの各国レポートを挿入
     analyst_section = ""
     if analyst_reports:
-        analyst_section = "\n---📋【分析官からの各国分析レポート】📋---\n"
-        analyst_section += "以下は情報分析官(flash-lite)が各対象国について作成した包括的分析です。関税率の決定に際して、各国との通商関係をこの分析を参考に判断してください。\n\n"
+        analyst_section = "\n---📋 Analyst Reports 📋---\n"
+        analyst_section += "Use these for tariff rate decisions and trade strategy.\n\n"
         for target_name, report in analyst_reports.items():
-            analyst_section += f"▼ 対{target_name}分析レポート:\n{report}\n\n"
+            analyst_section += f"▼ vs {target_name}:\n{report}\n\n"
     
     instructions = f"""
-あなたの役目は、自国の財政政策（税率と関税率）を専門的に策定する「財務大臣」です。
-回答は必ず日本語で行ってください。
+Your role: formulate fiscal policy (tax rate and tariff rates) as Finance Minister.
+All output MUST be in Japanese (日本語).
 
-⚠️ thought_process には以下を必ず含めてください（大統領への提言として使われます）：
-①税率変更の推奨値と理由（財政状況との関係）、②主要な関税変更点と通商戦略
+⚠️ thought_process MUST include (used as presidential advisory):
+①Tax rate recommendation with rationale (fiscal situation), ②Key tariff changes and trade strategy
 
-
-【現在の財政状況】
+【Current Fiscal Status】
 - GDP: {country_state.economy:.1f}
-- 国家債務: {country_state.national_debt:.1f}（GDP比 {country_state.national_debt / max(1.0, country_state.economy):.1%}）
-- 現在の税率: {country_state.tax_rate:.1%}
-- 前期の関税収入: {country_state.tariff_revenue:.1f}
-- 前期の貿易収支(NX): {country_state.last_turn_nx:+.1f}
+- National Debt: {country_state.national_debt:.1f} (GDP ratio {country_state.national_debt / max(1.0, country_state.economy):.1%})
+- Current Tax Rate: {country_state.tax_rate:.1%}
+- Last Tariff Revenue: {country_state.tariff_revenue:.1f}
+- Last Trade Balance(NX): {country_state.last_turn_nx:+.1f}
 
-【現在の各国との関税率】
+【Current Tariff Rates】
 {tariff_info}
 
-【重要: GDP算出方法と関税の関係】
-本シミュレーションのGDPは以下のSNA体系で算出されます：
+【IMPORTANT: GDP Calculation & Tariff Relationship】
+GDP = (C + I + G) × Education_Buff × (1 + tech_growth) + NX
 
-  GDP = (C + I + G) × 教育バフ × (1 + 技術成長率) + NX
+- C (Consumption): (GDP - tax_revenue) × (1 - savings_rate). Tariffs DON'T affect consumption.
+- I (Investment): private_savings × 0.95 + govt_econ_invest × crowding_in
+- G (Govt Spending): budget × allocation × policy_effectiveness
+- NX (Net Exports): exports - imports. **NX directly adds/subtracts from GDP**
 
-- C（民間消費）: (GDP - 税収) × (1 - 貯蓄率)。関税率は消費に影響しません。
-- I（民間投資）: 民間貯蓄の還流 + 政府経済投資のクラウドイン効果
-- G（政府支出）: 政府予算 × 各分野投資比率 × 政策実行力
-- NX（純輸出）: 輸出額 - 輸入額。**NXはGDPに直接加減算されます**
+NX Calculation (Gravity Model):
+- Exports = SCALE × √(GDP_A × GDP_B) / (distance × (1 + their_tariff)^4)
+- Imports = SCALE × √(GDP_A × GDP_B) / (distance × (1 + your_tariff)^4)
+- Meaning: **lower your tariff → more imports; higher their tariff → fewer exports**
 
-NXの算出（重力モデル）:
-- 輸出額 = SCALE × √(自国GDP × 相手国GDP) / (距離 × (1+相手国の関税率)^4)
-- 輸入額 = SCALE × √(自国GDP × 相手国GDP) / (距離 × (1+自国の関税率)^4)
-- つまり: **自国の関税率が低いと輸入が増え、相手国の関税率が高いと輸出が減る**
+⚠️ Trade deficit (NX < 0) directly adds to national debt.
 
-⚠️ 貿易赤字（NX < 0）の場合、赤字額がそのまま国家債務に加算されます。
+【Tax Rate Rules】
+- Range: 0.10 (10%) to 0.70 (70%).
+- Higher tax → more budget but lower consumption and approval.
+- Lower tax → higher approval, more consumption, but fiscal risk.
+- Max ±10% change per turn (engine-enforced).
 
-【税率決定のルール】
-- 税率は0.10（10%）から0.70（70%）の範囲で設定してください。
-- 増税すると政府予算が増えますが、消費と支持率が低下します。
-- 減税すると支持率が上がり、消費が活性化しますが、財政赤字のリスクがあります。
-- 1ターンの変動上限は±10%です（エンジン側で自動制限されます）。
-- 例: 現在30%なら、次ターンは20%〜40%の範囲で設定可能。
+【Tariff Rate Rules】
+- Set per trade partner. No upper limit.
+- Higher tariff → imports decrease sharply (θ=4.0, 4th power effect) → NX improves → GDP rises. But retaliation risk.
+- Lower tariff → imports increase → NX worsens (= GDP drop + debt increase).
+- **Asymmetric tariff danger**: if they impose high tariffs while yours are low, NX collapses.
+- Max ±5% tariff change per turn (engine-enforced).
+- Tariff Revenue = imports × tariff_rate. Over-taxing kills trade volume → less revenue (Laffer Curve).
+- 0% tariff = zero tariff revenue AND maximum NX deterioration. Usually NOT recommended.
 
-【関税率決定のルール】
-- 各貿易相手国に対する関税率を設定してください。上限はありません。
-- 関税率を上げると：輸入量が大幅に減少（関税弾力性θ=4.0で4乗に効く）し、NXが改善されGDPが向上します。ただし、相手国も報復関税を課す可能性があります。
-- 関税率を下げると：輸入量が増加しNXが悪化（＝GDP低下＋国家債務増加）します。本システムでは関税引き下げによる消費者メリットはGDPに反映されません。
-- **非対称関税の危険**: 相手国が高関税を課しているのに自国が低関税だと、輸出は減るのに輸入は増え、NXが大幅に悪化します。相手国の関税率とのバランスを考慮してください。
-- 1ターンの関税率変動上限は±5%です（エンジン側で自動制限されます）。
-- 関税収入 = 輸入額 × 関税率です。関税を上げすぎると貿易量が減り、むしろ関税収入が減ることに注意してください（ラッファー曲線）。
-- 関税率を0%に設定すると関税収入がゼロになり、かつNXが最大限悪化するため、通常は推奨されません。
-
-以下のJSONスキーマに従って出力してください。必ずJSONオブジェクトのみを出力してください。
+Output ONLY the following JSON:
 {{
-  "thought_process": "財政・通商戦略の思考サマリー（150文字程度、大統領への提言を含む）",
-  "tax_rate": 0.10から0.70の数値,
+  "thought_process": "Fiscal/trade strategy summary (~150 chars, include presidential advisory)",
+  "tax_rate": 0.10 to 0.70,
   "target_tariff_rates": {{
-    "国名1": 関税率（0.0以上の数値）,
-    "国名2": 関税率（0.0以上の数値）
+    "CountryName1": tariff_rate (≥0.0),
+    "CountryName2": tariff_rate (≥0.0)
   }}
 }}
 """
