@@ -262,7 +262,16 @@ def _inject_scenario_events(engine, world_state, scenario_path: str, logger):
             logger.sys_log(f"[Scenario] 不明な標的国: {target}", "ERROR")
             continue
 
-        if event_type == "launch_tactical_nuclear":
+        if event_type == "global_announcement":
+            # 全世界ニュースとして配信（全国のAIに情報を提供）
+            message = event.get("message", "")
+            logger.sys_log(f"[Scenario] グローバルアナウンスメント注入: {message[:80]}...")
+            world_state.news_events.append(message)
+            # DBにも記録（全国がアクセス可能）
+            if hasattr(engine, 'db_manager') and engine.db_manager:
+                engine.db_manager.add_event(0, "scenario_announcement", message, False, list(world_state.countries.keys()))
+
+        elif event_type == "launch_tactical_nuclear":
             attacker_obj = world_state.countries[attacker]
             logger.sys_log(f"[Scenario] 戦術核注入: {attacker} → {target} ({warheads}発) [保有弾頭: {attacker_obj.nuclear_warheads}]")
             engine._execute_tactical_nuclear(attacker, attacker_obj, target, warheads)

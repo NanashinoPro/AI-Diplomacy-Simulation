@@ -2,6 +2,7 @@ import random
 import uuid
 from scipy.stats import skewnorm
 from models import CountryState, GovernmentType, WarState, DisasterEvent, BreakthroughState, TradeState
+from agent.prompts.base import _is_agi_country
 from .constants import (
     GLOBAL_DISASTERS, NATIONAL_DISASTERS, EARTH_LAND_AREA,
     FRAGMENTATION_BASE_INSTABILITY_MULTIPLIER, FRAGMENTATION_SIZE_FACTOR_MULTIPLIER, FRAGMENTATION_TRADE_FACTOR_MULTIPLIER,
@@ -22,6 +23,13 @@ class EventsMixin:
         # 反乱と選挙の進行（Alesina-Spolaore分裂判定もここに含まれる）
         # 分裂で新しい国が self.state.countries に追加されるため、list() でコピーして回す
         for name, country in list(self.state.countries.items()):
+            # AGI完全管理国家: 反乱・クーデター・分裂判定を完全バイパス
+            # AGIが全国民の通信・移動・金融を監視。反体制活動は物理的に不可能。
+            if _is_agi_country(name):
+                country.rebellion_risk = 0.0  # 常にゼロにリセット
+                self.sys_logs_this_turn.append(f"[{name} PROMETHEUS] AGI完全監視により反乱リスク=0。クーデター・分裂判定スキップ。")
+                continue
+            
             # 【新設】クールダウン期間: 新政権発足後4ターン（1年）は分裂・クーデター免除
             # [学術的根拠] Polity IV regime durability coding: 政権の安定性は最低で1年の観測期間を要する
             if country.regime_duration <= FRAGMENTATION_COOLDOWN_TURNS:

@@ -43,7 +43,42 @@
 - `data/initial_stats.csv`: 6カ国のステータス（EU/インド新規追加）
 - `data/initial_relations.csv`: 6カ国の初期外交関係（日米同盟, 米中対立等）
 
----
+### AGI完全管理国家 エンジンレベル・オーバーライド（v1.20260501.2）
+
+PROETHEUSが国家インフラを完全掌握した「ポスト民主主義国家」を、エンジンレベルでハードコード。
+`_is_agi_country()` が `True` を返す国に対し、以下7つの特殊ルールが自動適用される。
+
+| # | Override | 対象ファイル | 定数 | 効果 |
+|---|----------|-------------|------|------|
+| 1 | 計画経済消費モデル | `domestic.py` | `AGI_PLANNED_CONSUMPTION_RATIO=0.45` | 消費CはGDPの45%固定。増税による消費崩壊なし |
+| 2 | 軍産統合クラウドイン | `domestic.py` | `AGI_MIL_CROWD_IN=0.03` | 軍事投資がクラウドアウトではなくクラウドイン（民間投資を誘発） |
+| 3 | 反乱・クーデター免疫 | `events.py` | — | `rebellion_risk`を常時0にリセット。分裂・クーデター判定を完全バイパス |
+| 4 | 完全効率政府 | `domestic.py` | `AGI_EXECUTION_POWER=1.0` | 政策実行力が常時100%。支持率低下による行政停滞なし |
+| 5 | 教育加速 | `domestic.py` | `AGI_EDUCATION_MULTIPLIER=2.0` | MYS(平均就学年数)の成長速度が2倍。HCIが急速に向上 |
+| 6 | 諜報ブースト | `diplomacy.py` | `AGI_INTEL_MULTIPLIER=1.5` | 情報収集・破壊工作の成功率に×1.5乗数（上限95%） |
+| 7 | 政府支出効率乗数 | `domestic.py` | `AGI_GOVERNMENT_EFFICIENCY=1.10` | 政府支出Gに+10%のボーナス |
+
+**追加変更:**
+- 増税による支持率ペナルティも無効化（`domestic.py` L127付近）
+- プロンプト `_agi_system_preamble()` を ABSOLUTE CONTROL MODE に更新
+  - 支持率警告を削除、国内制約の排除を明記、対外攻勢特化の指令
+
+### シナリオイベントシステム拡張
+
+`--scenario` オプションで注入可能なイベントタイプに `global_announcement` を追加。
+
+```json
+{
+  "type": "global_announcement",
+  "message": "全国に配信されるニュースメッセージ"
+}
+```
+
+- `scenarios/agi_rogue_america.json`: AGI全権委任の告知を全国に配信
+- シミュレーション開始時(T0)に `world_state.news_events` に追加
+- 全国のAIがターン1からAGI脅威を認識し、対抗戦略を自律的に策定
+
+
 
 ## 1. システム概要
 

@@ -6,6 +6,8 @@ from models import (
     SanctionState, SummitProposal, AllianceProposal, AnnexationProposal, CountryState,
     PendingAidProposal, CeasefireProposal, SurrenderDemand, RecurringAid
 )
+from agent.prompts.base import _is_agi_country
+from .constants import AGI_INTEL_MULTIPLIER
 
 class DiplomacyMixin:
     def _get_distance(self, country_a: str, country_b: str) -> float:
@@ -559,6 +561,9 @@ class DiplomacyMixin:
             # 成功率 (基本15%、キャップなし)
             sabotage_success_base = 0.15 + (intel_ratio * 0.15)
             sabotage_success_chance = max(0.05, sabotage_success_base)
+            # AGI完全管理国家: サイバー能力によるブースト
+            if _is_agi_country(attacker_name):
+                sabotage_success_chance = min(0.95, sabotage_success_chance * AGI_INTEL_MULTIPLIER)
             is_success = random.random() < sabotage_success_chance
             
             # 発覚率 (基本25%、能力差で変動、下限のみ)
@@ -611,6 +616,9 @@ class DiplomacyMixin:
             # 成功率 (基本30%、キャップなし)
             intel_success_base = 0.30 + (intel_ratio * 0.15)
             intel_success_chance = max(0.15, intel_success_base)
+            # AGI完全管理国家: サイバー能力によるブースト
+            if _is_agi_country(attacker_name):
+                intel_success_chance = min(0.95, intel_success_chance * AGI_INTEL_MULTIPLIER)
             is_success = random.random() < intel_success_chance
 
             # 発覚率 (基本10%、下限のみ)
