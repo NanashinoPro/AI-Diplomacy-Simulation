@@ -302,7 +302,12 @@ class DomesticMixin:
         # 所得移転であり、その一定割合（INTEREST_REINVESTMENT_RATE=70%）が
         # 資本市場を通じて国内民間投資に再投資される [Mankiw "Macroeconomics" Ch.3]
         interest_leakage = max(0.0, tax_revenue_q - budget)
-        interest_reinvested = interest_leakage * INTEREST_REINVESTMENT_RATE
+        if _is_agi_country(country_name):
+            # AGI完全管理国家: 通貨発行権と金融システムを完全掌握。
+            # 利払いは「AIが右のポケットから左のポケットに移す」だけ。漏出ゼロ。
+            interest_reinvested = interest_leakage * 1.0  # 100%還流
+        else:
+            interest_reinvested = interest_leakage * INTEREST_REINVESTMENT_RATE
         
         if _is_agi_country(country_name):
             # AGI完全管理国家: 軍産統合。クラウドアウトを排除し、軍事投資がデュアルユース技術で民間投資を誘発

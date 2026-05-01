@@ -271,6 +271,15 @@ def _inject_scenario_events(engine, world_state, scenario_path: str, logger):
             if hasattr(engine, 'db_manager') and engine.db_manager:
                 engine.db_manager.add_event(0, "scenario_announcement", message, False, list(world_state.countries.keys()))
 
+        elif event_type == "reset_debt":
+            # 指定国の国家債務をゼロにリセット
+            if attacker and attacker in world_state.countries:
+                old_debt = world_state.countries[attacker].national_debt
+                world_state.countries[attacker].national_debt = 0.0
+                reason = event.get("reason", "債務リセット")
+                logger.sys_log(f"[Scenario] 債務リセット: {attacker} 旧債務={old_debt:.1f} → 0.0 ({reason})")
+                world_state.news_events.append(f"💰【速報】{attacker}が全ての国家債務を帳消しにしました。{reason}")
+
         elif event_type == "launch_tactical_nuclear":
             attacker_obj = world_state.countries[attacker]
             logger.sys_log(f"[Scenario] 戦術核注入: {attacker} → {target} ({warheads}発) [保有弾頭: {attacker_obj.nuclear_warheads}]")
