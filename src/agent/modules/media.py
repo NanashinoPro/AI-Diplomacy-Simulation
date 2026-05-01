@@ -7,16 +7,16 @@ from models import WorldState, CountryState, AgentAction, GovernmentType
 from logger import SimulationLogger
 
 class GeminiSentimentAnalyzer:
-    """Gemini API (gemini-2.5-flash-lite) を用いた感情分析器"""
+    """Sentiment analyzer using Gemini API (gemini-2.5-flash-lite)"""
     SENTIMENT_MODEL = "gemini-2.5-flash-lite"
     
     def __init__(self, client, client_sub=None, token_usage: dict = None):
         self.client = client
         self.client_sub = client_sub
-        self.token_usage = token_usage  # AgentSystem.token_usage への参照（コスト追跡用）
+        self.token_usage = token_usage  # Reference to AgentSystem.token_usage (for cost tracking)
     
     def _track_usage(self, response):
-        """usage_metadataをtoken_usageに記録する"""
+        """Record usage_metadata to token_usage"""
         if self.token_usage is not None and hasattr(response, 'usage_metadata') and response.usage_metadata:
             meta = response.usage_metadata
             category = "sentiment_analysis"
@@ -27,7 +27,7 @@ class GeminiSentimentAnalyzer:
             self.token_usage[category]["thoughts_token_count"] += getattr(meta, 'thoughts_token_count', 0) or 0
     
     def _call_api(self, client, prompt: str) -> list:
-        """指定されたクライアントで感情分析APIを呼び出す"""
+        """Call sentiment analysis API with specified client"""
         response = client.models.generate_content(
             model=self.SENTIMENT_MODEL,
             contents=prompt
@@ -48,11 +48,11 @@ class GeminiSentimentAnalyzer:
         if not isinstance(text, str):
             text = str(text) if text is not None else ""
         prompt = (
-            "以下のテキストの感情をスコアで評価してください。\n"
-            "スコアは -1.0（非常にネガティブ）から +1.0（非常にポジティブ）の範囲で、"
-            "小数点1桁の数値のみを返してください。複数文がある場合はカンマ区切りで返してください。\n"
-            "例: 0.3 や -0.5,0.2 のように数値のみ返してください。説明は不要です。\n\n"
-            f"テキスト: {text[:300]}"
+            "Evaluate the sentiment of the following text with a score.\n"
+            "Score ranges from -1.0 (very negative) to +1.0 (very positive). "
+            "Return only decimal numbers to 1 digit. For multiple sentences, return comma-separated.\n"
+            "Example: 0.3 or -0.5,0.2 — return numbers only, no explanation needed.\n\n"
+            f"Text: {text[:300]}"
         )
         try:
             return self._call_api(self.client, prompt)
@@ -72,12 +72,12 @@ def generate_citizen_sns_posts(
     world_state: WorldState, 
     count: int
 ) -> List[str]:
-    """国民エージェントによるSNS投稿生成"""
+    """Citizen agent SNS post generation"""
     if count <= 0:
         return []
         
-    recent_news = "\n".join([f"- {news}" for news in world_state.news_events[-3:]]) if world_state.news_events else "特になし"
-    # 市民が認識できる支持率は「政府の公表値（reported）」のみ。真値には触れられない。
+    recent_news = "\n".join([f"- {news}" for news in world_state.news_events[-3:]]) if world_state.news_events else "Nothing notable"
+    # Citizens can only see "government-reported" approval (reported value). True value is hidden.
     citizen_approval = (
         country_state.reported_approval_rating
         if country_state.reported_approval_rating is not None
@@ -85,27 +85,27 @@ def generate_citizen_sns_posts(
     )
     history_str = ""
     if country_state.stat_history:
-        history_str = "- 過去のパラメーター推移:\n" + "\n".join([f"  T{s['turn']}: 経済力 {s['economy']}, 支持率 {s['approval_rating']}%" for s in country_state.stat_history]) + "\n"
+        history_str = "- Historical trends:\n" + "\n".join([f"  T{s['turn']}: Economy {s['economy']}, Approval {s['approval_rating']}%" for s in country_state.stat_history]) + "\n"
     
-    prompt = f"""あなたは{country_name}に住む一般の国民です。
-現在の自国の状況は以下の通りです：
-- 政治体制: {country_state.government_type.value}
-- 経済状況: {country_state.economy:.1f}
-- 政府支持率（政府公式発表）: {citizen_approval:.1f}%
-{history_str}- 最近の世界的ニュース:
+    prompt = f"""You are an ordinary citizen living in {country_name}.
+Your country's current situation:
+- Political system: {country_state.government_type.value}
+- Economic situation: {country_state.economy:.1f}
+- Government approval (official): {citizen_approval:.1f}%
+{history_str}- Recent world news:
 {recent_news}
 
-**指示**:
-現在の政府への支持率や経済状況、ニュースを踏まえ、あなたがSNSに投稿するであろう内容を{count}件作成してください。
-支持率が低ければ不満や批判を、高ければ称賛や日常の平和を反映させてください。
-1件あたり最大100文字以内で、リアルな国民の声を日本語で表現してください。
-出力は以下のJSONリストフォーマットで厳密に返してください。
+**Instructions**:
+Based on the current approval rating, economic situation, and news, create {count} SNS posts that you would likely write.
+If approval is low, reflect dissatisfaction and criticism. If high, reflect praise or everyday peace.
+Each post max 100 characters, expressing realistic citizen voices. You MUST write in Japanese.
+Output strictly in the following JSON list format.
 
 ```json
 {{
   "posts": [
-    "投稿テキスト1",
-    "投稿テキスト2"
+    "post text 1",
+    "post text 2"
   ]
 }}
 ```
@@ -130,8 +130,8 @@ def generate_citizen_sns_posts(
             return [str(p) for p in posts][:count]
         return []
     except Exception as e:
-        logger.sys_log(f"[Citizen: {country_name}] SNS生成エラー: {e}", "ERROR")
-        return [f"国民の声を取得できませんでした"] * count
+        logger.sys_log(f"[Citizen: {country_name}] SNS generation error: {e}", "ERROR")
+        return [f"Could not retrieve citizen voices"] * count
 
 def generate_breakthrough_name(
     generate_func,
@@ -140,21 +140,21 @@ def generate_breakthrough_name(
     active_breakthroughs: List[Any], 
     current_year: int
 ) -> str:
-    """技術革新名称生成"""
-    history_context = "過去のブレイクスルー履歴:\nなし"
+    """Technology breakthrough name generation"""
+    history_context = "Past breakthrough history:\nNone"
     if active_breakthroughs:
-        history_context = "過去に発生した・または定着しているブレイクスルー履歴:\n" + "\n".join(
-            [f"- {bt.name} (発祥: {bt.origin_country})" for bt in active_breakthroughs if bt.name and not bt.name.startswith("（AI生成待ち")]
+        history_context = "Past/established breakthrough history:\n" + "\n".join(
+            [f"- {bt.name} (Origin: {bt.origin_country})" for bt in active_breakthroughs if bt.name and not bt.name.startswith("（AI生成待ち")]
         )
         
-    prompt = f"""現在は {current_year}年 です。{country_name}において、革命的な「技術革新（GPTs: General Purpose Technologies）」が発生しました。
+    prompt = f"""The current year is {current_year}. A revolutionary "General Purpose Technology (GPT)" breakthrough has occurred in {country_name}.
     
 {history_context}
 
-指示:
-上記のような過去の歴史や既存の技術水準を踏まえ、それらを凌駕するような全く新しい次世代のブレイクスルー技術を創作してください。
-生成AIの普及や核融合、常温超伝導など、産業革命級のインパクトを持つ大胆な技術を考えてください。
-出力結果は技術の名称とその簡潔な説明（合計50文字程度）のみとしてください。改行やマークダウンは不要です。必ず日本語で出力してください。
+Instructions:
+Considering the above history and existing technology levels, create an entirely new next-generation breakthrough technology that surpasses them all.
+Think of bold technologies with industrial-revolution-level impact like generative AI proliferation, nuclear fusion, room-temperature superconductors, etc.
+Output only the technology name and brief description (approximately 50 characters total). No line breaks or markdown needed. You MUST output in Japanese.
 """
     try:
         response_obj = generate_func(
@@ -163,10 +163,10 @@ def generate_breakthrough_name(
             category="breakthrough"
         )
         response = response_obj.text.strip()
-        logger.sys_log(f"[Breakthrough] {country_name}で新技術誕生: {response}")
+        logger.sys_log(f"[Breakthrough] New technology born in {country_name}: {response}")
         return response
     except Exception as e:
-        logger.sys_log(f"[Breakthrough: {country_name}] 生成エラー: {e}", "ERROR")
+        logger.sys_log(f"[Breakthrough: {country_name}] Generation error: {e}", "ERROR")
         return "次世代汎用人工知能 (AGI) の実用化"
 
 def generate_ideology_democracy(
@@ -177,30 +177,30 @@ def generate_ideology_democracy(
     world_state: WorldState, 
     citizen_sns: List[str]
 ) -> str:
-    sns_context = "なし"
+    sns_context = "None"
     if citizen_sns:
         sns_context = "\n".join([f"- {post}" for post in citizen_sns])
         
-    news_context = "直近のニュース:\nなし"
+    news_context = "Recent news:\nNone"
     if world_state.news_events:
-        news_context = "直近のニュース:\n" + "\n".join([f"- {news}" for news in world_state.news_events[-5:]])
+        news_context = "Recent news:\n" + "\n".join([f"- {news}" for news in world_state.news_events[-5:]])
         
     history_text = ""
     if target_country_state.stat_history:
-         history_text = "\n【過去のステータス推移】\n" + "\n".join([f" T{s['turn']}: 経済力 {s['economy']}, 軍事力 {s['military']}, 支持率 {s['approval_rating']}%" for s in target_country_state.stat_history]) + "\n"
+         history_text = "\n【Historical Status Trends】\n" + "\n".join([f" T{s['turn']}: Economy {s['economy']}, Military {s['military']}, Approval {s['approval_rating']}%" for s in target_country_state.stat_history]) + "\n"
          
-    prompt = f"""あなたは{country_name}の新しい民主主義政権です。直前の選挙または政変により、前政権が倒れてあなたが選ばれました。
+    prompt = f"""You are the new democratic government of {country_name}. Through a recent election or political upheaval, the previous regime has fallen and you have been chosen.
 
-現在の経済: {target_country_state.economy:.1f}, 軍事力: {target_country_state.military:.1f}
-前政権のイデオロギー: {target_country_state.ideology}
+Current Economy: {target_country_state.economy:.1f}, Military: {target_country_state.military:.1f}
+Previous regime's ideology: {target_country_state.ideology}
 {history_text}
-【新政権誕生直前の国民の生の声（SNS上の不満・要望）】
+【Citizens' Raw Voices Right Before the New Government (SNS dissatisfaction/demands)】
 {sns_context}
 
 {news_context}
 
-指示:
-これらの国民の生の声（不満・要望）を鋭く汲み取った上で、新政権が目指す「新たな国家目標・イデオロギー」を50文字程度で簡潔に宣言してください。前政権との違いがわかるようにしてください。必ず日本語で出力してください。挨拶や雑談はせずにイデオロギーのみを出力してください。例外はありません。"""
+Instructions:
+After keenly absorbing these citizens' raw voices (dissatisfaction and demands), concisely declare the new government's "new national goal/ideology" in approximately 50 characters. Make the difference from the previous regime clear. You MUST output in Japanese. Output only the ideology without greetings or small talk. No exceptions."""
     
     try:
         response_obj = generate_func(
@@ -212,7 +212,7 @@ def generate_ideology_democracy(
         logger.sys_log(f"[Ideology Change] {country_name}(Democracy): {response}")
         return response
     except Exception as e:
-        logger.sys_log(f"[Ideology Change: {country_name}] 生成エラー: {e}", "ERROR")
+        logger.sys_log(f"[Ideology Change: {country_name}] Generation error: {e}", "ERROR")
         return "前政権の腐敗を払拭し、国民の声に耳を傾ける透明な経済再建を目指す"
 
 def generate_ideology_authoritarian(
@@ -222,23 +222,23 @@ def generate_ideology_authoritarian(
     target_country_state: CountryState, 
     world_state: WorldState
 ) -> str:
-    news_context = "直近のニュース:\nなし"
+    news_context = "Recent news:\nNone"
     if world_state.news_events:
-        news_context = "直近のニュース:\n" + "\n".join([f"- {news}" for news in world_state.news_events[-5:]])
+        news_context = "Recent news:\n" + "\n".join([f"- {news}" for news in world_state.news_events[-5:]])
         
     history_text = ""
     if target_country_state.stat_history:
-         history_text = "\n【過去のステータス推移】\n" + "\n".join([f" T{s['turn']}: 経済力 {s['economy']}, 軍事力 {s['military']}, 支持率 {s['approval_rating']}%" for s in target_country_state.stat_history]) + "\n"
+         history_text = "\n【Historical Status Trends】\n" + "\n".join([f" T{s['turn']}: Economy {s['economy']}, Military {s['military']}, Approval {s['approval_rating']}%" for s in target_country_state.stat_history]) + "\n"
          
-    prompt = f"""あなたは{country_name}の専制主義国家・独裁政権です。クーデターによる新政権樹立、または国家の次期5カ年計画の策定タイミングを迎えました。国民の世論に阿る必要はありません。
+    prompt = f"""You are {country_name}'s authoritarian/dictatorial regime. Either a coup has established a new government, or the next five-year plan is being formulated. There is no need to cater to public opinion.
 
-現在の経済: {target_country_state.economy:.1f}, 軍事力: {target_country_state.military:.1f}
-これまでのイデオロギー: {target_country_state.ideology}
+Current Economy: {target_country_state.economy:.1f}, Military: {target_country_state.military:.1f}
+Previous ideology: {target_country_state.ideology}
 {history_text}
 {news_context}
 
-指示:
-上記の現在の政治・経済・国際状況のみを踏まえ、力強く冷徹な「新たな国家目標・イデオロギー」を50文字程度で簡潔に宣言してください。他国への牽制や軍事的・経済的覇権の意志を織り込んでも構いません。必ず日本語で出力してください。"""
+Instructions:
+Based solely on the current political, economic, and international situation above, boldly and coldly declare a powerful "new national goal/ideology" in approximately 50 characters. You may incorporate deterrence against other nations and military/economic hegemonic ambitions. You MUST output in Japanese."""
     
     try:
         response_obj = generate_func(
@@ -250,7 +250,7 @@ def generate_ideology_authoritarian(
         logger.sys_log(f"[Ideology Change] {country_name}(Authoritarian): {response}")
         return response
     except Exception as e:
-        logger.sys_log(f"[Ideology Change: {country_name}] 生成エラー: {e}", "ERROR")
+        logger.sys_log(f"[Ideology Change: {country_name}] Generation error: {e}", "ERROR")
         return "強権的な指導力により国家を再建し、敵対勢力を排除して永遠の繁栄を確立する"
 
 def generate_fragmentation_profile(
@@ -260,23 +260,23 @@ def generate_fragmentation_profile(
     sns_logs: List[Dict]
 ) -> Tuple[str, str]:
     citizen_posts = [p['text'] for p in sns_logs if p['author'] == 'Citizen']
-    recent_complaints = "\n".join(f"- {post}" for post in citizen_posts[-10:]) if citizen_posts else "政府に対する強い不満と独立への希求"
+    recent_complaints = "\n".join(f"- {post}" for post in citizen_posts[-10:]) if citizen_posts else "Strong discontent with the government and desire for independence"
     
-    prompt = f"""あなたは歴史シミュレーションのシナリオライターです。
-現在、「{target_country_name}」という国家において、長年の圧政や不満の爆発によりクーデターが発生し、
-独自の国名とイデオロギーを掲げる新しい独立国家（または新政府）が樹立されました。
+    prompt = f"""You are a scenario writer for a historical simulation.
+Currently, in the country called '{target_country_name}', a coup has occurred due to years of oppression and explosive discontent,
+and a new independent nation (or new government) has been established with its own name and ideology.
 
-【建国前の国民の悲痛な叫び（SNSの声）】
+【Citizens' Anguished Cries Before Independence (SNS voices)】
 {recent_complaints}
 
-指示:
-上記の国民の声（不満の文脈や、どんな地域性・思想が隠れているか）を読み取り、
-旧体制の「{target_country_name}」に反発する形で誕生した、新しい国家の「国名」と「新しいイデオロギー（国家目標）」を創造してください。
-以下の堅格なJSONフォーマット（プレーンテキスト、マークダウンのコードブロックなし）で回答してください。
+Instructions:
+Read the citizens' voices above (context of dissatisfaction, what regional/ideological undercurrents exist),
+and create a new country's "name" and "new ideology (national goal)" that emerged in opposition to the old regime of '{target_country_name}'.
+Respond in the following strict JSON format (plain text, no markdown code blocks). You MUST output in Japanese.
 
 {{
-  "new_country_name": "（例：新カリフォルニア共和国、華南自由連邦、ネオ・アメリカ、シベリア大公国 など、文脈に合った名前）",
-  "new_ideology": "（50文字程度。例：旧体制の腐敗を打破し、地域に根ざした自由と真の民主主義、そして経済的自立を勝ち取る）"
+  "new_country_name": "(Example: New California Republic, South China Free Federation, Neo-America, Siberian Grand Duchy, etc. — name fitting the context)",
+  "new_ideology": "(~50 chars. Example: Overthrowing the old regime's corruption to win regional freedom, true democracy, and economic self-reliance)"
 }}"""
 
     try:
@@ -298,12 +298,12 @@ def generate_fragmentation_profile(
         new_ideology = data.get("new_ideology", "旧体制を打破し、新たな理想国家を建設する")
         
         if logger:
-            logger.sys_log(f"[Fragmentation] {target_country_name}から '{new_name}' が誕生。イデオロギー: {new_ideology}")
+            logger.sys_log(f"[Fragmentation] '{new_name}' born from {target_country_name}. Ideology: {new_ideology}")
         return new_name, new_ideology
         
     except Exception as e:
         if logger:
-            logger.sys_log(f"[Fragmentation: {target_country_name}] 新国家プロフィール生成エラー: {e}", "ERROR")
+            logger.sys_log(f"[Fragmentation: {target_country_name}] New country profile generation error: {e}", "ERROR")
         return f"{target_country_name}自由国", "圧制を逃れ、自由と真の独立を確立する"
 
 def generate_media_reports(
@@ -314,14 +314,14 @@ def generate_media_reports(
     previous_actions: Dict[str, AgentAction], 
     recent_summit_logs: List[str] = None
 ) -> Tuple[List[str], Dict[str, float]]:
-    """各国のメディアエージェントによるニュース記事生成と支持率への影響"""        
+    """Media agent news article generation and approval impact per country"""        
     if recent_summit_logs is None:
         recent_summit_logs = []
         
     reports = []
     media_modifiers = {}
     for country_name, country_state in world_state.countries.items():
-        logger.sys_log(f"[Media: {country_name}] 記事生成中...")
+        logger.sys_log(f"[Media: {country_name}] Generating article...")
         try:
             whistleblowing_scandal = ""
             
@@ -336,18 +336,17 @@ def generate_media_reports(
             
             if random.randint(1, 100) <= final_prob and country_state.hidden_plans:
                 whistleblowing_scandal = (
-                    f"【大スクープ（内部告発）発生】政権内部からのリークにより、これまで非公開だった以下の秘密計画に関連した一大スキャンダルが提供されました。\n"
-                    f"ターゲット秘密情報: {country_state.hidden_plans}\n"
-                    f"指示: この情報を基に、政権の腐敗（買収、隠蔽、汚職、非道徳的な工作など）といった具体的なスキャンダル要素をあなた自身で創作・追加して、政府を激しく追及・批判する特大スクープ記事を生成してください。（※支持率が大きくマイナスになるように）\n\n"
+                    f"【BREAKING SCOOP (Whistleblower)】An insider leak has exposed previously classified secret plans.\n"
+                    f"Target classified info: {country_state.hidden_plans}\n"
+                    f"Instructions: Based on this information, create and add specific scandal elements such as government corruption (bribery, cover-ups, embezzlement, immoral operations), then generate a massive exposé article fiercely criticizing the government. (※ Should significantly decrease approval)\n\n"
                 )
 
             if country_state.government_type == GovernmentType.DEMOCRACY:
-                role_desc = "あなたは自由民主主義国家の独立した報道機関（メディア）です。「第四の権力」として政府を監視しますが、極秘の諜報活動（成功したスパイ活動や工作プロセス等）を知ることはできず、国内外で公開された政策決断、経済指標、他国で起きたニュースのみに基づいて報道・論評します。失敗や不都合な事実には厳しく批判（支持率マイナス）しますが、経済成長や外交的合意などの成果に対しては適切に称賛し、国民の支持を向上させます（支持率プラス +1.0 ~ +5.0）。単に批判や事実を並べるだけでなく、良い結果には必ずプラスの評価をしてください。"
+                role_desc = "You are an independent media outlet (press) in a liberal democratic state. As the 'Fourth Estate', you monitor the government, but you cannot know about classified intelligence operations (successful espionage or covert processes). You report and comment based only on publicly known policy decisions, economic indicators, and international news. Harshly criticize failures and unfavorable facts (negative approval impact), but appropriately praise achievements like economic growth and diplomatic agreements to boost public support (positive approval +1.0 to +5.0). Don't just criticize or list facts — always give positive evaluation to good outcomes."
             else:
-                role_desc = "あなたは専制主義国家の国営メディアです。政府の統制下にあり、政府の政策を過剰に称賛し、経済や軍事の成果を誇張して報道します。同時に、敵対国を不当に非難し、国民の愛国心を煽るプロパガンダ記事を作成します。"
+                role_desc = "You are a state-controlled media outlet in an authoritarian state. Under government control, you excessively praise government policies, exaggerate economic and military achievements. Simultaneously, you unfairly vilify hostile nations and create propaganda articles to stoke patriotism."
 
-            # ---- 他国スキャンダル暴露（自国の報道の自由度 × 15% の確率）----
-            # 対象: 全国（偽装あり→統計捏造疑惑、偽装なし→従来型スキャンダル）
+            # ---- Other country scandal exposure (own press freedom × 15% probability) ----
             other_scandal_text = ""
             other_scandal_chance = country_state.press_freedom * 0.15
             for target_cname, target_cstate in world_state.countries.items():
@@ -365,32 +364,32 @@ def generate_media_reports(
                 if has_deception:
                     deception_lines = []
                     if target_cstate.reported_economy is not None:
-                        deception_lines.append(f"経済力公式発表={target_cstate.reported_economy:.1f}（実態との乖離疑惑）")
+                        deception_lines.append(f"Official Economy={target_cstate.reported_economy:.1f} (suspected deviation from reality)")
                     if target_cstate.reported_military is not None:
-                        deception_lines.append(f"軍事力公式発表={target_cstate.reported_military:.1f}（実態との乖離疑惑）")
+                        deception_lines.append(f"Official Military={target_cstate.reported_military:.1f} (suspected deviation)")
                     if target_cstate.reported_approval_rating is not None:
-                        deception_lines.append(f"支持率公式発表={target_cstate.reported_approval_rating:.1f}%（実態との乖離疑惑）")
+                        deception_lines.append(f"Official Approval={target_cstate.reported_approval_rating:.1f}% (suspected deviation)")
                     if target_cstate.reported_intelligence_level is not None:
-                        deception_lines.append(f"諜報力公式発表={target_cstate.reported_intelligence_level:.1f}（過大/過小申告の疑惑）")
+                        deception_lines.append(f"Official Intel={target_cstate.reported_intelligence_level:.1f} (over/under-reporting suspected)")
                     if target_cstate.reported_gdp_per_capita is not None:
-                        deception_lines.append(f"1人当たりGDP公式発表={target_cstate.reported_gdp_per_capita:.1f}（実態との乖離疑惑）")
+                        deception_lines.append(f"Official GDP per Capita={target_cstate.reported_gdp_per_capita:.1f} (suspected deviation)")
                     other_scandal_text += (
-                        f"【他国スキャンダル】{target_cname}の公式統計に重大な捏造疑惑が浮上しました。\n"
-                        f"疑惑の焦点: {', '.join(deception_lines)}\n"
-                        f"指示: {target_cname}の統計捏造・情報操作の疑いをスクープしてください。\n\n"
+                        f"【FOREIGN SCANDAL】Major statistical fraud allegations surface regarding {target_cname}.\n"
+                        f"Focus of allegations: {', '.join(deception_lines)}\n"
+                        f"Instructions: Break the news about {target_cname}'s statistical fraud and information manipulation.\n\n"
                     )
-                    logger.sys_log(f"[Media: {country_name}→{target_cname}] 他国統計偽装暴露スキャンダル発動")
+                    logger.sys_log(f"[Media: {country_name}→{target_cname}] Foreign statistics deception scandal triggered")
                 else:
-                    scandal_material = target_cstate.hidden_plans if target_cstate.hidden_plans else f"{target_cname}の外交政策や内政の動向"
+                    scandal_material = target_cstate.hidden_plans if target_cstate.hidden_plans else f"{target_cname}'s diplomatic and domestic developments"
                     other_scandal_text += (
-                        f"【他国スキャンダル報道】{target_cname}に関する重大な疑惑が浮上しています。\n"
-                        f"情報の断片: {scandal_material[:200]}\n"
-                        f"指示: 上記の情報を手がかりに、{target_cname}の政治腐敗・外交的欺瞞などのスキャンダルを創作・報道してください。\n\n"
+                        f"【FOREIGN SCANDAL REPORT】Major allegations surface regarding {target_cname}.\n"
+                        f"Information fragments: {scandal_material[:200]}\n"
+                        f"Instructions: Using the above as clues, create and report on {target_cname}'s political corruption, diplomatic deception, etc.\n\n"
                     )
-                    logger.sys_log(f"[Media: {country_name}→{target_cname}] 他国一般スキャンダル発動")
+                    logger.sys_log(f"[Media: {country_name}→{target_cname}] Foreign general scandal triggered")
 
             recent_action = previous_actions.get(country_name)
-            action_text = "特になし"
+            action_text = "Nothing notable"
             if recent_action:
                 action_dict = recent_action.model_dump()
                 safe_action = {"domestic_policy": action_dict.get("domestic_policy")}
@@ -403,24 +402,24 @@ def generate_media_reports(
             
             summit_text = ""
             if recent_summit_logs:
-                summit_text = "今ターンの首脳会談議事録全文等:\n" + "\n===\n".join(recent_summit_logs) + "\n"
+                summit_text = "This turn's summit transcripts:\n" + "\n===\n".join(recent_summit_logs) + "\n"
             
             history_text = ""
             if country_state.stat_history:
-                history_text = "自国のパラメーター推移:\n" + "\n".join([f" T{s['turn']}: 経済力 {s['economy']}, 軍事力 {s['military']}, 支持率 {s['approval_rating']}%" for s in country_state.stat_history]) + "\n"
+                history_text = "Country parameter trends:\n" + "\n".join([f" T{s['turn']}: Economy {s['economy']}, Military {s['military']}, Approval {s['approval_rating']}%" for s in country_state.stat_history]) + "\n"
             
             prompt = (
                 f"{role_desc}\n\n"
-                f"自国の現状: 経済力={country_state.economy:.1f}, 軍事力={country_state.military:.1f}, 支持率={country_state.approval_rating:.1f}%\n"
+                f"Country status: Economy={country_state.economy:.1f}, Military={country_state.military:.1f}, Approval={country_state.approval_rating:.1f}%\n"
                 f"{history_text}"
-                f"直近の政府の公開行動: {action_text}\n"
-                f"世界の最新ニュース（他国の動向）: {world_state.news_events}\n\n"
+                f"Recent government public actions: {action_text}\n"
+                f"World latest news (other countries): {world_state.news_events}\n\n"
                 f"{summit_text}\n\n"
                 f"{whistleblowing_scandal}"
                 f"{other_scandal_text}"
-                f"今回の状況を総括する、自国民に向けた象徴的なニュース記事を1つ作成してください。"
-                f"見出しと本文を合わせて100文字程度で、必ず日本語で書いてください。"
-                f"記事の本文のみを出力し、JSON・マークダウン・コードブロック等のフォーマットは一切使わないでください。"
+                f"Create one symbolic news article for domestic citizens summarizing the current situation. "
+                f"Headline and body combined approximately 100 characters. You MUST write in Japanese. "
+                f"Output article text only — do NOT use JSON, markdown, code blocks, or any formatting."
             )
 
             
@@ -432,19 +431,19 @@ def generate_media_reports(
             article = response_obj.text.strip() if response_obj else ""
             
             if not article:
-                logger.sys_log(f"[Media: {country_name}] 空のレスポンス。デフォルト記事を使用します。", "WARNING")
+                logger.sys_log(f"[Media: {country_name}] Empty response. Using default article.", "WARNING")
                 article = f"{country_name}国内外で大きな動きはなく、現状維持が続いている。"
             
             scores = sentiment_analyzer.analyze(article)
             avg_score = sum(scores) / len(scores) if scores else 0.0
             modifier = max(-5.0, min(5.0, avg_score * 2.0))
             
-            reports.append(f"🗞️ [{country_name}メディア] {article} (支持率影響: {modifier:+.1f}%)")
+            reports.append(f"🗞️ [{country_name} Media] {article} (Approval Impact: {modifier:+.1f}%)")
             
             media_modifiers[country_name] = modifier
             logger.sys_log_detail(f"{country_name} Media JSON", {"article": article, "local_sentiment_score": avg_score, "approval_modifier": modifier})
             
         except Exception as e:
-            logger.sys_log(f"[Media: {country_name}] エラー: {e}", "ERROR")
+            logger.sys_log(f"[Media: {country_name}] Error: {e}", "ERROR")
             
     return reports, media_modifiers

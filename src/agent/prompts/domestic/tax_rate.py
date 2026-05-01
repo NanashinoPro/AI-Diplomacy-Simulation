@@ -3,23 +3,23 @@ from agent.prompts.base import build_common_context
 from agent.prompts.domestic import build_policy_section
 
 def build_tax_rate_prompt(country_name, country_state: CountryState, world_state: WorldState, policy: PresidentPolicy, past_news=None) -> str:
-    """I-01: 税率決定（flash-lite）"""
-    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="財政担当官（税率）")
+    """I-01: Tax Rate Decision (flash-lite)"""
+    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="Fiscal Officer (Tax Rate)")
     current = country_state.tax_rate
     min_rate = round(max(0.10, current - 0.10), 2)
     max_rate = round(min(0.70, current + 0.10), 2)
     return ctx + build_policy_section(policy) + f"""
-【現在の財政状況】
-- 現在の税率: {current:.1%}（変動可能範囲: {min_rate:.0%}〜{max_rate:.0%}）
-- 政府予算: {country_state.government_budget:.1f}
-- 国家債務(GDP比): {country_state.national_debt/max(1,country_state.economy):.1%}
-- 支持率: {country_state.approval_rating:.1f}%
+【Current Fiscal Situation】
+- Current Tax Rate: {current:.1%} (Adjustable range: {min_rate:.0%}-{max_rate:.0%})
+- Government Budget: {country_state.government_budget:.1f}
+- National Debt (Debt-to-GDP): {country_state.national_debt/max(1,country_state.economy):.1%}
+- Approval: {country_state.approval_rating:.1f}%
 
-【ルール】税率は0.10〜0.70。1ターンの変動上限±10%ポイント。増税で予算増・支持率低下のトレードオフあり。
+【Rules】Tax rate: 0.10-0.70. Max ±10% per turn. Higher tax = more budget but lower approval (tradeoff).
 
-施政方針の財政方針を踏まえ、{country_name}の現状に最適な税率を判断してください。
-JSONのみ出力（コードブロック不要、数値は自分で判断すること）:
-{{"tax_rate": ???, "reason": "理由（30文字以内）"}}
+Following the fiscal policy, determine the optimal tax rate for {country_name}. You MUST respond in Japanese.
+Output ONLY JSON (no code blocks, determine values yourself):
+{{"tax_rate": ???, "reason": "reason (max 30 chars)"}}
 """
 
 

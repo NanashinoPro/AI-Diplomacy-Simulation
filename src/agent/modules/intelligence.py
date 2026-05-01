@@ -12,17 +12,17 @@ def generate_espionage_report(
     target_hidden_plans: str, 
     strategy: str
 ) -> Tuple[str, Optional[str]]:
-    """諜報エージェントによる機密情報の解析とレポート・SNSポスト生成"""
-    logger.sys_log(f"[Intel: {attacker_name} -> {target_name}] 諜報レポート生成中...")
+    """Espionage agent: analyze classified information and generate report + SNS post"""
+    logger.sys_log(f"[Intel: {attacker_name} -> {target_name}] Generating espionage report...")
     prompt = (
-        f"あなたは優秀な諜報・工作機関です。\n"
-        f"ターゲット国「{target_name}」に対する工作（{strategy}）が成功しました。\n\n"
-        f"【入手したターゲット国の非公開計画（生データ）】\n{target_hidden_plans}\n\n"
-        f"以下のJSONフォーマットで2点を出力してください。\n"
-        f"1. report: 首脳が求めている情報に合致する部分を抽出し、推考を交えた50〜100文字程度の短い秘密報告書。\n"
-        f"2. sns_post: （破壊工作の一環として）ターゲット国のSNSに潜り込ませる、体制を批判したり偽情報を流布したりする140文字以内のSNS投稿。工作を行わない/投稿できない場合はnull。\n\n"
-        f"```json\n{{\n  \"report\": \"報告書テキスト\",\n  \"sns_post\": \"SNS投稿文またはnull\"\n}}\n```\n"
-        f"【重要ルール】ターゲット国の内部情報（主観的表現）を使わず客観的視点で記述すること。"
+        f"You are an elite intelligence/covert operations agency.\n"
+        f"Your operation ({strategy}) against target country '{target_name}' has succeeded.\n\n"
+        f"【Acquired Target Country's Classified Plans (Raw Data)】\n{target_hidden_plans}\n\n"
+        f"Output the following 2 items in JSON format.\n"
+        f"1. report: Extract information matching what the leader needs, and write a 50-100 character secret briefing with analytical commentary.\n"
+        f"2. sns_post: (As part of sabotage) An SNS post to infiltrate the target country's social media, criticizing the regime or spreading disinformation (max 140 chars). null if not applicable.\n\n"
+        f"```json\n{{\n  \"report\": \"briefing text\",\n  \"sns_post\": \"SNS post text or null\"\n}}\n```\n"
+        f"【IMPORTANT RULE】Write from an objective perspective without using the target country's internal information (subjective expressions). You MUST respond in Japanese."
     )
     try:
         response_obj = generate_func(
@@ -39,10 +39,10 @@ def generate_espionage_report(
             json_text = match.group(1)
         data = json.loads(json_text)
         
-        report = data.get("report", "解析に失敗しました。")
+        report = data.get("report", "Analysis failed.")
         sns_post = data.get("sns_post")
         logger.sys_log_detail(f"Intel Report ({attacker_name} -> {target_name})", report)
         return report, sns_post
     except Exception as e:
-        logger.sys_log(f"[Intel: {attacker_name}] レポート生成エラー: {e}", "ERROR")
-        return f"ターゲット国（{target_name}）の情報を入手しましたが解析に失敗しました。", None
+        logger.sys_log(f"[Intel: {attacker_name}] Report generation error: {e}", "ERROR")
+        return f"Intelligence on target country ({target_name}) was acquired but analysis failed.", None

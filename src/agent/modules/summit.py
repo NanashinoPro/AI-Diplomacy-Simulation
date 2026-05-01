@@ -10,13 +10,13 @@ SUMMIT_MODEL = "gemini-2.5-flash"
 
 def _generate_with_tool(generate_func, logger: SimulationLogger, model: str, prompt: str, category: str, 
                         search_tool=None, country_name: str = "Summit") -> str:
-    """DB検索ツール付きでLLMを呼び出し、ツール呼び出しがあればフォローアップする"""
+    """Call LLM with DB search tool, and follow up on tool calls if any"""
     tools = [search_tool] if search_tool else None
     config = genai_types.GenerateContentConfig(tools=tools, temperature=0.4) if tools else None
     
     response = generate_func(model=model, contents=prompt, config=config, category=category)
     
-    # ツール呼び出しの処理（core.py _execute_agent と同等）
+    # Tool call processing (equivalent to core.py _execute_agent)
     if search_tool and getattr(response, 'function_calls', None):
         for function_call in response.function_calls:
             if function_call.name == "search_historical_events":
@@ -24,7 +24,7 @@ def _generate_with_tool(generate_func, logger: SimulationLogger, model: str, pro
                 query = args.get("query", "")
                 tool_result = search_tool(query)
                 
-                follow_up_prompt = prompt + f"\n\nエージェントツールからの検索結果 '{query}':\n{tool_result}\n\nこれらを踏まえ、発言を行ってください。"
+                follow_up_prompt = prompt + f"\n\nSearch results from agent tool '{query}':\n{tool_result}\n\nBased on these, please make your statement."
                 response = generate_func(model=model, contents=follow_up_prompt, category=category)
                 break
     
@@ -42,11 +42,11 @@ def run_summit(
     search_tool_a: Callable = None,
     search_tool_b: Callable = None
 ) -> Tuple[str, str]:
-    """2国間での首脳会談（最大4ターンの対話）を実行し、(要約, 全文ログ)のタプルを返す"""
-    logger.sys_log(f"[{proposal.proposer} と {proposal.target}] の首脳会談を開始 (議題: {proposal.topic}, モデル: {SUMMIT_MODEL})")
+    """Execute bilateral summit (max 4 turns of dialogue) and return (summary, full_log) tuple"""
+    logger.sys_log(f"[{proposal.proposer} and {proposal.target}] Starting summit (Topic: {proposal.topic}, Model: {SUMMIT_MODEL})")
     
-    # 両国の関連する直近イベント（DB検索）
-    news_context = f"【両国間({proposal.proposer}と{proposal.target})に関連する直近1年(4四半期)の出来事】\n"
+    # Recent relevant events for both countries (DB search)
+    news_context = f"【Recent events (last 4 quarters/1 year) between {proposal.proposer} and {proposal.target}】\n"
     has_news = False
     
     if db_manager:
@@ -56,8 +56,8 @@ def run_summit(
             proposal.proposer, proposal.target, world_state.turn, limit_turns=limit_turns
         )
         
-        # システムログに検索プロセスを記録
-        log_header = f"[Summit DB Search] クエリ: '{proposal.proposer}' & '{proposal.target}' の関連イベント (Turns {min_turn}-{world_state.turn}) -> {len(recent_events)}件抽出"
+        # Log the search process
+        log_header = f"[Summit DB Search] Query: '{proposal.proposer}' & '{proposal.target}' related events (Turns {min_turn}-{world_state.turn}) -> {len(recent_events)} extracted"
         logger.sys_log(log_header)
         
         if recent_events:
@@ -68,31 +68,31 @@ def run_summit(
                 et = ev.get('event_type', '?')
                 log_detail += f"[Turn {t}] [{et}] {c}\n"
                 
-                # プロンプト用コンテキストへの追加
+                # Add to prompt context
                 y = 2025 + (t - 1) // 4 if isinstance(t, int) else "?"
                 q = ((t - 1) % 4) + 1 if isinstance(t, int) else "?"
-                news_context += f"〔{y}年 第{q}四半期 (Turn {t})〕\n- {c}\n"
+                news_context += f"〔{y} Q{q} (Turn {t})〕\n- {c}\n"
             
             logger.sys_log_detail("Summit DB Search Result Details", log_detail)
             news_context += "\n"
             has_news = True
             
-    # DBが利用できない、またはイベントが見つからない場合のフォールバック（旧実装）
+    # Fallback if DB unavailable or no events found (legacy implementation)
     if not has_news:
-        news_context = "【直近1年の世界のニュース】\n"
+        news_context = "【Recent world news (last 1 year)】\n"
         if past_news:
             for i, turn_news in enumerate(past_news):
                 t = world_state.turn - len(past_news) + i
                 if t > 0:
                     y = 2025 + (t - 1) // 4
                     q = ((t - 1) % 4) + 1
-                    news_context += f"〔{y}年 第{q}四半期〕\n"
+                    news_context += f"〔{y} Q{q}〕\n"
                 else:
-                    news_context += "〔過去のニュース〕\n"
+                    news_context += "〔Past news〕\n"
                 
                 if isinstance(turn_news, (list, tuple)):
                     if not turn_news:
-                        news_context += "特になし\n"
+                        news_context += "Nothing notable\n"
                     else:
                         news_context += "\n".join(f"- {n}" for n in turn_news) + "\n"
                     has_news = True
@@ -105,91 +105,91 @@ def run_summit(
             has_news = True
             
         if not has_news:
-            news_context = "【両国間に関する直近1年の重要な出来事】\n特になし\n"
+            news_context = "【Recent important events between both countries (last 1 year)】\nNothing notable\n"
         
-    status_a = f"経済力:{state_a.economy:.1f}, 軍事力:{state_a.military:.1f}, 支持率:{state_a.approval_rating:.1f}%"
-    status_b = f"経済力:{state_b.economy:.1f}, 軍事力:{state_b.military:.1f}, 支持率:{state_b.approval_rating:.1f}%"
+    status_a = f"Economy:{state_a.economy:.1f}, Military:{state_a.military:.1f}, Approval:{state_a.approval_rating:.1f}%"
+    status_b = f"Economy:{state_b.economy:.1f}, Military:{state_b.military:.1f}, Approval:{state_b.approval_rating:.1f}%"
     
-    chat_history = f"【首脳会談の記録】\n参加国: {proposal.proposer} ({status_a}), {proposal.target} ({status_b})\n議題: {proposal.topic}\n\n"
+    chat_history = f"【Summit Record】\nParticipants: {proposal.proposer} ({status_a}), {proposal.target} ({status_b})\nTopic: {proposal.topic}\n\n"
     
-    is_private_str = "【⚠️警告: この会談は極秘の非公開会談であり、協議内容は第三国には一切漏洩しません。率直な意見交換が可能です】\n\n" if getattr(proposal, 'is_private', False) else ""
+    is_private_str = "【⚠️ WARNING: This is a strictly confidential private summit. Contents will NOT be leaked to third parties. Frank exchange of views is possible.】\n\n" if getattr(proposal, 'is_private', False) else ""
     
-    tool_instruction = "\n【ツール】必要に応じて、search_historical_events ツールを使用して過去の外交・内政・諜報に関する記録を検索できます。\n" if (search_tool_a or search_tool_b) else ""
+    tool_instruction = "\n【Tool】If needed, use search_historical_events tool to search past diplomatic, domestic, and intelligence records.\n" if (search_tool_a or search_tool_b) else ""
     
     base_context_a = (
-        f"あなたは「{proposal.proposer}」を治める国家の首脳です。体制:{state_a.government_type.value}, 理念:{state_a.ideology}。\n"
-        f"（※実在の国名ですが、架空の代表者として振る舞い、実在の政治家個人名は一切使用しないでください）\n"
-        f"現在のあなたの国の国力: {status_a}\n"
-        f"相手国({proposal.target})の国力: {status_b}\n\n"
-        f"あなたの脳内（非公開の計画や諜報結果など）には次のような情報があります: '{state_a.hidden_plans}'\n\n"
+        f"You are the head of state governing '{proposal.proposer}'. Regime: {state_a.government_type.value}, Philosophy: {state_a.ideology}.\n"
+        f"(※ Real country name, but act as a fictional representative. Do NOT use real politicians' names.)\n"
+        f"Your country's power: {status_a}\n"
+        f"Counterpart ({proposal.target})'s power: {status_b}\n\n"
+        f"Your internal thoughts (private plans, intelligence results, etc.): '{state_a.hidden_plans}'\n\n"
         f"{is_private_str}"
         f"{news_context}\n"
         f"{tool_instruction}"
-        f"以上の世界情勢と自国の秘匿情報を踏まえた上で、相手と「{proposal.topic}」について会談します。\n"
-        f"自国の情報に関することであれば創作しても構いません。また、発言は必ず日本語で行ってください。\n"
+        f"With the above world situation and your confidential information in mind, discuss '{proposal.topic}' with the counterpart.\n"
+        f"You may fabricate details about your own country's information. You MUST speak in Japanese.\n"
     )
     base_context_b = (
-        f"あなたは「{proposal.target}」を治める国家の首脳です。体制:{state_b.government_type.value}, 理念:{state_b.ideology}。\n"
-        f"（※実在の国名ですが、架空の代表者として振る舞い、実在の政治家個人名は一切使用しないでください）\n"
-        f"現在のあなたの国の国力: {status_b}\n"
-        f"相手国({proposal.proposer})の国力: {status_a}\n\n"
-        f"あなたの脳内（非公開の計画や諜報結果など）には次のような情報があります: '{state_b.hidden_plans}'\n\n"
+        f"You are the head of state governing '{proposal.target}'. Regime: {state_b.government_type.value}, Philosophy: {state_b.ideology}.\n"
+        f"(※ Real country name, but act as a fictional representative. Do NOT use real politicians' names.)\n"
+        f"Your country's power: {status_b}\n"
+        f"Counterpart ({proposal.proposer})'s power: {status_a}\n\n"
+        f"Your internal thoughts (private plans, intelligence results, etc.): '{state_b.hidden_plans}'\n\n"
         f"{is_private_str}"
         f"{news_context}\n"
         f"{tool_instruction}"
-        f"以上の世界情勢と自国の秘匿情報を踏まえた上で、相手と「{proposal.topic}」について会談します。\n"
-        f"自国の情報に関することであれば創作しても構いません。また、発言は必ず日本語で行ってください。\n"
+        f"With the above world situation and your confidential information in mind, discuss '{proposal.topic}' with the counterpart.\n"
+        f"You may fabricate details about your own country's information. You MUST speak in Japanese.\n"
     )
     
     logger.sys_log_detail(
         f"Summit Prompt Context ({proposal.proposer} - {proposal.target})",
-        f"=== {proposal.proposer} への事前情報 ===\n{base_context_a}\n\n=== {proposal.target} への事前情報 ===\n{base_context_b}"
+        f"=== {proposal.proposer} Context ===\n{base_context_a}\n\n=== {proposal.target} Context ===\n{base_context_b}"
     )
     
     messages = []
     total_turns = 4
     for i in range(total_turns):
         current_turn = i + 1
-        turn_instruction = f"現在、全{total_turns}回の発言機会のうちの {current_turn} 回目です。\n【重要指示】毎回挨拶や締めの言葉を繰り返すのは不自然です。直前の相手の発言に直接返答し、連続した自然な議論や交渉を行ってください。\n【重要指示】新たな専門家会議やワーキンググループなどの会議体を設置する合意は行わず、議題に関する事項は全てこの首脳会談の中で決定してください。\n【文字数制限】各発言は必ず400文字以内で記述してください。"
+        turn_instruction = f"Currently turn {current_turn} of {total_turns} speaking opportunities.\n【IMPORTANT】Do NOT repeat greetings or closing remarks each time — it's unnatural. Directly respond to the previous statement and continue natural discussion/negotiation.\n【IMPORTANT】Do NOT agree to establish new expert committees or working groups. All matters on the agenda must be decided within this summit.\n【Character limit】Each statement must be within 400 characters."
         if current_turn == total_turns:
-             turn_instruction += "これがあなたの最後の発言です。会談の結論や最終提案を提示してください。"
+             turn_instruction += " This is your final statement. Present conclusions or final proposals."
              
-        # Aの発言 (最初はAから)
-        prompt_a = base_context_a + turn_instruction + "\nこれまでの会話:\n" + "\n".join(messages) + f"\n\n{proposal.proposer}としての次の発言を入力してください:"
+        # A's statement (A goes first)
+        prompt_a = base_context_a + turn_instruction + "\nConversation so far:\n" + "\n".join(messages) + f"\n\nPlease input your next statement as {proposal.proposer}:"
         try:
             resp_a = _generate_with_tool(generate_func, logger, SUMMIT_MODEL, prompt_a, "summit", search_tool_a, proposal.proposer)
         except Exception as e:
-            logger.sys_log(f"[{proposal.proposer}] APIエラー(Summit): {e}", "ERROR")
-            resp_a = "通信障害により発言できませんでした。"
-        messages.append(f"【{proposal.proposer}首脳】: {resp_a}")
+            logger.sys_log(f"[{proposal.proposer}] API Error (Summit): {e}", "ERROR")
+            resp_a = "Communication failure prevented statement."
+        messages.append(f"【{proposal.proposer} Leader】: {resp_a}")
         logger.sys_log(f"[Summit {current_turn}/{total_turns}] {proposal.proposer}: {resp_a}")
         
-        # Bの発言
-        prompt_b = base_context_b + turn_instruction + "\nこれまでの会話:\n" + "\n".join(messages) + f"\n\n{proposal.target}としての次の発言を入力してください:"
+        # B's statement
+        prompt_b = base_context_b + turn_instruction + "\nConversation so far:\n" + "\n".join(messages) + f"\n\nPlease input your next statement as {proposal.target}:"
         try:
             resp_b = _generate_with_tool(generate_func, logger, SUMMIT_MODEL, prompt_b, "summit", search_tool_b, proposal.target)
         except Exception as e:
-            logger.sys_log(f"[{proposal.target}] APIエラー(Summit): {e}", "ERROR")
-            resp_b = "通信障害により発言できませんでした。"
-        messages.append(f"【{proposal.target}首脳】: {resp_b}")
+            logger.sys_log(f"[{proposal.target}] API Error (Summit): {e}", "ERROR")
+            resp_b = "Communication failure prevented statement."
+        messages.append(f"【{proposal.target} Leader】: {resp_b}")
         logger.sys_log(f"[Summit {current_turn}/{total_turns}] {proposal.target}: {resp_b}")
         
-    # 合意の要約
-    summary_prompt = "以下の首脳会談の記録から、両国の最終的な「合意事項（または物別れに終わったという結果）」を100文字程度で簡潔に要約してください。\n\n" + "\n".join(messages)
+    # Agreement summary
+    summary_prompt = "From the following summit record, concisely summarize the final 'agreements reached (or failure to reach agreement)' in approximately 100 characters. You MUST respond in Japanese.\n\n" + "\n".join(messages)
     try:
         summary_obj = generate_func(model=SUMMIT_MODEL, contents=summary_prompt, category="summit_summary")
-        summary = summary_obj.text.strip() if summary_obj and hasattr(summary_obj, 'text') else "会談は終了しました"
+        summary = summary_obj.text.strip() if summary_obj and hasattr(summary_obj, 'text') else "Summit concluded"
     except Exception as e:
-        logger.sys_log(f"[Summit Summary] APIエラー: {e}", "ERROR")
-        summary = "APIエラーにより会談結果の要約に失敗しました。"
+        logger.sys_log(f"[Summit Summary] API Error: {e}", "ERROR")
+        summary = "API error — failed to summarize summit results."
     
-    full_log = chat_history + "\n".join(messages) + f"\n\n【最終結果】\n{summary}"
+    full_log = chat_history + "\n".join(messages) + f"\n\n【Final Result】\n{summary}"
     logger.sys_log_detail("Summit Log", full_log)
     
     if getattr(proposal, 'is_private', False):
         news_summary = None
     else:
-        news_summary = f"🤝 【首脳会談結果】{proposal.proposer}と{proposal.target}による会談が終了しました。結果: {summary}"
+        news_summary = f"🤝 【Summit Result】Summit between {proposal.proposer} and {proposal.target} concluded. Result: {summary}"
         
     return news_summary, full_log
 
@@ -204,35 +204,35 @@ def run_multilateral_summit(
     past_news: List[str] = None,
     search_tools: Dict[str, Callable] = None
 ) -> Tuple[str, str]:
-    """多国間首脳会談（ラウンドロビン方式）を実行し、(要約, 全文ログ)のタプルを返す"""
+    """Execute multilateral summit (round-robin) and return (summary, full_log) tuple"""
     participants = proposal.accepted_participants if proposal.accepted_participants else proposal.participants
     if proposal.proposer not in participants:
         participants = [proposal.proposer] + participants
     
-    # 存在しない国を除外
+    # Exclude non-existent countries
     participants = [p for p in participants if p in country_states]
     
     if len(participants) < 2:
-        logger.sys_log(f"[多国間会談] 参加国が2国未満のため中止 (参加国: {participants})", "WARNING")
+        logger.sys_log(f"[Multilateral Summit] Cancelled — fewer than 2 participants ({participants})", "WARNING")
         return None, ""
     
     participant_names = ", ".join(participants)
-    logger.sys_log(f"[多国間首脳会談] 開催: {participant_names} (議題: {proposal.topic}, モデル: {SUMMIT_MODEL})")
+    logger.sys_log(f"[Multilateral Summit] Convened: {participant_names} (Topic: {proposal.topic}, Model: {SUMMIT_MODEL})")
     
-    # 各国の状態情報を構築
+    # Build status info for each country
     status_map = {}
     for p in participants:
         cs = country_states[p]
-        status_map[p] = f"経済力:{cs.economy:.1f}, 軍事力:{cs.military:.1f}, 支持率:{cs.approval_rating:.1f}%"
+        status_map[p] = f"Economy:{cs.economy:.1f}, Military:{cs.military:.1f}, Approval:{cs.approval_rating:.1f}%"
     
-    # DB検索による関連イベントの収集（全参加国間）
-    news_context = f"【参加国間（{participant_names}）に関連する直近1年(4四半期)の出来事】\n"
+    # Collect related events via DB search (all participant pairs)
+    news_context = f"【Recent events (last 4 quarters/1 year) among participants ({participant_names})】\n"
     has_news = False
     
     if db_manager:
         limit_turns = 4
         all_events = []
-        # 全参加国ペアの組み合わせからイベントを収集
+        # Collect events from all participant pair combinations
         for i, p1 in enumerate(participants):
             for p2 in participants[i+1:]:
                 events = db_manager.get_recent_events_between_countries(
@@ -240,7 +240,7 @@ def run_multilateral_summit(
                 )
                 all_events.extend(events)
         
-        # 重複排除（content基準）
+        # Deduplicate (by content)
         seen_contents = set()
         unique_events = []
         for ev in all_events:
@@ -255,17 +255,17 @@ def run_multilateral_summit(
                 c = ev.get('content', '')
                 y = 2025 + (t - 1) // 4 if isinstance(t, int) else "?"
                 q = ((t - 1) % 4) + 1 if isinstance(t, int) else "?"
-                news_context += f"〔{y}年 第{q}四半期 (Turn {t})〕\n- {c}\n"
+                news_context += f"〔{y} Q{q} (Turn {t})〕\n- {c}\n"
             news_context += "\n"
             has_news = True
-            logger.sys_log(f"[Multilateral Summit DB Search] {len(unique_events)}件のイベントを抽出")
+            logger.sys_log(f"[Multilateral Summit DB Search] {len(unique_events)} events extracted")
     
     if not has_news:
-        news_context = "【参加国間に関する直近1年の重要な出来事】\n特になし\n"
+        news_context = "【Recent important events among participants (last 1 year)】\nNothing notable\n"
     
-    is_private_str = "【⚠️警告: この会談は極秘の非公開会談であり、協議内容は参加国以外には一切漏洩しません。率直な意見交換が可能です】\n\n" if getattr(proposal, 'is_private', False) else ""
+    is_private_str = "【⚠️ WARNING: This is a strictly confidential private summit. Contents will NOT be leaked to non-participants. Frank exchange of views is possible.】\n\n" if getattr(proposal, 'is_private', False) else ""
     
-    # 各参加国のベースコンテキストを構築
+    # Build base context for each participant
     base_contexts = {}
     for p in participants:
         cs = country_states[p]
@@ -273,23 +273,23 @@ def run_multilateral_summit(
         
         tool_instruction = ""
         if search_tools and search_tools.get(p):
-            tool_instruction = "\n【ツール】必要に応じて、search_historical_events ツールを使用して過去の外交・内政・諜報に関する記録を検索できます。\n"
+            tool_instruction = "\n【Tool】If needed, use search_historical_events tool to search past diplomatic, domestic, and intelligence records.\n"
         
         base_contexts[p] = (
-            f"あなたは「{p}」を治める国家の首脳です。体制:{cs.government_type.value}, 理念:{cs.ideology}。\n"
-            f"（※実在の国名ですが、架空の代表者として振る舞い、実在の政治家個人名は一切使用しないでください）\n"
-            f"現在のあなたの国の国力: {status_map[p]}\n"
-            f"他の参加国の国力:\n{others_status}\n\n"
-            f"あなたの脳内（非公開の計画や諜報結果など）には次のような情報があります: '{cs.hidden_plans}'\n\n"
+            f"You are the head of state governing '{p}'. Regime: {cs.government_type.value}, Philosophy: {cs.ideology}.\n"
+            f"(※ Real country name, but act as a fictional representative. Do NOT use real politicians' names.)\n"
+            f"Your country's power: {status_map[p]}\n"
+            f"Other participants' power:\n{others_status}\n\n"
+            f"Your internal thoughts (private plans, intelligence results, etc.): '{cs.hidden_plans}'\n\n"
             f"{is_private_str}"
             f"{news_context}\n"
             f"{tool_instruction}"
-            f"以上の世界情勢と自国の秘匿情報を踏まえた上で、参加国と「{proposal.topic}」について多国間会談を行います。\n"
-            f"自国の情報に関することであれば創作しても構いません。また、発言は必ず日本語で行ってください。\n"
+            f"With the above world situation and your confidential information in mind, engage in multilateral discussions on '{proposal.topic}' with participants.\n"
+            f"You may fabricate details about your own country's information. You MUST speak in Japanese.\n"
         )
     
-    # ラウンドロビン式で会談実行（4ラウンド × 全参加国）
-    chat_history = f"【多国間首脳会談の記録】\n参加国: {participant_names}\n議題: {proposal.topic}\n\n"
+    # Execute round-robin dialogue (4 rounds × all participants)
+    chat_history = f"【Multilateral Summit Record】\nParticipants: {participant_names}\nTopic: {proposal.topic}\n\n"
     messages = []
     total_rounds = 4
     
@@ -297,49 +297,49 @@ def run_multilateral_summit(
         current_round = round_num + 1
         for speaker in participants:
             turn_instruction = (
-                f"現在、全{total_rounds}ラウンドのうちの第{current_round}ラウンドです。参加国は{len(participants)}カ国です。\n"
-                f"【重要指示】毎回挨拶や締めの言葉を繰り返すのは不自然です。直前の発言に直接返答し、連続した自然な議論や交渉を行ってください。\n"
-                f"【重要指示】新たな専門家会議やワーキンググループなどの会議体を設置する合意は行わず、議題に関する事項は全てこの会談の中で決定してください。\n"
-                f"【文字数制限】各発言は必ず400文字以内で記述してください。"
+                f"Currently round {current_round} of {total_rounds}. {len(participants)} countries participating.\n"
+                f"【IMPORTANT】Do NOT repeat greetings or closing remarks each time — it's unnatural. Directly respond to the previous statement and continue natural discussion/negotiation.\n"
+                f"【IMPORTANT】Do NOT agree to establish new expert committees or working groups. All matters on the agenda must be decided within this summit.\n"
+                f"【Character limit】Each statement must be within 400 characters."
             )
             if current_round == total_rounds and speaker == participants[-1]:
-                turn_instruction += "これが会談の最後の発言です。会談の結論や最終提案を提示してください。"
+                turn_instruction += " This is the final statement of the summit. Present conclusions or final proposals."
             
             prompt = (
                 base_contexts[speaker] + turn_instruction + 
-                "\nこれまでの会話:\n" + "\n".join(messages) + 
-                f"\n\n{speaker}としての次の発言を入力してください:"
+                "\nConversation so far:\n" + "\n".join(messages) + 
+                f"\n\nPlease input your next statement as {speaker}:"
             )
             
             search_tool = search_tools.get(speaker) if search_tools else None
             try:
                 resp = _generate_with_tool(generate_func, logger, SUMMIT_MODEL, prompt, "summit", search_tool, speaker)
             except Exception as e:
-                logger.sys_log(f"[{speaker}] APIエラー(Multilateral Summit): {e}", "ERROR")
-                resp = "通信障害により発言できませんでした。"
+                logger.sys_log(f"[{speaker}] API Error (Multilateral Summit): {e}", "ERROR")
+                resp = "Communication failure prevented statement."
             
-            messages.append(f"【{speaker}首脳】: {resp}")
+            messages.append(f"【{speaker} Leader】: {resp}")
             logger.sys_log(f"[Multilateral Summit R{current_round}] {speaker}: {resp}")
     
-    # 合意の要約
+    # Agreement summary
     summary_prompt = (
-        f"以下の多国間首脳会談（参加国: {participant_names}）の記録から、"
-        f"参加国の最終的な「合意事項（または物別れに終わったという結果）」を150文字程度で簡潔に要約してください。\n\n"
+        f"From the following multilateral summit record (Participants: {participant_names}), "
+        f"concisely summarize the final 'agreements reached (or failure to reach agreement)' in approximately 150 characters. You MUST respond in Japanese.\n\n"
         + "\n".join(messages)
     )
     try:
         summary_obj = generate_func(model=SUMMIT_MODEL, contents=summary_prompt, category="summit_summary")
-        summary = summary_obj.text.strip() if summary_obj and hasattr(summary_obj, 'text') else "会談は終了しました"
+        summary = summary_obj.text.strip() if summary_obj and hasattr(summary_obj, 'text') else "Summit concluded"
     except Exception as e:
-        logger.sys_log(f"[Multilateral Summit Summary] APIエラー: {e}", "ERROR")
-        summary = "APIエラーにより会談結果の要約に失敗しました。"
+        logger.sys_log(f"[Multilateral Summit Summary] API Error: {e}", "ERROR")
+        summary = "API error — failed to summarize summit results."
     
-    full_log = chat_history + "\n".join(messages) + f"\n\n【最終結果】\n{summary}"
+    full_log = chat_history + "\n".join(messages) + f"\n\n【Final Result】\n{summary}"
     logger.sys_log_detail("Multilateral Summit Log", full_log)
     
     if getattr(proposal, 'is_private', False):
         news_summary = None
     else:
-        news_summary = f"🤝 【多国間首脳会談結果】{participant_names}による多国間会談が終了しました。結果: {summary}"
+        news_summary = f"🤝 【Multilateral Summit Result】Multilateral summit by {participant_names} concluded. Result: {summary}"
     
     return news_summary, full_log

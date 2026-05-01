@@ -12,11 +12,11 @@ load_dotenv()
 SIM_LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "logs", "simulations")
 
 class SimulationSummary(BaseModel):
-    summary: str = Field(description="シミュレーション全体を通した各国の動き、戦略の変遷、主要な出来事の定性的な要約。Markdown形式で記述してください。")
+    summary: str = Field(description="A qualitative summary of each country's movements, strategic transitions, and major events throughout the simulation. Write in Markdown format.")
 
 def generate_summary(log_filepath: str, force: bool = False) -> dict:
     """
-    シミュレーションのJSONLログを読み込み、Geminiで要約を生成して保存する
+    Read simulation JSONL log and generate summary via Gemini
     """
     if not os.path.exists(log_filepath):
         print(f"File not found: {log_filepath}")
@@ -24,7 +24,7 @@ def generate_summary(log_filepath: str, force: bool = False) -> dict:
 
     summary_filepath = log_filepath.replace(".jsonl", ".summary.json")
     
-    # すでに要約が存在する場合はスキップ
+    # Skip if summary already exists
     if not force and os.path.exists(summary_filepath):
         print(f"Summary already exists for {log_filepath}")
         return None
@@ -44,31 +44,32 @@ def generate_summary(log_filepath: str, force: bool = False) -> dict:
         print("No valid turn data found.")
         return
 
-    # 要約用のプロンプトを作成するためのデータを抽出
-    # 全部のテキストを送ると長すぎる可能性があるが、80ターン程度ならGemini 2.5 Flashのコンテキストウィンドウに十分収まる
-    # 抽出する要素: ターン数、各国の状況変化、ニュースイベント、エージェントの思考プロセス
+    # Extract data for summary prompt
+    # Sending all text may be too long, but ~80 turns fits well within Gemini 2.5 Flash context window
+    # Elements to extract: turn count, country status changes, news events, agent thought processes
     
-    prompt_text = "以下は、AIエージェントによる国家間外交・内政シミュレーションの実行ログです。\n"
-    prompt_text += "各ターンにおける、各国の思考プロセスと主要な出来事（ニュースイベント）が時系列で記録されています。\n\n"
-    prompt_text += "【指示】\n"
-    prompt_text += "シミュレーション全体を通して、各国がどのような戦略を取り、どのように動いたのかを分析し、全体を総括する定性的な要約を作成してください。\n"
-    prompt_text += "・各国の初期戦略と途中の戦略変更（もしあれば）\n"
-    prompt_text += "・主要な対立や協力、諜報活動の成果など\n"
-    prompt_text += "・最終的な結果や情勢\n"
-    prompt_text += "をわかりやすく、Markdown形式のテキストとして記述してください。\n\n"
+    prompt_text = "The following is an execution log of an AI agent inter-state diplomacy/domestic policy simulation.\n"
+    prompt_text += "Each turn records each country's thought processes and major events (news events) in chronological order.\n\n"
+    prompt_text += "【Instructions】\n"
+    prompt_text += "Analyze how each country strategized and acted throughout the simulation, and create a comprehensive qualitative summary.\n"
+    prompt_text += "Include:\n"
+    prompt_text += "- Each country's initial strategy and any mid-course strategic changes\n"
+    prompt_text += "- Major conflicts, cooperation, and intelligence operation results\n"
+    prompt_text += "- Final outcomes and situation\n"
+    prompt_text += "Write in clear Markdown format text. You MUST respond in Japanese.\n\n"
     
-    prompt_text += "【シミュレーションログ】\n"
+    prompt_text += "【Simulation Log】\n"
     
     for t in turns:
         turn_num = t.get("turn")
         year = t.get("world_state", {}).get("year", t.get("state", {}).get("year"))
         quarter = t.get("world_state", {}).get("quarter", t.get("state", {}).get("quarter"))
         
-        prompt_text += f"\n--- Turn {turn_num} ({year}年 Q{quarter}) ---\n"
+        prompt_text += f"\n--- Turn {turn_num} ({year} Q{quarter}) ---\n"
         
         news = t.get("world_state", {}).get("news_events", t.get("state", {}).get("news_events", []))
         if news:
-            prompt_text += "📰 ニュース・イベント:\n"
+            prompt_text += "📰 News/Events:\n"
             for n in news:
                 prompt_text += f"  - {n}\n"
                 
@@ -76,9 +77,9 @@ def generate_summary(log_filepath: str, force: bool = False) -> dict:
         for country_name, action_data in actions.items():
             thought = action_data.get("thought_process", "")
             if thought:
-                prompt_text += f"🧠 {country_name}の思考: {thought}\n"
+                prompt_text += f"🧠 {country_name}'s thinking: {thought}\n"
 
-    # Gemini APIの呼び出し
+    # Gemini API call
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         print("Error: GEMINI_API_KEY is not set.")
@@ -87,7 +88,7 @@ def generate_summary(log_filepath: str, force: bool = False) -> dict:
     client = genai.Client(api_key=api_key)
     
     def _call_generate(target_client):
-        """指定されたクライアントでAPI呼び出しを実行"""
+        """Execute API call with specified client"""
         return target_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt_text,
@@ -105,19 +106,19 @@ def generate_summary(log_filepath: str, force: bool = False) -> dict:
             sub_key = os.environ.get("GEMINI_API_KEY_SUB")
             if not sub_key:
                 raise
-            print(f"⚠️ メインAPIキーでエラー発生: {main_error}。サブAPIキーで再試行します...")
+            print(f"⚠️ Main API key error: {main_error}. Retrying with sub API key...")
             client_sub = genai.Client(api_key=sub_key)
             response = _call_generate(client_sub)
-            print("✅ サブAPIキーでの呼び出しに成功しました。")
+            print("✅ Sub API key call succeeded.")
         
-        # 保存
+        # Save
         summary_data = json.loads(response.text)
         with open(summary_filepath, "w", encoding="utf-8") as f:
             json.dump(summary_data, f, ensure_ascii=False, indent=2)
             
         print(f"Successfully generated summary and saved to {summary_filepath}")
         
-        # 使用トークン数を返す
+        # Return token usage
         usage = response.usage_metadata
         return {
             "summary": summary_data.get("summary", ""),

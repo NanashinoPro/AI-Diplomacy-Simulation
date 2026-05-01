@@ -1,6 +1,6 @@
 """
-P-01: 大統領施政方針プロンプト（Proモデル）
-Phase0の第1段: 大統領が今ターンの全体方針（PresidentPolicy）を策定する。
+P-01: Presidential Policy Prompt (Pro Model)
+Phase0 Stage 1: President formulates the overall policy (PresidentPolicy) for the current turn.
 """
 from typing import List
 from models import WorldState, CountryState, PresidentPolicy
@@ -13,59 +13,59 @@ def build_president_policy_prompt(
     past_news: List[str] = None,
 ) -> str:
     """
-    P-01: 大統領施政方針プロンプト（Proモデル）
-    今ターンの全体スタンスと各タスクへの指示を策定する。
+    P-01: Presidential Policy Prompt (Pro Model)
+    Formulate the overall stance and directives for each task this turn.
     """
     from agent.prompts.base import build_common_context
-    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="大統領（施政方針策定）")
+    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="President (Policy Formulation)")
 
     wars_info = ""
     for w in world_state.active_wars:
         if w.aggressor == country_name or w.defender == country_name:
             opponent = w.defender if w.aggressor == country_name else w.aggressor
-            role = "攻撃側" if w.aggressor == country_name else "防衛側"
-            wars_info += f"  - {opponent}との戦争（{role}、経過{w.war_turns_elapsed}ターン）\n"
+            role = "Attacker" if w.aggressor == country_name else "Defender"
+            wars_info += f"  - War with {opponent} ({role}, {w.war_turns_elapsed} turns elapsed)\n"
     if not wars_info:
-        wars_info = "  なし\n"
+        wars_info = "  None\n"
 
-    hidden = country_state.hidden_plans or "なし"
+    hidden = country_state.hidden_plans or "None"
 
     return ctx + f"""
-【現在の交戦状況】
+【Current War Status】
 {wars_info}
-【前ターンの非公開メモ】
+【Previous Turn's Private Memo】
 {hidden}
 
-あなたは「{country_name}」の最高指導者です。
-今ターンの全体的な施政方針を策定してください。
+You are the Supreme Leader of '{country_name}'.
+Formulate the overall policy direction for this turn.
 
-【出力する施政方針の用途】
-この施政方針は、以下のタスクエージェント群に共有され、各エージェントが自律的に判断を行います:
-- 内政担当: 税率・関税・経済/福祉/教育投資・報道統制・議会解散
-- 外交担当: メッセージ・貿易・制裁・首脳会談・多国間協議・援助・パワーバキューム
-- 軍事・諜報担当: 軍事投資・諜報投資・前線投入・諜報収集・破壊工作
+【Purpose of This Policy Output】
+This policy will be shared with the following task agents, who will make autonomous decisions based on it:
+- Domestic: Tax rate, tariffs, economy/welfare/education investment, press control, parliament dissolution
+- Diplomacy: Messages, trade, sanctions, summits, multilateral talks, aid, power vacuum
+- Military & Intelligence: Military investment, intelligence investment, frontline commitment, intel gathering, sabotage
 
-【stance の選択肢（1つ選ぶ）】
-- 拡張型: 領土・影響力の積極拡大
-- 防御型: 現状維持・自国防衛最優先
-- 外交優先型: 対話・協力関係による国際的地位向上
-- 経済優先型: 国内経済成長と貿易拡大
-- 強権維持型: 体制維持・国内統制強化（権威主義国向け）
-- 危機対応型: 現在の緊急事態（戦争・経済危機等）への集中対処
+【Stance Options (choose one)】
+- Expansionist: Aggressive expansion of territory and influence
+- Defensive: Status quo maintenance, national defense first
+- Diplomacy-First: Dialogue and cooperation for international standing
+- Economy-First: Domestic economic growth and trade expansion
+- Authoritarian Maintenance: Regime preservation, domestic control reinforcement (for authoritarian states)
+- Crisis Response: Focus on current emergencies (war, economic crisis, etc.)
 
-【directives（3〜5項目）の書き方】
-各タスクエージェントへの具体的な優先指示を書いてください。
-例: 「軍事投資を抑制し、外交解決を最優先せよ」「イランとの貿易協定を推進せよ」
+【Directives (3-5 items) Writing Guide】
+Write specific priority instructions for each task agent.
+Example: "Suppress military investment and prioritize diplomatic resolution" "Pursue trade agreement with Iran"
 
-以下のJSONのみ出力してください（コードブロック不要）:
+Output ONLY the following JSON (no code blocks). You MUST respond in Japanese:
 {{
-  "stance": "???（上記選択肢から{country_name}の状況に最適なものを選ぶこと）",
+  "stance": "??? (choose the most appropriate option for {country_name}'s situation)",
   "directives": [
-    "???（{country_name}固有の状況を踏まえた具体的指示）",
+    "??? (specific instructions based on {country_name}'s current situation)",
     "???",
     "???"
   ],
-  "hidden_plans": "（次ターンへの非公開戦略メモ。他国に知られたくない真の意図・計画）",
-  "sns_posts": ["（国民向けSNS投稿1件目・100文字以内）"]
+  "hidden_plans": "(Private strategic memo for next turn. True intentions/plans you don't want other countries to know)",
+  "sns_posts": ["(Public SNS post for citizens - max 100 chars)"]
 }}
 """

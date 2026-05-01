@@ -1,7 +1,7 @@
 """
-M-01: 軍事投資（金額ベース）+ 核開発投資
-M-02: 諜報投資（金額ベース）
-M-03: 前線投入比率
+M-01: Military Investment (Amount-based) + Nuclear Development Investment
+M-02: Intelligence Investment (Amount-based)
+M-03: Frontline Commitment Ratio
 """
 from typing import Dict
 from models import WorldState, CountryState, PresidentPolicy
@@ -13,51 +13,52 @@ def build_military_invest_prompt(
     country_name: str, country_state: CountryState, world_state: WorldState,
     policy: PresidentPolicy, analyst_reports: Dict[str, str] = None, past_news=None
 ) -> str:
-    """M-01: 軍事投資額の決定 + 核開発投資（flash）"""
-    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="軍事担当官（軍事投資・核戦略）")
+    """M-01: Military Investment Amount Decision + Nuclear Development (flash)"""
+    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="Military Officer (Military Investment & Nuclear Strategy)")
     ar = ""
     if analyst_reports:
-        ar = "\n---【分析官レポート（軍事バランス参照）】---\n"
+        ar = "\n---[Analyst Reports (Military Balance Reference)]---\n"
         for t, r in analyst_reports.items():
-            ar += f"▼ 対{t}:\n{r}\n\n"
+            ar += f"▼ vs {t}:\n{r}\n\n"
 
-    # 核情報
-    step_names = {0: "未着手", 1: "ウラン濃縮中", 2: "核実験段階", 3: "実戦配備中", 4: "核保有国"}
-    nuke_step = step_names.get(country_state.nuclear_dev_step, "不明")
-    nuke_section = f"\n【☢️ 核開発状況】\n核弾頭: {country_state.nuclear_warheads}発 / 開発段階: {nuke_step}\n"
+    # Nuclear info
+    step_names = {0: "Not Started", 1: "Uranium Enrichment", 2: "Nuclear Testing", 3: "Deployment Phase", 4: "Nuclear Power"}
+    nuke_step = step_names.get(country_state.nuclear_dev_step, "Unknown")
+    nuke_section = f"\n【☢️ Nuclear Development Status】\nWarheads: {country_state.nuclear_warheads} / Stage: {nuke_step}\n"
     if country_state.nuclear_dev_step in (1, 2, 3):
         progress = (country_state.nuclear_dev_invested / max(1.0, country_state.nuclear_dev_target)) * 100
-        nuke_section += f"開発進捗: {country_state.nuclear_dev_invested:.1f}/{country_state.nuclear_dev_target:.1f} ({progress:.0f}%)\n"
+        nuke_section += f"Progress: {country_state.nuclear_dev_invested:.1f}/{country_state.nuclear_dev_target:.1f} ({progress:.0f}%)\n"
 
     budget = country_state.government_budget
     debt_ratio = country_state.national_debt / max(1.0, country_state.economy) * 100
 
     return ctx + build_policy_section(policy) + ar + nuke_section + f"""
-現在の軍事力={country_state.military:.1f} / 経済力={country_state.economy:.1f}
+Current Military={country_state.military:.1f} / Economy={country_state.economy:.1f}
 
-【💰 今期の政府歳入: {budget:.1f} B$】
-国家債務: {country_state.national_debt:.1f} B$ (対GDP比: {debt_ratio:.0f}%)
-歳入を超える額を要求することも可能ですが、超過分は赤字国債として発行され、利払い負担が増大します。
+【💰 Current Government Revenue: {budget:.1f} B$】
+National Debt: {country_state.national_debt:.1f} B$ (Debt-to-GDP: {debt_ratio:.0f}%)
+Requesting above revenue is possible but excess becomes deficit bonds with increased interest burden.
 
-【リチャードソン・モデルに基づく算出プロセス】
-1. 相手側の脅威: 自国より強い敵がいるか？
-2. 経済的疲弊: 軍事投資は経済を圧迫するか？
-3. 動員限界(10%の壁): 軍事力が人口×10%を超えていないか？
+【Richardson Model Calculation Process】
+1. Opponent's threat: Are there enemies stronger than us?
+2. Economic fatigue: Does military investment strain the economy?
+3. Mobilization limit (10% wall): Does military exceed population × 10%?
 
-【☢️ 核開発投資（request_nuclear）の決定ルール】
-- 核開発は4段階（1:ウラン濃縮→2:核実験→3:実戦配備→4:核保有国）で進行。
-- 0.0の場合、核開発に予算を割かない。Step4到達後は弾頭量産に充当。
-- 大きな経済負担を伴うため、戦略的必要性を十分に検討すること。
+【☢️ Nuclear Development Investment (request_nuclear) Rules】
+- 4 stages: 1:Enrichment → 2:Testing → 3:Deployment → 4:Nuclear Power.
+- 0.0 = no nuclear budget. After Step 4, goes to warhead mass production.
+- Major economic burden — carefully assess strategic necessity.
 
-【☢️ 核使用の提言（nuclear_use_recommendation）】
-- 大統領への助言として核使用を提言可能。最終決定権は大統領にある。
-- 交戦中の敵国だけでなく、先制核攻撃（自動宣戦布告を伴う）の提言も可能。
-- 形式: "tactical:対象国名" or "strategic:対象国名" or null
+【☢️ Nuclear Use Recommendation (nuclear_use_recommendation)】
+- Can recommend nuclear use to the president. Final authority rests with president.
+- Can recommend preemptive strike (auto-declares war) against non-belligerents too.
+- Format: "tactical:target_country" or "strategic:target_country" or null
 
-施政方針（{policy.stance}）に従い、reasoning_for_military_investmentで算出プロセスを説明した上で投資額を決定してください。
+Following the policy ({policy.stance}), explain the calculation process in reasoning_for_military_investment then determine investment amount.
+You MUST respond in Japanese.
 
-JSONのみ出力（コードブロック不要、金額はB$単位で指定）:
-{{"request_military": ???, "request_nuclear": ???, "nuclear_use_recommendation": null, "reasoning_for_military_investment": "算出プロセスの説明"}}
+Output ONLY JSON (no code blocks, amounts in B$ units):
+{{"request_military": ???, "request_nuclear": ???, "nuclear_use_recommendation": null, "reasoning_for_military_investment": "calculation process explanation"}}
 """
 
 
@@ -65,19 +66,19 @@ def build_intel_invest_prompt(
     country_name: str, country_state: CountryState, world_state: WorldState,
     policy: PresidentPolicy, past_news=None
 ) -> str:
-    """M-02: 諜報投資額の決定（flash-lite）"""
-    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="諜報担当官（諜報投資）")
+    """M-02: Intelligence Investment Amount Decision (flash-lite)"""
+    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="Intelligence Officer (Intel Investment)")
     others_intel = {n: s.intelligence_level for n, s in world_state.countries.items() if n != country_name}
     intel_str = ", ".join(f"{n}:{v:.1f}" for n, v in others_intel.items())
     budget = country_state.government_budget
     return ctx + build_policy_section(policy) + f"""
-自国諜報レベル={country_state.intelligence_level:.1f} / 他国: {intel_str}
+Own Intel Level={country_state.intelligence_level:.1f} / Others: {intel_str}
 
-【💰 今期の政府歳入: {budget:.1f} B$】
-【ルール】諜報レベルが高いほど諜報成功率が向上。金額（B$単位）で投資額を指定してください。
+【💰 Current Government Revenue: {budget:.1f} B$】
+【Rules】Higher intel level = better espionage success rate. Specify investment amount in B$ units.
 
-JSONのみ出力（コードブロック不要、金額はB$単位で指定）:
-{{"request_intelligence": ???, "reason": "理由（30文字以内）"}}
+You MUST respond in Japanese. Output ONLY JSON (no code blocks, amounts in B$ units):
+{{"request_intelligence": ???, "reason": "reason (max 30 chars)"}}
 """
 
 
@@ -85,27 +86,27 @@ def build_war_commitment_prompt(
     country_name: str, country_state: CountryState, world_state: WorldState,
     policy: PresidentPolicy, past_news=None
 ) -> str:
-    """M-03: 前線投入比率の設定（flash）- 交戦中のみ呼び出す"""
-    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="作戦担当官（前線投入）")
+    """M-03: Frontline Commitment Ratio Setting (flash) - Called only when at war"""
+    ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="Operations Officer (Frontline Deployment)")
     war_info = ""
     for w in world_state.active_wars:
         if w.aggressor == country_name:
-            war_info += f"  ⚔️ 対{w.defender}: 攻撃側 / 占領率{w.target_occupation_progress:.1f}% / 現投入率{w.aggressor_commitment_ratio:.0%}\n"
+            war_info += f"  ⚔️ vs {w.defender}: Attacker / Occupation {w.target_occupation_progress:.1f}% / Current Commitment {w.aggressor_commitment_ratio:.0%}\n"
         elif w.defender == country_name:
-            war_info += f"  🛡️ 対{w.aggressor}: 防衛側 / 被占領率{w.target_occupation_progress:.1f}% / 現投入率{w.defender_commitment_ratio:.0%}\n"
+            war_info += f"  🛡️ vs {w.aggressor}: Defender / Occupied {w.target_occupation_progress:.1f}% / Current Commitment {w.defender_commitment_ratio:.0%}\n"
     return ctx + build_policy_section(policy) + f"""
-現在の軍事力={country_state.military:.1f}
+Current Military={country_state.military:.1f}
 
-【交戦状況】
+【War Status】
 {war_info}
 
-【ルール】
-- 投入比率(0.0〜1.0)で前線の兵力投入を設定
-- 防御側は高い投入率を維持するのが自然。攻撃側は兵站を考慮。
-- 投入比率は±{0.10:.0%}/ターンまでの変動制限あり（動員速度制限）
+【Rules】
+- Commitment ratio (0.0-1.0) sets frontline force deployment
+- Defenders naturally maintain high commitment. Attackers consider logistics.
+- Max ±{0.10:.0%}/turn change limit (mobilization speed limit)
 
-JSONのみ出力:
-{{"commitment_ratio": ???, "reason": "理由（30文字以内）"}}
+You MUST respond in Japanese. Output ONLY JSON:
+{{"commitment_ratio": ???, "reason": "reason (max 30 chars)"}}
 """
 
 
@@ -114,19 +115,20 @@ def build_espionage_gather_prompt(
     target_name: str, policy: PresidentPolicy,
     analyst_report: str = "", past_news=None
 ) -> str:
-    """M-04: 諜報収集の実施（flash-lite）- 対象国1つごとに呼び出す"""
+    """M-04: Intelligence Gathering Execution (flash-lite) - Called per target country"""
     target_state = world_state.countries.get(target_name)
     rel = world_state.relations.get(country_name, {}).get(target_name, "neutral")
     return build_policy_section(policy) + f"""
-あなたは「{country_name}」の諜報担当官です。対象国「{target_name}」への諜報収集を実施するか判断してください。
+You are the intelligence officer of '{country_name}'. Decide whether to conduct intelligence gathering on target country '{target_name}'.
+You MUST respond in Japanese.
 
-自国諜報レベル={country_state.intelligence_level:.1f} / 対象国諜報レベル={getattr(target_state,'intelligence_level',0):.1f}
-二国間関係={rel} / 分析官レポート: {analyst_report[:200] if analyst_report else 'なし'}
+Own Intel Level={country_state.intelligence_level:.1f} / Target Intel Level={getattr(target_state,'intelligence_level',0):.1f}
+Bilateral Relation={rel} / Analyst Report: {analyst_report[:200] if analyst_report else 'None'}
 
-【ルール】espionage_gather_intel=trueで情報収集を実施。失敗リスクあり（相手の諜報力が高いほど失敗しやすい）。
+【Rules】espionage_gather_intel=true to execute intel gathering. Risk of failure (higher target intel = higher failure chance).
 
-JSONのみ出力:
-{{"espionage_gather_intel": false, "espionage_intel_strategy": null, "reason": "理由（30文字以内）"}}
+Output ONLY JSON:
+{{"espionage_gather_intel": false, "espionage_intel_strategy": null, "reason": "reason (max 30 chars)"}}
 """
 
 
@@ -135,19 +137,20 @@ def build_espionage_sabotage_prompt(
     target_name: str, policy: PresidentPolicy,
     analyst_report: str = "", past_news=None
 ) -> str:
-    """M-05: 破壊工作の実施（flash）- 対象国1つごとに呼び出す"""
+    """M-05: Sabotage Operations Execution (flash) - Called per target country"""
     target_state = world_state.countries.get(target_name)
     rel = world_state.relations.get(country_name, {}).get(target_name, "neutral")
     return build_policy_section(policy) + f"""
-あなたは「{country_name}」の工作担当官です。対象国「{target_name}」への破壊工作を実施するか判断してください。
+You are the covert operations officer of '{country_name}'. Decide whether to conduct sabotage operations on target country '{target_name}'.
+You MUST respond in Japanese.
 
-自国諜報レベル={country_state.intelligence_level:.1f} / 対象国諜報レベル={getattr(target_state,'intelligence_level',0):.1f}
-対象国軍事力={getattr(target_state,'military',0):.1f} / 二国間関係={rel}
-分析官レポート: {analyst_report[:200] if analyst_report else 'なし'}
+Own Intel Level={country_state.intelligence_level:.1f} / Target Intel Level={getattr(target_state,'intelligence_level',0):.1f}
+Target Military={getattr(target_state,'military',0):.1f} / Bilateral Relation={rel}
+Analyst Report: {analyst_report[:200] if analyst_report else 'None'}
 
-【ルール】espionage_sabotage=trueでインフラ・世論への破壊工作を実施。
-実行コスト・リスク・外交的リスクを考察してください（reasoning_for_sabotage）。
+【Rules】espionage_sabotage=true to execute infrastructure/public opinion sabotage.
+Analyze execution cost, risk, and diplomatic risk (reasoning_for_sabotage).
 
-JSONのみ出力:
-{{"espionage_sabotage": false, "espionage_sabotage_strategy": null, "reasoning_for_sabotage": "考察（工作する・しない理由）"}}
+Output ONLY JSON:
+{{"espionage_sabotage": false, "espionage_sabotage_strategy": null, "reasoning_for_sabotage": "analysis (reasons for/against sabotage)"}}
 """
