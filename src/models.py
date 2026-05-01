@@ -167,7 +167,7 @@ class DomesticAction(BaseModel):
     invest_education_science: float = Field(0.0, description="教育・科学技術への投資割合（0.0-1.0）。人的資本を蓄積し、長期的な経済成長バフを生み出す")
     target_tariff_rates: Dict[str, float] = Field(default_factory=dict, description="各国に対する目標関税率。キーは国名、値は関税率（0.0〜、上限なし）。財務大臣が決定。")
     dissolve_parliament: bool = Field(False, description="【民主主義国家のみ】議会解散権を行使するか。解散前支持率の確率で成功し支持率が回復するが、失敗すれば新政権が誕生する。選挙費用としてGDPの0.01〜0.02%が予算から天引きされる")
-    reason: str = Field(..., max_length=50, description="この内政決定の簡潔な理由（30文字以内厳守）")
+    reason: str = Field(..., max_length=200, description="この内政決定の簡潔な理由")
 
 class DiplomaticAction(BaseModel):
     """特定のターゲット国へ向けた外交・軍事・諜報アクション"""
@@ -225,7 +225,7 @@ class DiplomaticAction(BaseModel):
     # パワー・バキューム・オークション (Tullock CSF)
     vacuum_bid: float = Field(0.0, ge=0.0, description="パワー・バキューム・オークションへのベット額（0.0〜自国軍事力）。分裂した新国家に対して軍事介入し吸収を試みる場合に設定。0=介入しない")
     
-    reason: str = Field(..., max_length=50, description="この外交決定の簡潔な理由（30文字以内厳守）")
+    reason: str = Field(..., max_length=200, description="この外交決定の簡潔な理由")
 
 class AgentAction(BaseModel):
     """各ターンごとにAIエージェントが出力する行動全体の構造"""
