@@ -5,7 +5,7 @@ from models import AgentAction, GovernmentType
 
 from .constants import (
     DEMOCRACY_WARN_APPROVAL, CRITICAL_APPROVAL,
-    DEMOCRACY_MIN_EXECUTION_POWER,
+    DEMOCRACY_MIN_EXECUTION_POWER, MANDATORY_SPENDING_RATIO, DISCRETIONARY_MIN_EXECUTION,
     DEBT_INTEREST_RATE_ANNUAL, TURNS_PER_YEAR, TAX_APPROVAL_PENALTY_MULTIPLIER, TAX_REDUCTION_APPROVAL_BONUS_MULTIPLIER, MAX_TAX_CHANGE_PER_TURN,
     AUTHORITARIAN_BASE_SAVING_RATE, DEMOCRACY_BASE_SAVING_RATE,
     DEBT_REPAYMENT_CROWD_IN_MULTIPLIER, GOVERNMENT_CROWD_IN_MULTIPLIER, GOVERNMENT_CROWD_OUT_MULTIPLIER, BASE_INVESTMENT_RATE, INTEREST_REINVESTMENT_RATE,
@@ -158,13 +158,20 @@ class DomesticMixin:
                         if abs(clamped_tariff - old_tariff) > 0.001:
                             self.sys_logs_this_turn.append(f"[{country_name} 関税変更] 対{target_country}: {old_tariff:.1%}→{clamped_tariff:.1%}")
 
-        # --- 政策実行力の算出 ---
-        # [学術的根拠] 民主主義国家では低支持率時に議会の攻防が激化し政策実現が困難になる。
-        # 専制主義では強権的執行が可能ことから下限を保障（最低ε=0.5）。
+        # --- 政策実行力の算出（二層モデル） ---
+        # [学術的根拠] 先進国の予算は「義務的経費 (mandatory)」と「裁量的経費 (discretionary)」に分かれる。
+        # 義務的経費（年金・社会保障・利払い等）は法律に基づき官僚機構が自動的に執行するため、
+        # 支持率低迷や議会グリッドロックの影響を受けない (CBO 2024, Eurostat)。
+        # 裁量的経費のみが政治的実行力に左右される。
+        # 出典: CBO "The Federal Budget in FY2023"; Brookings Institution (legislative gridlock研究)
         execution_power = 1.0
         if country.government_type == GovernmentType.DEMOCRACY:
             if country.approval_rating < DEMOCRACY_WARN_APPROVAL:
-                execution_power = max(DEMOCRACY_MIN_EXECUTION_POWER, (country.approval_rating - CRITICAL_APPROVAL) / (DEMOCRACY_WARN_APPROVAL - CRITICAL_APPROVAL))
+                # 裁量的経費の実行力: 支持率に応じて線形低下（最低30%）
+                discretionary_execution = max(DISCRETIONARY_MIN_EXECUTION,
+                    (country.approval_rating - CRITICAL_APPROVAL) / (DEMOCRACY_WARN_APPROVAL - CRITICAL_APPROVAL))
+                # 二層合成: 義務的経費（自動執行）+ 裁量的経費（支持率依存）
+                execution_power = MANDATORY_SPENDING_RATIO + (1.0 - MANDATORY_SPENDING_RATIO) * discretionary_execution
         elif country.government_type == GovernmentType.AUTHORITARIAN:
             if country.approval_rating < 25.0:
                 execution_power = max(0.5, 0.5 + (country.approval_rating / 50.0))
