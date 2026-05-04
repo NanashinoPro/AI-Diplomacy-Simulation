@@ -200,20 +200,6 @@ def initialize_world(data_dir: str = None) -> WorldState:
         recurring_aid_contracts=initial_recurring_aids
     )
 
-    # ==========================================================
-    # 初期ホルムズ海峡封鎖（2026年Q1: イランが開戦と同時に封鎖宣言）
-    # ==========================================================
-    world.active_strait_blockades.append("ホルムズ海峡")
-    world.strait_blockade_owners["ホルムズ海峡"] = "イラン"
-    # 産油国の輸出を停止（サウジ・イランは輸出ルートが遮断される）
-    for _blocked in ["サウジアラビア", "イラン"]:
-        if _blocked in world.countries:
-            world.countries[_blocked].energy_export_blocked = True
-    initial_news.append(
-        "🚨【ホルムズ海峡封鎖】イランが開戦と同時にホルムズ海峡の封鎖を宣言。"
-        "中東産油国からのエネルギー輸入が遮断されました。"
-        "日本・フィリピンなど輸入依存国に深刻な影響が及ぶ見通しです。"
-    )
 
     return world
 
@@ -285,6 +271,18 @@ def _inject_scenario_events(engine, world_state, scenario_path: str, logger):
             engine._update_relation(attacker, target, RelationType.AT_WAR)
             engine.log_event(
                 f"⚔️ 【シナリオ: 宣戦布告】{attacker}が{target}に対して宣戦布告しました！",
+                involved_countries=[attacker, target, "global"]
+            )
+        elif event_type == "cyber_attack":
+            target_obj = world_state.countries[target]
+            description = event.get("description", "大規模なサイバー攻撃")
+            damage_factor = 0.95
+            target_obj.economy *= damage_factor
+            approval_damage = -3.0
+            target_obj.approval_rating = max(0.0, target_obj.approval_rating + approval_damage)
+            logger.sys_log(f"[Scenario] サイバー攻撃: {attacker} → {target} (経済×{damage_factor}, 支持率{approval_damage}%)")
+            engine.log_event(
+                f"🚨 【サイバー攻撃】{attacker}が{target}に対して大規模なサイバー攻撃を実行！{description}",
                 involved_countries=[attacker, target, "global"]
             )
         else:

@@ -428,6 +428,17 @@ energy_reserve = max(0, energy_reserve - 1.0 + gain)
 - 封鎖国はエネルギー収入が停止し、中東依存国に経済ペナルティが発生
 - `data/energy_import_sources.json` で各国の輸入依存先を定義
 
+### 4-9. シナリオイベント型（`_inject_scenario_events`, v1.4追加）
+
+`--scenario` オプションで指定したJSONの `initial_events` 配列に記述されたイベントをTurn 0開始前に注入する。
+
+| type | 必須パラメータ | 効果 |
+|------|-------------|------|
+| `launch_tactical_nuclear` | attacker, target, warheads | 戦術核使用 |
+| `launch_strategic_nuclear` | attacker, target, warheads | 戦略核使用 |
+| `declare_war` | attacker, target | 宣戦布告+WarState作成 |
+| `cyber_attack` | attacker, target, description(任意) | 経済×0.95, 支持率-3% |
+
 ### 4-8. 制裁ダメージモデル（v1-3.2, src/engine/economy.py）
 
 #### 学術的根拠
@@ -572,6 +583,7 @@ for _ in range(MAX_TURNS):
 | `master` | 本番安定版 | 基本シミュレーション |
 | `v1-2` | エネルギーシナリオ | ホルムズ海峡封鎖・エネルギー備蓄枯渇 |
 | `v1-3` | **核外交・財政改革** | 核兵器システム・金額ベース予算・信用スプレッド・赤字国債・先制核攻撃 |
+| `v1.20260504` | **武器支援のジレンマ** | 企画#4: 日本武器輸出解禁→台湾支援→中国報復シナリオ（5カ国: 日米中台比） |
 | `v2` | 実験的タスクエージェント制 | v1-2ベースに高度な意思決定ロジック |
 
 ---
