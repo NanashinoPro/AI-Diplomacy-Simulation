@@ -1,3 +1,3 @@
-name,government_type,ideology,economy,military,intelligence_level,area,approval_rating,turns_until_election,rebellion_risk,press_freedom,human_capital_index,mean_years_schooling,population,capital_lat,capital_lon,has_dissolution_power,
-A国,authoritarian,,500.0,80.0,50.0,200000.0,60,,,0.3,0.6,10.0,50.0,35.0,100.0,,
-B国,democracy,,400.0,40.0,40.0,150000.0,55,4,,0.8,0.7,11.0,40.0,40.0,120.0,true,
+name,government_type,ideology,economy,military,intelligence_level,area,approval_rating,turns_until_election,rebellion_risk,press_freedom,human_capital_index,mean_years_schooling,population,capital_lat,capital_lon,has_dissolution_power,regime_duration
+A国,authoritarian,,500.0,80.0,50.0,200000.0,60,,,0.3,0.6,10.0,50.0,35.0,100.0,,20
+B国,democracy,,400.0,40.0,40.0,150000.0,55,4,,0.8,0.7,11.0,40.0,40.0,120.0,true,5

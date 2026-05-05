@@ -108,6 +108,7 @@ class CountryState(BaseModel):
     turns_until_election: Optional[int]
     has_dissolution_power: bool
     rebellion_risk: float
+    regime_duration: int                  # 現政権の存続期間(ターン数)。CSVから国別に設定可能（デフォルト20）
     # 秘匿計画（他国非公開）
     hidden_plans: str
     # 援助依存度

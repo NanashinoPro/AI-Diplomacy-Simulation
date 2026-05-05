@@ -55,10 +55,9 @@ def initialize_world(data_dir: str = None) -> WorldState:
                 capital_lon=float(row.get("capital_lon", 0.0) or 0.0),
                 has_dissolution_power=row.get("has_dissolution_power", "").strip().lower() == "true",
                 hidden_plans="",
-                # 初期国家はシミュレーション開始時点で既に長年の政権が存在する
-                # クールダウン(4ターン)を大きく超える20ターン相当の政権期間を設定
+                # 政権の存続期間をCSVから読み込む（未設定の場合はデフォルト20）
                 # [学術的根拠] Polity IV: 既存政権の安定性は過去の継続期間に依存する
-                regime_duration=20,
+                regime_duration=int(_safe_float(row.get("regime_duration"), 20)),
                 # v1-2: エネルギー初期値（CSVから読み込む）
                 energy_self_sufficiency=_safe_float(row.get("energy_self_sufficiency"), 0.13),
                 energy_reserve_target_turns=_safe_float(row.get("energy_reserve_target_turns"), 1.0),
