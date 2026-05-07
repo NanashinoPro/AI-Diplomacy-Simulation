@@ -83,6 +83,26 @@ class MilitaryMixin:
             agg_damage_raw = def_power * random.uniform(0.05, 0.15)
             def_damage_raw = agg_power * random.uniform(0.05, 0.15)
             
+            # === 電磁バリアシステム: Alienへの通常攻撃を無効化 ===
+            # 防衛側がAlienでバリア有効 → 攻撃側の通常ダメージを無効化
+            if getattr(defender, 'is_alien', False) and getattr(defender, 'alien_barrier_hp', 0) > 0:
+                def_damage_raw = 0.0
+                self.sys_logs_this_turn.append(
+                    f"[電磁バリア] {defender.name}の電磁バリアにより{aggressor.name}の通常攻撃が無効化 "
+                    f"(バリアHP: {defender.alien_barrier_hp})"
+                )
+                self.log_event(
+                    f"🛡️ 【電磁バリア作動】{defender.name}の電磁バリアが{aggressor.name}の"
+                    f"通常兵器による攻撃を完全に遮断しました！",
+                    involved_countries=[aggressor.name, defender.name, "global"]
+                )
+            # 攻撃側がAlienでバリア有効 → 反撃ダメージを無効化（一方的攻撃）
+            if getattr(aggressor, 'is_alien', False) and getattr(aggressor, 'alien_barrier_hp', 0) > 0:
+                agg_damage_raw = 0.0
+                self.sys_logs_this_turn.append(
+                    f"[電磁バリア] {aggressor.name}の電磁バリアにより反撃が無効化"
+                )
+            
             # 損害は投入分のみに適用（後方予備軍は温存）
             agg_damage = min(agg_damage_raw, agg_committed)
             

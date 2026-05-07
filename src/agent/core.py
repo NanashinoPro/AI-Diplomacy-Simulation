@@ -1012,6 +1012,11 @@ class AgentSystem:
     ) -> Tuple[AgentAction, Dict[str, str]]:
         """大統領施政方針 → タスクエージェント群 → マージ の3段フロー"""
 
+        # === Alien専用フロー: 通常タスクエージェント制をバイパス ===
+        if getattr(country_state, 'is_alien', False):
+            self.logger.sys_log(f"[{country_name}] ===== Alien行動フロー開始 =====")
+            return self._decide_alien_action(country_name, country_state, world_state)
+
         self.logger.sys_log(f"[{country_name}] ===== ターン開始: タスクエージェント制 =====")
 
         # Phase 0: 施政方針 + 重大外交
@@ -1091,6 +1096,91 @@ class AgentSystem:
                 all_analyst_reports[country_name] = {}
                 all_task_logs[country_name] = {}
         return actions, all_analyst_reports, all_task_logs
+
+    # =================================================================
+    # Alien専用行動生成（インデペンデンス・デイ企画）
+    # =================================================================
+
+    def _decide_alien_action(
+        self, country_name: str, country_state: CountryState, world_state: WorldState
+    ) -> Tuple[AgentAction, Dict[str, str], Dict[str, str]]:
+        """Alien専用の行動生成。LLM 1回呼び出しで降伏勧告メッセージを生成し、残りはハードコード。"""
+        from agent.prompts.alien import build_alien_prompt
+
+        earth_countries = [
+            name for name, cs in world_state.countries.items()
+            if not getattr(cs, 'is_alien', False)
+        ]
+
+        # LLM呼び出し: 降伏勧告メッセージと戦略的思考を生成
+        surrender_demands = {}
+        thought_process = "地球の全生命体を殲滅し、惑星の資源を収奪する。抵抗は無意味である。"
+        try:
+            prompt = build_alien_prompt(country_name, world_state, earth_countries)
+            response = self._generate_with_retry(prompt)
+            if response:
+                parsed = json.loads(response)
+                thought_process = parsed.get("thought_process", thought_process)
+                surrender_demands = parsed.get("surrender_demands", {})
+                self.logger.sys_log(f"[{country_name} Alien] LLM応答取得: {thought_process[:100]}")
+        except Exception as e:
+            self.logger.sys_log(f"[{country_name} Alien] LLMエラー（フォールバック使用）: {e}", "WARNING")
+            # フォールバック: デフォルトの降伏勧告
+            for ec in earth_countries:
+                surrender_demands[ec] = f"{ec}よ、降伏せよ。抵抗は無意味だ。お前たちの文明は終わりを迎える。"
+
+        # 外交アクションの構築: 全地球国家に対して宣戦布告 + 降伏勧告
+        diplomatic_policies = []
+        for ec in earth_countries:
+            # 交戦中か確認
+            is_at_war = any(
+                (w.aggressor == country_name and w.defender == ec) or
+                (w.aggressor == ec and w.defender == country_name)
+                for w in world_state.active_wars
+            )
+            demand_msg = surrender_demands.get(ec, f"{ec}よ、降伏せよ。抵抗は無意味だ。")
+            dp = DiplomaticAction(
+                target_country=ec,
+                declare_war=not is_at_war,  # 未交戦なら宣戦布告
+                war_commitment_ratio=1.0,    # 全力投入
+                demand_surrender=True,
+                demand_surrender_message=demand_msg,
+                # 全外交行動を拒否
+                accept_ceasefire=False,
+                propose_ceasefire=False,
+                propose_trade=False,
+                cancel_trade=False,
+                propose_alliance=False,
+                propose_summit=False,
+                accept_summit=False,
+                accept_alliance=False,
+                impose_sanctions=False,
+                lift_sanctions=False,
+                reason=f"惑星征服計画: {ec}を攻撃対象に指定",
+            )
+            diplomatic_policies.append(dp)
+            if not is_at_war:
+                self.logger.sys_log(f"[{country_name} Alien] {ec}に宣戦布告")
+
+        action = AgentAction(
+            thought_process=thought_process,
+            domestic_policy=DomesticAction(
+                tax_rate=0.0,
+                target_press_freedom=0.0,
+                invest_economy=0.0,
+                reasoning_for_military_investment="全資源を軍事に投入。地球の殲滅が最優先。",
+                invest_military=1.0,
+                invest_welfare=0.0,
+                invest_intelligence=0.0,
+                invest_education_science=0.0,
+                reason="惑星征服のため全資源を軍事に集中"
+            ),
+            diplomatic_policies=diplomatic_policies
+        )
+
+        self.logger.sys_log(f"[{country_name} Alien] 行動決定完了: 宣戦布告={len([dp for dp in diplomatic_policies if dp.declare_war])}件")
+        # 通常フローと同じ3値タプルで返す（analyst_reports=空, task_logs=空）
+        return action, {}, {}
 
     def _create_fallback_action(self, country_name: str, current_tax_rate: float = 0.30) -> AgentAction:
         return AgentAction(

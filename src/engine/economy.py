@@ -181,6 +181,13 @@ class EconomyMixin:
             imposer = self.state.countries[sanction.imposer]
             target = self.state.countries[sanction.target]
 
+            # === Alien特殊処理: 制裁ダメージ無効化 ===
+            if getattr(target, 'is_alien', False):
+                self.sys_logs_this_turn.append(
+                    f"[制裁無効] {sanction.imposer} → {sanction.target}(Alien): 制裁ダメージ無効"
+                )
+                continue
+
             # 制裁1件あたりのダメージ: GDP比率に応じて算出、上限SANCTION_TARGET_MAX_PER_CASE
             ratio = imposer.economy / max(1.0, target.economy)
             damage_percent = min(SANCTION_TARGET_MAX_PER_CASE, SANCTION_TARGET_DAMAGE_PER_CASE * ratio)

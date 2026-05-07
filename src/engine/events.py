@@ -22,6 +22,10 @@ class EventsMixin:
         # 反乱と選挙の進行（Alesina-Spolaore分裂判定もここに含まれる）
         # 分裂で新しい国が self.state.countries に追加されるため、list() でコピーして回す
         for name, country in list(self.state.countries.items()):
+            # === Alien特殊処理: 反乱・選挙・分裂が発生しない ===
+            if getattr(country, 'is_alien', False):
+                continue
+            
             # 【新設】クールダウン期間: 新政権発足後4ターン（1年）は分裂・クーデター免除
             # [学術的根拠] Polity IV regime durability coding: 政権の安定性は最低で1年の観測期間を要する
             if country.regime_duration <= FRAGMENTATION_COOLDOWN_TURNS:

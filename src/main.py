@@ -69,11 +69,14 @@ def initialize_world(data_dir: str = None) -> WorldState:
                 nuclear_hosted_warheads=int(_safe_float(row.get("nuclear_hosted_warheads"), 0)),
                 # v1-3: 国家債務（IMF WEO 2025ベース）
                 national_debt=_safe_float(row.get("national_debt"), 0.0),
+                # Alienシステム（インデペンデンス・デイ企画）
+                is_alien=row.get("is_alien", "").strip().lower() == "true",
+                alien_barrier_hp=int(_safe_float(row.get("alien_barrier_hp"), 0)),
             )
-            # 専制主義国家は初期から支持率を対外偽装する
+            # 専制主義国家は初期から支持率を対外偽装する（Alienは除外）
             # CSVの approval_rating は政府の「公表値（偽装値）」であり、真の民意は不明
             # → 真値を50.0（不明のためニュートラル）に設定し、公表値はCSVの値を使用
-            if government_type == GovernmentType.AUTHORITARIAN:
+            if government_type == GovernmentType.AUTHORITARIAN and not countries[name].is_alien:
                 public_approval = float(row["approval_rating"])   # CSVの値 = 公表値
                 countries[name].approval_rating = 50.0            # 真値 = 不明なので50%
                 countries[name].reported_approval_rating = public_approval  # 公表値（偽装）
@@ -177,6 +180,21 @@ def initialize_world(data_dir: str = None) -> WorldState:
 
     # ニュースイベントの初期化（初期関係に基づく）
     initial_news = ["世界のリーダーたちが行動を開始しています。"]
+    
+    # Alienが存在する場合、宇宙人出現ニュースを注入
+    alien_countries = [n for n, c in countries.items() if getattr(c, 'is_alien', False)]
+    if alien_countries:
+        initial_news.insert(0,
+            "🛸 【緊急速報】地球軌道上に未知の巨大飛行物体が出現しました。"
+            "全長約600km、月の4分の1に匹敵する質量を持つ物体が地球に接近中です。"
+            "各国の宇宙機関は対応を協議しています。人類史上初の地球外知的生命体との接触の可能性があります。"
+        )
+        initial_news.insert(1,
+            "⚠️ 【続報】未知の飛行物体から直径24kmの円盤型構造物が37隻分離し、"
+            "世界各国の主要都市上空に移動を開始しました。各国軍は最高警戒態勢に移行しています。"
+        )
+        print(f"🛸 Alienエージェントを検出: {', '.join(alien_countries)}")
+    
     for war in active_wars:
         initial_news.append(f"⚔️ {war.aggressor}と{war.defender}の間で軍事衝突が発生しています。")
     for trade in active_trades:

@@ -257,6 +257,31 @@ class NuclearMixin:
             )
             return
 
+        # === 電磁バリアシステム: Alienのバリアに核が命中 ===
+        if getattr(target, 'is_alien', False) and getattr(target, 'alien_barrier_hp', 0) > 0:
+            old_hp = target.alien_barrier_hp
+            target.alien_barrier_hp = max(0, target.alien_barrier_hp - effective_warheads)
+            attacker.nuclear_warheads -= warheads_count
+            self.log_event(
+                f"☢️🛡️ 【核攻撃 vs 電磁バリア】{attacker_name}の戦術核{effective_warheads}発が"
+                f"{target_name}の電磁バリアに命中！"
+                f"バリアHP: {old_hp} → {target.alien_barrier_hp}",
+                involved_countries=[attacker_name, target_name, "global"]
+            )
+            self.sys_logs_this_turn.append(
+                f"[電磁バリア被弾] {target_name}: 戦術核{effective_warheads}発命中 "
+                f"バリアHP {old_hp}→{target.alien_barrier_hp}"
+            )
+            if target.alien_barrier_hp <= 0:
+                self.log_event(
+                    f"💥🛸 【緊急速報：電磁バリア崩壊！】人類の核攻撃により"
+                    f"{target_name}の電磁バリアがついに崩壊しました！！！"
+                    f"通常兵器による攻撃が有効になります！"
+                    f"全地球国家に反撃の機会が訪れました！",
+                    involved_countries=list(self.state.countries.keys()) + ["global"]
+                )
+            return  # バリア有効中は本体へのダメージなし
+
         # ダメージ計算: 前線軍事力 × 投入率 × 25% × 弾頭数（対数スケーリング）
         # 弾頭数が増えるほどダメージは増加するが、対数的に逓減
         warhead_multiplier = math.log2(effective_warheads + 1)
@@ -332,6 +357,31 @@ class NuclearMixin:
                 involved_countries=[attacker_name, target_name, "global"]
             )
             return
+
+        # === 電磁バリアシステム: Alienのバリアに核が命中 ===
+        if getattr(target, 'is_alien', False) and getattr(target, 'alien_barrier_hp', 0) > 0:
+            old_hp = target.alien_barrier_hp
+            target.alien_barrier_hp = max(0, target.alien_barrier_hp - effective_warheads)
+            attacker.nuclear_warheads -= actual_warheads
+            self.log_event(
+                f"☢️🛡️ 【核攻撃 vs 電磁バリア】{attacker_name}の戦略核{effective_warheads}発が"
+                f"{target_name}の電磁バリアに命中！"
+                f"バリアHP: {old_hp} → {target.alien_barrier_hp}",
+                involved_countries=[attacker_name, target_name, "global"]
+            )
+            self.sys_logs_this_turn.append(
+                f"[電磁バリア被弾] {target_name}: 戦略核{effective_warheads}発命中 "
+                f"バリアHP {old_hp}→{target.alien_barrier_hp}"
+            )
+            if target.alien_barrier_hp <= 0:
+                self.log_event(
+                    f"💥🛸 【緊急速報：電磁バリア崩壊！】人類の核攻撃により"
+                    f"{target_name}の電磁バリアがついに崩壊しました！！！"
+                    f"通常兵器による攻撃が有効になります！"
+                    f"全地球国家に反撃の機会が訪れました！",
+                    involved_countries=list(self.state.countries.keys()) + ["global"]
+                )
+            return  # バリア有効中は本体へのダメージなし
 
         # ダメージ計算 (Glasstone & Dolan簡略モデル)
         # log2スケーリング: 弾頭数増加による対数的ダメージ増加

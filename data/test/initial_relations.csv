@@ -1,2 +1,4 @@
 country_a,country_b,relation_type,trade,sanctions_a_to_b,sanctions_b_to_a,war_aggressor,tariff_a_to_b,tariff_b_to_a,aggressor_commitment_ratio,defender_commitment_ratio,initial_occupation_progress,initial_aid_economy_a_to_b,initial_aid_military_a_to_b,initial_aid_economy_b_to_a,initial_aid_military_b_to_a
 A国,B国,neutral,false,false,false,,0.1,0.05,,,,,,,
+Alien,A国,neutral,false,false,false,,0.0,0.0,,,,,,,
+Alien,B国,neutral,false,false,false,,0.0,0.0,,,,,,,

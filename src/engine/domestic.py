@@ -43,6 +43,18 @@ class DomesticMixin:
     def _process_domestic(self, country_name: str, action: AgentAction):
         country = self.state.countries[country_name]
         
+        # === Alien特殊処理: 内政処理を完全スキップ（パラメータ固定） ===
+        if getattr(country, 'is_alien', False):
+            self.turn_domestic_factors[country_name] = {
+                "gdp_growth_rate": 0.0, "welfare_bonus": 0.0,
+                "inv_wel": 0.0, "trade_support_bonus": 0.0,
+                "inv_econ": 0.0, "inv_mil": 0.0, "total_inv": 1.0
+            }
+            self.sys_logs_this_turn.append(
+                f"[{country_name} Alien] 内政処理スキップ（パラメータ固定）"
+            )
+            return
+        
         # 秘密計画の更新
         if hasattr(action, 'update_hidden_plans') and action.update_hidden_plans:
             country.hidden_plans = action.update_hidden_plans

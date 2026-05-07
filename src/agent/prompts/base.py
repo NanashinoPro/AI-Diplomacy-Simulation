@@ -220,6 +220,14 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
                 f"GDPpc={disp_gdppc:.1f}, "
                 f"Relation={rel_str}{war_info}{suzerain_info}{nuke_info}\n"
             )
+            
+            # === Alien注記: 外交不可の警告表示（バリアHPは非表示） ===
+            if getattr(p_state, 'is_alien', False):
+                other_info += (
+                    f"  ⚠️ [ALIEN ENTITY] {p_name} is an unknown extraterrestrial entity. "
+                    f"Diplomatic actions (trade, summit, alliance, sanctions, aid) are IMPOSSIBLE. "
+                    f"Only military actions (declare_war, join_ally_defense, espionage) are available.\n"
+                )
 
             
             # Notify aid opportunities for newly independent/regime-changed nations

@@ -12,6 +12,11 @@ class PublicOpinionMixin:
         """
         for country_name, posts in timelines.items():
             country = self.state.countries[country_name]
+            
+            # === Alien特殊処理: 世論評価をスキップ（支持率固定） ===
+            if getattr(country, 'is_alien', False):
+                continue
+            
             sns_history = []
             total_sns_modifier = 0.0
             censored_count = 0

@@ -215,6 +215,29 @@ class DiplomacyMixin:
             target_name = dip.target_country
             if target_name not in self.state.countries:
                 continue
+            
+            # === Alienフィルタ: 地球国家→Alienの非軍事外交をシステム的にブロック ===
+            target_state = self.state.countries[target_name]
+            if getattr(target_state, 'is_alien', False):
+                # 軍事行動（宣戦布告・前線投入・諜報・共同防衛）のみ許可
+                # それ以外の外交行動を強制無効化
+                dip.propose_trade = False
+                dip.cancel_trade = False
+                dip.propose_summit = False
+                dip.accept_summit = False
+                dip.propose_multilateral_summit = False if hasattr(dip, 'propose_multilateral_summit') else False
+                dip.propose_alliance = False
+                dip.impose_sanctions = False
+                dip.lift_sanctions = False
+                dip.aid_amount_economy = 0.0 if hasattr(dip, 'aid_amount_economy') else None
+                dip.aid_amount_military = 0.0 if hasattr(dip, 'aid_amount_military') else None
+                dip.propose_annexation = False if hasattr(dip, 'propose_annexation') else False
+                dip.accept_annexation = False if hasattr(dip, 'accept_annexation') else False
+                dip.propose_ceasefire = False
+                dip.accept_ceasefire = False
+                self.sys_logs_this_turn.append(
+                    f"[{country_name}→{target_name} Alienフィルタ] 非軍事外交アクションをシステム却下"
+                )
                 
             # メッセージ送信
             if dip.message:

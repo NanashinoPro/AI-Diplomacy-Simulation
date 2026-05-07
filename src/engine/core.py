@@ -166,6 +166,12 @@ class WorldEngine(
         )
         for country_name, country in self.state.countries.items():
             old_gdp = country.economy
+            
+            # === Alien特殊処理: 固定予算 ===
+            if getattr(country, 'is_alien', False):
+                country.government_budget = country.economy * 0.5
+                continue
+            
             # 税収: 年間GDPに税率を掛け、ターン数で割って四半期化
             tax_revenue = (old_gdp * country.tax_rate) / TURNS_PER_YEAR
             
