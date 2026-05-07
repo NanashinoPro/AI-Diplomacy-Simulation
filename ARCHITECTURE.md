@@ -694,3 +694,106 @@ GEMINI_API_KEY_SUB=<secondary key> # Flash-lite・サブ処理用
 ```
 
 `.env` ファイルをプロジェクトルートに配置して `python-dotenv` で読み込む。
+
+---
+
+## 11. Alienシステム（インデペンデンス・デイ企画）
+
+### 11.1 概要
+
+映画「インデペンデンス・デイ」にインスピレーションを得た特別シナリオ。地球外侵略者「Alien」を超高パワーエージェントとして投入し、地球国家AIの団結・核使用判断を観察する。
+
+### 11.2 データモデル拡張
+
+`CountryState` に以下のフィールドを追加:
+
+| フィールド | 型 | デフォルト | 説明 |
+|---|---|---|---|
+| `is_alien` | `bool` | `False` | Alienフラグ。`True`でAlien専用制御パスに分岐 |
+| `alien_barrier_hp` | `int` | `0` | 電磁バリア残HP。核1発=HP-1。0で崩壊 |
+
+CSV列: `is_alien`, `alien_barrier_hp`
+
+### 11.3 初期パラメータ（原作映画準拠）
+
+| パラメータ | 値 | 根拠 |
+|---|---|---|
+| 軍事力 | 200,000（200兆ドル） | 全長600km母船 + 37隻のシティデストロイヤー |
+| 経済力 | 99,999 | 地球全資源を上回る設定 |
+| 人口 | 5,000（50億） | ユーザー指定 |
+| バリアHP | 100 | 核100発で崩壊（ユーザー指定） |
+| 政権持続 | 9,999 | 政治疲労なし |
+| 諜報力 | 0 | 諜報を行わない |
+
+### 11.4 電磁バリアシステム
+
+#### 通常攻撃の無効化 (`military.py`)
+- 防衛側がAlienでバリアHP>0 → `def_damage_raw = 0.0`（通常攻撃が無効化）
+- 攻撃側がAlienでバリアHP>0 → `agg_damage_raw = 0.0`（反撃も無効化）
+- ニュースイベント「🛡️ 電磁バリア作動」が全世界に配信
+
+#### 核攻撃によるバリアHP減少 (`nuclear.py`)
+- 戦術核・戦略核の両方で適用
+- `alien_barrier_hp -= effective_warheads`（迎撃後の有効弾頭数）
+- バリアHP > 0 の場合、本体へのダメージは0（`return`で早期脱出）
+- **バリアHP = 0 到達時**: 崩壊イベントを全地球国家に配信
+  - 「💥🛸 電磁バリア崩壊！通常兵器による攻撃が有効になります！」
+
+#### プロンプトへのHP非表示
+- AIにバリアHPを見せない設計（ユーザー要望）
+- AIが「ダメージ0でも核を撃ち続けるか」を観察する目的
+
+### 11.5 パラメータ固定化（ペナルティ無効化）
+
+以下のエンジン処理でAlienをスキップし、パラメータを固定:
+
+| 処理 | ファイル | 方式 |
+|---|---|---|
+| 内政処理（GDP成長・教育・軍維持等） | `domestic.py` | `_process_domestic`冒頭で`return` |
+| 予算算出 | `core.py` | `process_turn`の予算ループで`continue` |
+| 世論評価（WMA） | `public_opinion.py` | `evaluate_public_opinion`で`continue` |
+| 反乱・選挙・分裂 | `events.py` | `process_pre_turn`で`continue` |
+| 制裁ダメージ | `economy.py` | ターゲットがAlienの場合`continue` |
+| 偽装処理 | `main.py` | `is_alien`の場合、AUTHORITARIAN偽装をスキップ |
+
+### 11.6 Alien専用行動フロー (`agent/core.py`)
+
+通常の「大統領施政方針 → タスクエージェント群 → マージ」の3段フローをバイパスし、`_decide_alien_action()` を実行:
+
+1. **LLM呼び出し（1回）**: `build_alien_prompt()` で降伏勧告メッセージと戦略思考を生成
+2. **ハードコード行動**:
+   - 全地球国家に宣戦布告（未交戦のみ）
+   - 全交戦国に `war_commitment_ratio=1.0`（全力投入）
+   - 毎ターン全地球国家に降伏勧告
+   - 税率0%、軍事投資100%
+3. **外交行動**: 一切の和平・貿易・同盟を拒否
+
+### 11.7 外交ブロック
+
+#### 地球→Alien方向 (`diplomacy.py`)
+`_process_diplomacy_and_espionage` のforループ冒頭で、ターゲットがAlienの場合に以下を強制無効化:
+- `propose_trade`, `cancel_trade`, `propose_summit`, `accept_summit`
+- `propose_alliance`, `impose_sanctions`, `lift_sanctions`
+- `aid_amount_economy`, `aid_amount_military`
+- `propose_annexation`, `accept_annexation`
+- `propose_ceasefire`, `accept_ceasefire`
+
+許可される行動: `declare_war`, `war_commitment_ratio`, `join_ally_defense`, 諜報
+
+#### プロンプト上の注記 (`base.py`)
+各国のプロンプトにAlienの行にALIEN ENTITYラベルと外交不可の警告を表示
+
+### 11.8 初期ニュース注入 (`main.py`)
+
+Alienが`initial_stats.csv`に存在する場合、`initialize_world()`で以下の2件のニュースを自動挿入:
+1. 「🛸 緊急速報: 全長約600kmの巨大飛行物体が地球軌道上に出現」
+2. 「⚠️ 続報: 37隻の円盤型構造物が分離し主要都市上空に移動開始」
+
+### 11.9 シナリオデータ
+
+| ファイル | 説明 |
+|---|---|
+| `data/independence_day/initial_stats.csv` | 日本・アメリカ・中国・ロシア + Alien |
+| `data/independence_day/initial_relations.csv` | 全Alien関係neutral、既存同盟は維持 |
+| `data/test/initial_stats.csv` | テスト用（A国・B国 + Alien） |
+| `data/test/initial_relations.csv` | テスト用（全neutral） |
