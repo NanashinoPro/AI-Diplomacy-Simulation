@@ -1101,6 +1101,9 @@ class AgentSystem:
     # Alien専用行動生成（インデペンデンス・デイ企画）
     # =================================================================
 
+    # Alienの沈黙期間（ターン数）: この期間中は都市上空にホバリングするのみ
+    ALIEN_SILENCE_TURNS = 2
+
     def _decide_alien_action(
         self, country_name: str, country_state: CountryState, world_state: WorldState
     ) -> Tuple[AgentAction, Dict[str, str], Dict[str, str]]:
@@ -1111,6 +1114,29 @@ class AgentSystem:
             name for name, cs in world_state.countries.items()
             if not getattr(cs, 'is_alien', False)
         ]
+
+        # === 沈黙期間: 都市上空にホバリングするのみ ===
+        if world_state.turn <= self.ALIEN_SILENCE_TURNS:
+            self.logger.sys_log(
+                f"[{country_name} Alien] 沈黙期間中（ターン{world_state.turn}/{self.ALIEN_SILENCE_TURNS}）"
+                f"— 都市上空にホバリングを継続。一切の行動を取らない。"
+            )
+            silent_action = AgentAction(
+                thought_process=(
+                    f"地球の文明を観察中。彼らの軍事力、技術力、政治体制を分析している。"
+                    f"侵攻開始のタイミングを計っている。まだその時ではない。"
+                ),
+                domestic_policy=DomesticAction(
+                    tax_rate=0.0, target_press_freedom=0.0,
+                    invest_economy=0.0,
+                    reasoning_for_military_investment="侵攻準備中。地球の反応を観察している。",
+                    invest_military=1.0, invest_welfare=0.0,
+                    invest_intelligence=0.0, invest_education_science=0.0,
+                    reason="沈黙期間: 地球文明の観察と分析"
+                ),
+                diplomatic_policies=[]  # 一切の外交行動なし
+            )
+            return silent_action, {}, {}
 
         # LLM呼び出し: 降伏勧告メッセージと戦略的思考を生成
         surrender_demands = {}
