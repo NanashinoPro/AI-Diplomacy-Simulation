@@ -1117,7 +1117,14 @@ class AgentSystem:
         thought_process = "地球の全生命体を殲滅し、惑星の資源を収奪する。抵抗は無意味である。"
         try:
             prompt = build_alien_prompt(country_name, world_state, earth_countries)
-            response = self._generate_with_retry(self.model_name, prompt)
+            response = self._generate_with_retry(
+                "gemini-2.5-flash",  # Alienは軽量モデルで十分
+                prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                ),
+                category="Alien行動"
+            )
             if response:
                 response_text = response.text.strip() if hasattr(response, 'text') else str(response)
                 # ```json ... ``` ブロックを除去
@@ -1150,7 +1157,7 @@ class AgentSystem:
                 declare_war=not is_at_war,  # 未交戦なら宣戦布告
                 war_commitment_ratio=1.0,    # 全力投入
                 demand_surrender=True,
-                demand_surrender_message=demand_msg,
+                message=demand_msg,          # 降伏勧告メッセージ
                 # 全外交行動を拒否
                 accept_ceasefire=False,
                 propose_ceasefire=False,
@@ -1159,7 +1166,6 @@ class AgentSystem:
                 propose_alliance=False,
                 propose_summit=False,
                 accept_summit=False,
-                accept_alliance=False,
                 impose_sanctions=False,
                 lift_sanctions=False,
                 reason=f"惑星征服計画: {ec}を攻撃対象に指定",

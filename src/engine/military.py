@@ -132,12 +132,17 @@ class MilitaryMixin:
             aggressor.military = max(0.0, aggressor.military - agg_damage)
             
             # 人口減少計算（軍事ダメージ割合に比例。防衛側は戦場となるため民間人被害が大きい）
-            # ※係数を実態に即して修正（元の1/100スケール）
-            agg_pop_loss = aggressor.population * (agg_damage / max(1.0, agg_committed)) * 0.0005
-            def_pop_loss = defender.population * (def_damage_share / max(1.0, def_committed)) * 0.0015
-            
-            aggressor.population = max(0.1, aggressor.population - agg_pop_loss)
-            defender.population = max(0.1, defender.population - def_pop_loss)
+            # ※Alienは人口減少しない
+            if not getattr(aggressor, 'is_alien', False):
+                agg_pop_loss = aggressor.population * (agg_damage / max(1.0, agg_committed)) * 0.0005
+                aggressor.population = max(0.1, aggressor.population - agg_pop_loss)
+            else:
+                agg_pop_loss = 0.0
+            if not getattr(defender, 'is_alien', False):
+                def_pop_loss = defender.population * (def_damage_share / max(1.0, def_committed)) * 0.0015
+                defender.population = max(0.1, defender.population - def_pop_loss)
+            else:
+                def_pop_loss = 0.0
             
             # 累積損害の記録（講和時の賠償金計算用）
             war.aggressor_cumulative_military_loss += agg_damage
@@ -148,14 +153,18 @@ class MilitaryMixin:
             war.defender_cumulative_civilian_gdp_loss += def_pop_loss * def_gdp_per_capita
             
             # 経済デバフ（戦争状態による疲弊 + 投入比率に応じた追加負担）
+            # ※Alienは経済デバフを受けない
             agg_war_drain = 1.0 - (COMMITMENT_ECONOMIC_DRAIN * agg_commit)
             def_war_drain = 1.0 - (COMMITMENT_ECONOMIC_DRAIN * def_commit)
-            aggressor.economy *= max(0.90, 0.98 * agg_war_drain)
-            defender.economy *= max(0.90, 0.98 * def_war_drain)
+            if not getattr(aggressor, 'is_alien', False):
+                aggressor.economy *= max(0.90, 0.98 * agg_war_drain)
+            if not getattr(defender, 'is_alien', False):
+                defender.economy *= max(0.90, 0.98 * def_war_drain)
             
             # 支持率デバフ/ボーナス
-            # 攻撃側: 長引く戦争の不満
-            aggressor.approval_rating -= 1.0
+            # 攻撃側: 長引く戦争の不満（Alienは免除）
+            if not getattr(aggressor, 'is_alien', False):
+                aggressor.approval_rating -= 1.0
             
             # 防衛側: Rally 'round the flag 効果 (Mueller 1970, 1973)
             war_turns = war.war_turns_elapsed
