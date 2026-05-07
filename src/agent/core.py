@@ -1117,9 +1117,15 @@ class AgentSystem:
         thought_process = "地球の全生命体を殲滅し、惑星の資源を収奪する。抵抗は無意味である。"
         try:
             prompt = build_alien_prompt(country_name, world_state, earth_countries)
-            response = self._generate_with_retry(prompt)
+            response = self._generate_with_retry(self.model_name, prompt)
             if response:
-                parsed = json.loads(response)
+                response_text = response.text.strip() if hasattr(response, 'text') else str(response)
+                # ```json ... ``` ブロックを除去
+                if "```json" in response_text:
+                    response_text = response_text.split("```json")[-1].split("```")[0].strip()
+                elif "```" in response_text:
+                    response_text = response_text.split("```")[1].strip()
+                parsed = json.loads(response_text)
                 thought_process = parsed.get("thought_process", thought_process)
                 surrender_demands = parsed.get("surrender_demands", {})
                 self.logger.sys_log(f"[{country_name} Alien] LLM応答取得: {thought_process[:100]}")
