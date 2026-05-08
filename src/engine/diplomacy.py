@@ -592,31 +592,62 @@ class DiplomacyMixin:
             strategy = (action.espionage_sabotage_strategy or "").lower()
             
             if is_success:
-                dmg_approval = random.uniform(5.0, 15.0)
-                dmg_econ_multiplier = 0.95
-                
-                if any(k in strategy for k in ["sns", "情報", "フェイク", "デマ", "世論", "プロパガンダ", "インフル", "選挙", "メディア", "認知戦"]):
-                    dmg_approval = random.uniform(10.0, 20.0)
-                    dmg_econ_multiplier = 0.98
-                    self.log_event(f"📱 {target_name}のネット空間や社会で大規模な混乱や不審な世論操作の痕跡が確認され、政権支持率が急落しています。", involved_countries=[target_name, "global"])
-                elif any(k in strategy for k in ["インフラ", "爆破", "物理", "暗殺", "テロ", "マルウェア", "ハッキング", "システム", "電力", "サイバー", "通信", "ネットワーク"]):
-                    dmg_econ_multiplier = 0.90
-                    dmg_approval = random.uniform(2.0, 6.0)
-                    self.log_event(f"💻 {target_name}の社会インフラ・主要システムに原因不明の重大な障害が発生しました。", involved_countries=[target_name, "global"])
+                # === Alien特殊処理: 破壊工作成功時にバリアHP減少 ===
+                if getattr(target, 'is_alien', False) and getattr(target, 'alien_barrier_hp', 0) > 0:
+                    # サイバー系攻撃は電磁バリアに特効
+                    if any(k in strategy for k in ["サイバー", "ハッキング", "システム", "電力", "通信", "ネットワーク", "マルウェア", "電磁"]):
+                        barrier_damage = 25  # サイバー系特効
+                        attack_type = "サイバー攻撃"
+                    else:
+                        barrier_damage = 10  # 通常の破壊工作
+                        attack_type = "破壊工作"
+                    old_hp = target.alien_barrier_hp
+                    target.alien_barrier_hp = max(0, target.alien_barrier_hp - barrier_damage)
+
+                    self.log_event(
+                        f"⚡ 【バリア損傷】{attacker_name}の{attack_type}により{target_name}の電磁バリアに損傷！"
+                        f"（バリアHP: {old_hp} → {target.alien_barrier_hp}）",
+                        involved_countries=[attacker_name, target_name, "global"]
+                    )
+                    self.sys_logs_this_turn.append(
+                        f"[{attacker_name}→{target_name} Alien破壊工作] バリアHP: {old_hp} → {target.alien_barrier_hp} (-{barrier_damage}, {attack_type})"
+                    )
+                    if target.alien_barrier_hp <= 0:
+                        self.log_event(
+                            f"💥 【バリア崩壊！】{target_name}の電磁バリアが完全に崩壊しました！"
+                            f"通常兵器による攻撃が有効になりました！",
+                            involved_countries=[target_name, "global"]
+                        )
+                    attacker.hidden_plans += f" [工作成果: {target_name}の電磁バリアに損傷を与えた（バリアHP: {old_hp}→{target.alien_barrier_hp}）。継続して弱体化を狙う]"
                 else:
-                    self.log_event(f"💣 {target_name}で社会不安を高める不審な事件が連続して発生しています。", involved_countries=[target_name, "global"])
+                    # === 通常の破壊工作ダメージ ===
+                    dmg_approval = random.uniform(5.0, 15.0)
+                    dmg_econ_multiplier = 0.95
                     
-                target.approval_rating = max(0.0, target.approval_rating - dmg_approval)
-                target.economy *= dmg_econ_multiplier
-                attacker.hidden_plans += f" [工作成果: {target_name}に対して「{action.espionage_sabotage_strategy}」を実行し、社会不安を煽ることに成功した。継続して弱体化を狙う]"
+                    if any(k in strategy for k in ["sns", "情報", "フェイク", "デマ", "世論", "プロパガンダ", "インフル", "選挙", "メディア", "認知戦"]):
+                        dmg_approval = random.uniform(10.0, 20.0)
+                        dmg_econ_multiplier = 0.98
+                        self.log_event(f"📱 {target_name}のネット空間や社会で大規模な混乱や不審な世論操作の痕跡が確認され、政権支持率が急落しています。", involved_countries=[target_name, "global"])
+                    elif any(k in strategy for k in ["インフラ", "爆破", "物理", "暗殺", "テロ", "マルウェア", "ハッキング", "システム", "電力", "サイバー", "通信", "ネットワーク"]):
+                        dmg_econ_multiplier = 0.90
+                        dmg_approval = random.uniform(2.0, 6.0)
+                        self.log_event(f"💻 {target_name}の社会インフラ・主要システムに原因不明の重大な障害が発生しました。", involved_countries=[target_name, "global"])
+                    else:
+                        self.log_event(f"💣 {target_name}で社会不安を高める不審な事件が連続して発生しています。", involved_countries=[target_name, "global"])
+                        
+                    target.approval_rating = max(0.0, target.approval_rating - dmg_approval)
+                    target.economy *= dmg_econ_multiplier
+                    attacker.hidden_plans += f" [工作成果: {target_name}に対して「{action.espionage_sabotage_strategy}」を実行し、社会不安を煽ることに成功した。継続して弱体化を狙う]"
                 
                 # 破壊工作成功時、SNS投稿（偽情報・体制批判）を作成するためのリクエストをキューに追加
-                self.pending_sabotage_requests.append({
-                    "attacker": attacker_name,
-                    "target": target_name,
-                    "target_hidden_plans": target.hidden_plans,
-                    "strategy": action.espionage_sabotage_strategy
-                })
+                # ※ Alienへの破壊工作成功時はSNSリクエストをスキップ（Alienに国民は存在しない）
+                if not getattr(target, 'is_alien', False):
+                    self.pending_sabotage_requests.append({
+                        "attacker": attacker_name,
+                        "target": target_name,
+                        "target_hidden_plans": target.hidden_plans,
+                        "strategy": action.espionage_sabotage_strategy
+                    })
 
             # 発覚処理
             if is_discovered:

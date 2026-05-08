@@ -162,6 +162,13 @@ class CountryState(BaseModel):
             "0になるとバリア崩壊し通常攻撃が有効化する。"
         )
     )
+    alien_city_destroyer_charged: bool = Field(
+        False,
+        description=(
+            "シティ・デストロイヤーのチャージ状態。"
+            "Trueなら発射可能。発射後Falseにリセットされ、次ターンに再チャージ。"
+        )
+    )
 
 # ---------------------------------------------------------
 # アクション定義（AIが出力するJSON構造）

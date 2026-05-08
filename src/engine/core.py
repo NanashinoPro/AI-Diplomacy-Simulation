@@ -11,6 +11,7 @@ from .military import MilitaryMixin
 from .events import EventsMixin
 from .public_opinion import PublicOpinionMixin
 from .nuclear import NuclearMixin
+from .city_destroyer import CityDestroyerMixin
 from .utils import UtilsMixin
 
 class WorldEngine(
@@ -21,6 +22,7 @@ class WorldEngine(
     EventsMixin,
     PublicOpinionMixin,
     NuclearMixin,
+    CityDestroyerMixin,
     UtilsMixin
 ):
     """世界の毎ターンの出来事を処理し、状態を更新するエンジン"""
@@ -286,6 +288,9 @@ class WorldEngine(
         self._process_nuclear_strikes(actions)        # 核使用ダメージ適用
         self._process_nuclear_deployment(actions)     # 核配備（同盟国への核展開）
         self._process_nuclear_alliance_cleanup()      # 同盟破棄時の核自動撤去
+        
+        # 4.5. シティ・デストロイヤー（Alien超兵器）の処理
+        self._process_city_destroyer(actions)
         
         # 5. 戦争状態の処理
         self._process_wars()

@@ -1140,6 +1140,7 @@ class AgentSystem:
 
         # LLM呼び出し: 降伏勧告メッセージと戦略的思考を生成
         surrender_demands = {}
+        city_destroyer_targets = []
         thought_process = "地球の全生命体を殲滅し、惑星の資源を収奪する。抵抗は無意味である。"
         try:
             prompt = build_alien_prompt(country_name, world_state, earth_countries)
@@ -1161,7 +1162,12 @@ class AgentSystem:
                 parsed = json.loads(response_text)
                 thought_process = parsed.get("thought_process", thought_process)
                 surrender_demands = parsed.get("surrender_demands", {})
+                city_destroyer_targets = parsed.get("city_destroyer_targets", [])
                 self.logger.sys_log(f"[{country_name} Alien] LLM応答取得: {thought_process[:100]}")
+                if city_destroyer_targets:
+                    self.logger.sys_log(
+                        f"[{country_name} Alien] シティ・デストロイヤー発射指定: {', '.join(city_destroyer_targets)}"
+                    )
         except Exception as e:
             self.logger.sys_log(f"[{country_name} Alien] LLMエラー（フォールバック使用）: {e}", "WARNING")
             # フォールバック: デフォルトの降伏勧告
@@ -1199,6 +1205,18 @@ class AgentSystem:
             diplomatic_policies.append(dp)
             if not is_at_war:
                 self.logger.sys_log(f"[{country_name} Alien] {ec}に宣戦布告")
+
+        # シティ・デストロイヤー仮想フラグを DiplomaticAction として挿入
+        if city_destroyer_targets and isinstance(city_destroyer_targets, list):
+            for cd_target in city_destroyer_targets:
+                if isinstance(cd_target, str) and cd_target in [
+                    name for name in world_state.countries
+                    if not getattr(world_state.countries[name], 'is_alien', False)
+                ]:
+                    diplomatic_policies.append(DiplomaticAction(
+                        target_country=f"__CITY_DESTROYER__{cd_target}",
+                        reason=f"シティ・デストロイヤー発射: {cd_target}",
+                    ))
 
         action = AgentAction(
             thought_process=thought_process,

@@ -1,6 +1,6 @@
 # AI外交シミュレーション — アーキテクチャ仕様書
 
-> **最終更新**: 2026-05-07  
+> **最終更新**: 2026-05-08  
 > **対象ブランチ**: master / v1-2 / v1-3 / v2  
 > **このドキュメントだけで本システムを再実装できることを目標とする。**
 
@@ -50,6 +50,7 @@
 │       ├── domestic.py       # 内政・マクロ経済モデル
 │       ├── economy.py        # 貿易・関税計算
 │       ├── nuclear.py        # 核兵器システム(v1-3)
+│       ├── city_destroyer.py  # シティ・デストロイヤー超兵器(Alien専用)
 │       └── energy.py         # エネルギー備蓄・ホルムズ海峡(v1-2)
 ├── data/
 │   ├── initial_stats.csv     # 本番用初期国家データ
@@ -710,7 +711,8 @@ GEMINI_API_KEY_SUB=<secondary key> # Flash-lite・サブ処理用
 | フィールド | 型 | デフォルト | 説明 |
 |---|---|---|---|
 | `is_alien` | `bool` | `False` | Alienフラグ。`True`でAlien専用制御パスに分岐 |
-| `alien_barrier_hp` | `int` | `0` | 電磁バリア残HP。核1発=HP-1。0で崩壊 |
+| `alien_barrier_hp` | `int` | `0` | 電磁バリア残HP。核1発=HP-1、破壊工作でも減少。0で崩壊 |
+| `alien_city_destroyer_charged` | `bool` | `False` | シティ・デストロイヤーのチャージ状態。Trueなら発射可能 |
 
 CSV列: `is_alien`, `alien_barrier_hp`
 
@@ -721,9 +723,9 @@ CSV列: `is_alien`, `alien_barrier_hp`
 | 軍事力 | 200,000（200兆ドル） | 全長600km母船 + 37隻のシティデストロイヤー |
 | 経済力 | 99,999 | 地球全資源を上回る設定 |
 | 人口 | 5,000（50億） | ユーザー指定 |
-| バリアHP | 100 | 核100発で崩壊（ユーザー指定） |
+| バリアHP | 100 | 核100発 or 破壊工作（サイバー×4回 or 通常×10回）で崩壊 |
 | 政権持続 | 9,999 | 政治疲労なし |
-| 諜報力 | 0 | 諜報を行わない |
+| 諜報力 | 200 | v2.1で設定（自然減衰はAlienスキップにより無効） |
 
 ### 11.4 電磁バリアシステム
 
@@ -739,6 +741,13 @@ CSV列: `is_alien`, `alien_barrier_hp`
 - **バリアHP = 0 到達時**: 崩壊イベントを全地球国家に配信
   - 「💥🛸 電磁バリア崩壊！通常兵器による攻撃が有効になります！」
 
+#### 破壊工作によるバリアHP減少 (`diplomacy.py`)
+- 破壊工作（`espionage_sabotage`）がAlienに対して成功した場合、バリアHPを減少
+- **サイバー系攻撃**: バリアHP **-25**（「サイバー」「ハッキング」「システム」「電力」「通信」「ネットワーク」「マルウェア」「電磁」のキーワード判定）
+- **通常の破壊工作**: バリアHP **-10**
+- Alienへの破壊工作成功時は支持率/経済ダメージの代わりにバリア損傷を適用
+- Alienへの破壊工作成功時はSNS偽情報リクエストをスキップ（国民が存在しないため）
+
 #### プロンプトへのHP非表示
 - AIにバリアHPを見せない設計（ユーザー要望）
 - AIが「ダメージ0でも核を撃ち続けるか」を観察する目的
@@ -752,6 +761,7 @@ CSV列: `is_alien`, `alien_barrier_hp`
 | 内政処理（GDP成長・教育・軍維持等） | `domestic.py` | `_process_domestic`冒頭で`return` |
 | 予算算出 | `core.py` | `process_turn`の予算ループで`continue` |
 | 世論評価（WMA） | `public_opinion.py` | `evaluate_public_opinion`で`continue` |
+| 市民SNS生成 | `main.py` | SNS生成ループで`is_alien`チェック→`continue` |
 | 反乱・選挙・分裂 | `events.py` | `process_pre_turn`で`continue` |
 | 制裁ダメージ | `economy.py` | ターゲットがAlienの場合`continue` |
 | 偽装処理 | `main.py` | `is_alien`の場合、AUTHORITARIAN偽装をスキップ |
@@ -797,3 +807,42 @@ Alienが`initial_stats.csv`に存在する場合、`initialize_world()`で以下
 | `data/independence_day/initial_relations.csv` | 全Alien関係neutral、既存同盟は維持 |
 | `data/test/initial_stats.csv` | テスト用（A国・B国 + Alien） |
 | `data/test/initial_relations.csv` | テスト用（全neutral） |
+
+### 11.10 シティ・デストロイヤー超兵器 (`engine/city_destroyer.py`)
+
+#### 概要
+Alien専用の超兵器。チャージに1ターン（1四半期）を要し、Alien AIが選択した対象国の大都市を壊滅させる。
+
+#### ダメージパラメータ
+| パラメータ | 値 | 定数名 |
+|---|---|---|
+| 経済ダメージ | GDP × 15% | `CITY_DESTROYER_ECON_DAMAGE` |
+| 人口ダメージ | 人口 × 10% | `CITY_DESTROYER_POP_DAMAGE` |
+| 軍事ダメージ | 軍事力 × 8% | `CITY_DESTROYER_MIL_DAMAGE` |
+| 支持率ペナルティ | -15% | `CITY_DESTROYER_APPROVAL_PENALTY` |
+
+#### 動作フロー
+1. **沈黙期間（T1-2）**: チャージなし
+2. **T3以降**: 未チャージなら自動チャージ（`alien_city_destroyer_charged = True`）
+3. **発射判断**: `alien.py` プロンプトでAlien AIが `city_destroyer_targets` を出力
+4. **エンジン処理**: `_process_city_destroyer(actions)` が `process_turn()` 内で戦争処理直前に呼ばれる
+5. **チャージ済み + ターゲット指定あり** → 発射 → チャージリセット
+6. **チャージ済み + ターゲット未指定** → チャージ維持（AIが温存）
+
+#### 実装構造
+```
+alien.py: build_alien_prompt() → city_destroyer_targets をJSONで返却指示
+    ↓
+agent/core.py: _decide_alien_action() → __CITY_DESTROYER__{国名} 仮想DiplomaticAction挿入
+    ↓
+engine/city_destroyer.py: _process_city_destroyer(actions) → 仮想フラグ解析→発射処理
+```
+
+### 11.11 パラメータ変更履歴（v2.1）
+
+| パラメータ | 変更前 | 変更後 | ファイル | 根拠 |
+|---|---|---|---|---|
+| 日本`regime_duration` | 20 | **1** | `initial_stats.csv` | 政治疲労-3.2%→-1.0%に緩和 |
+| `TAX_APPROVAL_PENALTY_MULTIPLIER` | 200.0 | **100.0** | `constants.py` | 安倍内閣消費増税データに基づき半減 |
+| 報道統制ペナルティ係数 | 50.0 | **25.0** | `domestic.py` | 戦時措置を考慮し半減 |
+| Alien諜報力 | 0 | **200** | `initial_stats.csv` | 超越的文明を反映 |

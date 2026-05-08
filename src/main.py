@@ -741,6 +741,9 @@ def main():
         for country, state in world_state.countries.items():
             if country not in sns_timelines:
                 continue
+            # Alienは市民SNSをスキップ（国民が存在しないため）
+            if getattr(state, 'is_alien', False):
+                continue
             current_posts = len(sns_timelines[country])
             needed = 5 - current_posts
             if needed > 0:
