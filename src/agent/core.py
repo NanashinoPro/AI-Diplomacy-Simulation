@@ -1188,13 +1188,12 @@ class AgentSystem:
                 (w.aggressor == ec and w.defender == country_name)
                 for w in world_state.active_wars
             )
-            demand_msg = surrender_demands.get(ec, f"{ec}よ、降伏せよ。抵抗は無意味だ。")
             dp = DiplomaticAction(
                 target_country=ec,
                 declare_war=not is_at_war,  # 未交戦なら宣戦布告
                 war_commitment_ratio=1.0,    # 全力投入
                 demand_surrender=True,
-                message=demand_msg,          # 降伏勧告メッセージ
+                message=None,               # Alienは言語による意思疎通を行わない
                 # 全外交行動を拒否
                 accept_ceasefire=False,
                 propose_ceasefire=False,

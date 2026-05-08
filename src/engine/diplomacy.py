@@ -665,39 +665,45 @@ class DiplomacyMixin:
                     self.log_event(f"🚨 【工作未遂・発覚】{target_name}の防諜機関が、{attacker_name}による工作計画「{action.espionage_sabotage_strategy}」を未然に阻止し、大々的に摘発しました！", involved_countries=[target_name, attacker_name, "global"])
 
         if action.espionage_gather_intel:
-            # 情報収集の判定
-            # 成功率 (基本30%、キャップなし)
-            intel_success_base = 0.30 + (intel_ratio * 0.15)
-            intel_success_chance = max(0.15, intel_success_base)
-            is_success = random.random() < intel_success_chance
+            # === Alien情報収集ブロック: Alienの技術体系は人類の諜報では解読不能 ===
+            if getattr(target, 'is_alien', False):
+                self.sys_logs_this_turn.append(
+                    f"[{attacker_name}→{target_name} 情報収集] Alienの技術体系は人類の諜報活動では解読不能。情報収集をシステム却下"
+                )
+            else:
+                # 情報収集の判定
+                # 成功率 (基本30%、キャップなし)
+                intel_success_base = 0.30 + (intel_ratio * 0.15)
+                intel_success_chance = max(0.15, intel_success_base)
+                is_success = random.random() < intel_success_chance
 
-            # 発覚率 (基本10%、下限のみ)
-            intel_discovery_base = 0.10 - (intel_ratio * 0.10)
-            discovery_chance = max(0.05, intel_discovery_base)
-            is_discovered = random.random() < discovery_chance
-            
-            # --- 情報収集の判定結果を必ずシステムログに記録 ---
-            self.sys_logs_this_turn.append(
-                f"[{attacker_name}→{target_name} 情報収集] "
-                f"成功率:{intel_success_chance:.1%} → {'成功' if is_success else '失敗'} | "
-                f"発覚率:{discovery_chance:.1%} → {'発覚' if is_discovered else '未発覚'}"
-            )
-            
-            if is_success:
-                # 秘密裏の成功・発覚に関わらず、レポートは生成するためRequestに積む
-                self.pending_intel_requests.append({
-                    "attacker": attacker_name,
-                    "target": target_name,
-                    "target_hidden_plans": target.hidden_plans,
-                    "strategy": action.espionage_intel_strategy or "相手の秘密計画や弱点を探れ"
-                })
-
-            # 発覚処理
-            if is_discovered:
+                # 発覚率 (基本10%、下限のみ)
+                intel_discovery_base = 0.10 - (intel_ratio * 0.10)
+                discovery_chance = max(0.05, intel_discovery_base)
+                is_discovered = random.random() < discovery_chance
+                
+                # --- 情報収集の判定結果を必ずシステムログに記録 ---
+                self.sys_logs_this_turn.append(
+                    f"[{attacker_name}→{target_name} 情報収集] "
+                    f"成功率:{intel_success_chance:.1%} → {'成功' if is_success else '失敗'} | "
+                    f"発覚率:{discovery_chance:.1%} → {'発覚' if is_discovered else '未発覚'}"
+                )
+                
                 if is_success:
-                    self.log_event(f"🚨 【情報漏洩発覚】{target_name}の政府システムや要人周辺から、{attacker_name}へと何らかの機密情報が流出していた痕跡が発見されました。", involved_countries=[target_name, attacker_name, "global"])
-                else:
-                    self.log_event(f"🚨 【スパイ摘発】{attacker_name}の諜報員が{target_name}にて機密情報を探っていたところを現地当局に発見され、強制排除されました。情報の流出は阻止されました。", involved_countries=[target_name, attacker_name, "global"])
+                    # 秘密裏の成功・発覚に関わらず、レポートは生成するためRequestに積む
+                    self.pending_intel_requests.append({
+                        "attacker": attacker_name,
+                        "target": target_name,
+                        "target_hidden_plans": target.hidden_plans,
+                        "strategy": action.espionage_intel_strategy or "相手の秘密計画や弱点を探れ"
+                    })
+
+                # 発覚処理
+                if is_discovered:
+                    if is_success:
+                        self.log_event(f"🚨 【情報漏洩発覚】{target_name}の政府システムや要人周辺から、{attacker_name}へと何らかの機密情報が流出していた痕跡が発見されました。", involved_countries=[target_name, attacker_name, "global"])
+                    else:
+                        self.log_event(f"🚨 【スパイ摘発】{attacker_name}の諜報員が{target_name}にて機密情報を探っていたところを現地当局に発見され、強制排除されました。情報の流出は阻止されました。", involved_countries=[target_name, attacker_name, "global"])
 
     def _handle_peaceful_annexation(self, absorber_name: str, absorbed_name: str):
         absorber = self.state.countries[absorber_name]
