@@ -591,6 +591,14 @@ class DiplomacyMixin:
             
             strategy = (action.espionage_sabotage_strategy or "").lower()
             
+            # --- 破壊工作の判定結果を必ずシステムログに記録 ---
+            self.sys_logs_this_turn.append(
+                f"[{attacker_name}→{target_name} 破壊工作] "
+                f"手法={action.espionage_sabotage_strategy or '不明'} | "
+                f"成功率:{sabotage_success_chance:.1%} → {'成功' if is_success else '失敗'} | "
+                f"発覚率:{discovery_chance:.1%} → {'発覚' if is_discovered else '未発覚'}"
+            )
+            
             if is_success:
                 # === Alien特殊処理: 破壊工作成功時にバリアHP減少 ===
                 if getattr(target, 'is_alien', False) and getattr(target, 'alien_barrier_hp', 0) > 0:
@@ -655,10 +663,6 @@ class DiplomacyMixin:
                     self.log_event(f"🚨 【重大事態】{target_name}を襲った一連の事件について、当局の捜査により{attacker_name}の工作機関による関与であったことが特定され、白日の下に晒されました！", involved_countries=[target_name, attacker_name, "global"])
                 else:
                     self.log_event(f"🚨 【工作未遂・発覚】{target_name}の防諜機関が、{attacker_name}による工作計画「{action.espionage_sabotage_strategy}」を未然に阻止し、大々的に摘発しました！", involved_countries=[target_name, attacker_name, "global"])
-            else:
-                if not is_success:
-                     # 失敗かつ未発覚：相手のニュースにも自国のニュースにも出ない扱いとし、エージェントの思考ループを防ぐためプロンプトにはフィードバックしない
-                     pass
 
         if action.espionage_gather_intel:
             # 情報収集の判定
@@ -672,6 +676,13 @@ class DiplomacyMixin:
             discovery_chance = max(0.05, intel_discovery_base)
             is_discovered = random.random() < discovery_chance
             
+            # --- 情報収集の判定結果を必ずシステムログに記録 ---
+            self.sys_logs_this_turn.append(
+                f"[{attacker_name}→{target_name} 情報収集] "
+                f"成功率:{intel_success_chance:.1%} → {'成功' if is_success else '失敗'} | "
+                f"発覚率:{discovery_chance:.1%} → {'発覚' if is_discovered else '未発覚'}"
+            )
+            
             if is_success:
                 # 秘密裏の成功・発覚に関わらず、レポートは生成するためRequestに積む
                 self.pending_intel_requests.append({
@@ -680,9 +691,6 @@ class DiplomacyMixin:
                     "target_hidden_plans": target.hidden_plans,
                     "strategy": action.espionage_intel_strategy or "相手の秘密計画や弱点を探れ"
                 })
-            else:
-                # 失敗かつ未発覚：エージェントの思考ループを防ぐためプロンプトにはフィードバックしない
-                pass
 
             # 発覚処理
             if is_discovered:

@@ -245,6 +245,9 @@ class AgentSystem:
             self.logger.sys_log(f"[{country_name}:{role}] レスポンス受信完了 (所要時間: {elapsed:.2f}秒)")
             response_text = response_text.strip()
 
+            # --- 全タスク共通: 生JSONをシステムログに記録 ---
+            self.logger.sys_log_detail(f"{country_name} {role}", response_text)
+
             # --- タスクログバッファに自動収集 ---
             if not hasattr(self, '_task_log_buffer'):
                 self._task_log_buffer: Dict[str, Dict[str, str]] = {}
@@ -295,7 +298,7 @@ class AgentSystem:
         except Exception as e:
             self.logger.sys_log(f"[{country_name}:P-01] パースエラー: {e}", "ERROR")
             policy = PresidentPolicy(stance="防御型", directives=["現状維持"], hidden_plans="", sns_posts=[])
-        self.logger.sys_log_detail(f"{country_name} P-01 Policy", raw)
+        # sys_log_detailは_execute_agentで共通出力済み
         return policy
 
     def _run_phase0_major_diplomacy(
@@ -306,7 +309,7 @@ class AgentSystem:
         prompt = build_major_diplomacy_prompt(country_name, country_state, world_state, policy, past_news)
         raw = self._execute_agent(country_name, "重大外交(P-02)", prompt, "major_diplomacy", "gemini-2.5-flash")
         d = self._safe_json(raw)
-        self.logger.sys_log_detail(f"{country_name} P-02 MajorDiplomacy", raw)
+        # sys_log_detailは_execute_agentで共通出力済み
         return d
 
     # =================================================================
@@ -358,7 +361,7 @@ class AgentSystem:
                     analyst_prompt, "analyst", "gemini-2.5-flash-lite"
                 )
                 analyst_reports[target_name] = report
-                self.logger.sys_log_detail(f"{country_name} Analyst Report (vs {target_name})", report)
+                # sys_log_detailは_execute_agentで共通出力済み
             except Exception as exc:
                 self.logger.sys_log(f"[{country_name}:分析官(対{target_name})] 例外: {exc}", "ERROR")
                 analyst_reports[target_name] = "分析データなし（エラー）"
@@ -562,6 +565,8 @@ class AgentSystem:
                 old_plans = re.sub(r'\[M-01核使用提言\][^\[]*', '', old_plans)
                 country_state.hidden_plans = old_plans.strip() + f" [M-01核使用提言] {nuke_rec}"
                 result["nuclear_use_recommendation"] = nuke_rec
+            else:
+                self.logger.sys_log(f"[{country_name}:M-01] 核使用提言: なし")
         except Exception as e:
             self.logger.sys_log(f"[{country_name}:M-01] エラー: {e}", "ERROR")
 
