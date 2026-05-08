@@ -395,7 +395,7 @@ else:
 | 20% | 0.40 | 0.79 | フロア到達 |
 | 13% | 0.40 | 0.79 | 旧モデルでは過大な打撃 |
 
-### 4-5. 軍事衝突モデル（リチャードソン軍備競争）
+### 4-5. 軍事衝突モデル（src/engine/military.py）
 ```
 attack_power = military × commitment_ratio × (1 + tech_bonus)
 defense_power = military × commitment_ratio × (1 + hci_bonus)
@@ -403,6 +403,35 @@ if attack_power > defense_power × 1.2:  占領進行
 elif defense_power > attack_power × 1.2: 逆転占領
 occupation_progress += delta  # 100%到達で征服
 ```
+
+#### 戦闘損耗キャップ（v2.2追加）
+```python
+# 1ターン（1四半期）あたりの最大戦闘損耗率
+MAX_COMBAT_ATTRITION_RATIO = 0.30  # 投入戦力の30%が上限
+
+# ダメージ計算
+agg_damage_raw = def_power × random.uniform(0.05, 0.15)
+def_damage_raw = agg_power × random.uniform(0.05, 0.15)
+
+# キャップ適用: 投入戦力の30%を超えるダメージは発生しない
+agg_damage = min(agg_damage_raw, agg_committed × MAX_COMBAT_ATTRITION_RATIO)
+def_damage = min(def_damage_raw, total_def_committed × MAX_COMBAT_ATTRITION_RATIO)
+```
+
+**[学術的根拠]**
+- 軍事学における「戦闘不能（全滅）」= 損耗率30%で組織的戦闘遂行能力を喪失
+  (wdic.org; Wikipedia「損耗」; U.S. Army FM 105-5, 1964)
+- Dupuy Institute: 防衛側が損耗40%で崩壊確率≈100%, 攻撃側は20%で進撃停止
+  (Dorothy Clark, 1954: 43個WW2大隊の分析)
+- 投入部隊の100%が一撃で消滅する（殲滅）のは非現実的。敗残兵の後退・再編成・装備回収が発生するため、
+  1四半期の交戦で被り得る最大級の打撃＝30%をキャップとする。
+
+**旧モデルとの比較（Alien vs アメリカ、軍事力787時）:**
+| ターン | 旧（キャップ100%） | 新（キャップ30%） |
+|--------|-------------------|------------------|
+| T3 | 787→158（-80%） | 787→598（-24%） |
+| T4 | 162→32（-80%） | 598→454（-24%） |
+| T5 | 38→7（-82%） | 454→345（-24%） |
 
 ### 4-6. 核兵器システム（v1-3, src/engine/nuclear.py）
 

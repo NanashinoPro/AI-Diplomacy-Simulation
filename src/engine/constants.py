@@ -75,6 +75,17 @@ SANCTION_SENDER_MAX_COST = 0.005          # 発動国コスト上限: 0.5%/タ�
 # 戦争モデルの定数
 DEFENDER_ADVANTAGE_MULTIPLIER = 1.2
 
+# 1ターン（1四半期）あたりの最大戦闘損耗率（投入戦力に対する割合）
+# [学術的根拠]
+#   - 軍事学における「戦闘不能（全滅）」の定義: 損耗率30%で組織的戦闘遂行能力を喪失
+#     (wdic.org「全滅」; Wikipedia「損耗」; U.S. Army FM 105-5, 1964)
+#   - Dupuy Institute: 防衛側が損耗40%で崩壊確率≈100%, 攻撃側は20%で進撃停止
+#     (Dorothy Clark, 1954: 43個WW2大隊の分析; dupuyinstitute.org)
+#   - 30%は「1四半期の交戦で被り得る最大級の打撃」として妥当。
+#     投入部隊の100%が一撃で消滅する（殲滅）のは非現実的であり、
+#     敗残兵の後退・再編成・装備回収が発生するため損耗にはキャップが存在する。
+MAX_COMBAT_ATTRITION_RATIO = 0.30
+
 # 軍事侵攻比率モデルの定数
 # [学術的根拠] U.S. Army FM 3-0: 攻撃3:1ルール、Dupuy Institute: 歴史的戦力比分析
 DEFAULT_AGGRESSOR_COMMITMENT = 0.50   # 攻撃側デフォルト投入率（侵攻軍の50%を前線に）
