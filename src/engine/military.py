@@ -3,7 +3,8 @@ import random
 from .constants import (
     DEFENDER_ADVANTAGE_MULTIPLIER,
     MIN_COMMITMENT_RATIO,
-    COMMITMENT_ECONOMIC_DRAIN
+    COMMITMENT_ECONOMIC_DRAIN,
+    MAX_COMBAT_ATTRITION_RATIO
 )
 
 class MilitaryMixin:
@@ -83,12 +84,14 @@ class MilitaryMixin:
             agg_damage_raw = def_power * random.uniform(0.05, 0.15)
             def_damage_raw = agg_power * random.uniform(0.05, 0.15)
             
-            # 損害は投入分のみに適用（後方予備軍は温存）
-            agg_damage = min(agg_damage_raw, agg_committed)
+            # 損害は投入分の一定割合が上限（後方予備軍は温存 + 敗残兵の後退・再編成を考慮）
+            # [学術的根拠] 軍事学的「戦闘不能（全滅）」= 損耗率30%で組織的戦闘遂行能力を喪失
+            #   (Dupuy Institute; U.S. Army FM 105-5, 1964; Dorothy Clark, 1954)
+            agg_damage = min(agg_damage_raw, agg_committed * MAX_COMBAT_ATTRITION_RATIO)
             
             # 防衛側ダメージの分配（防衛国+支援国に投入戦力比率で按分）
             total_def_committed = def_committed + total_supporter_power
-            def_damage = min(def_damage_raw, total_def_committed)
+            def_damage = min(def_damage_raw, total_def_committed * MAX_COMBAT_ATTRITION_RATIO)
             
             if total_def_committed > 0:
                 # 防衛国本体のダメージ分
