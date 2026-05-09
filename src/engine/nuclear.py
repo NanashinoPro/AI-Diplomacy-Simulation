@@ -265,7 +265,7 @@ class NuclearMixin:
             self.log_event(
                 f"☢️🛡️ 【核攻撃 vs 電磁バリア】{attacker_name}の戦術核{effective_warheads}発が"
                 f"{target_name}の電磁バリアに命中！"
-                f"バリアHP: {old_hp} → {target.alien_barrier_hp}",
+                f"閃光と衝撃波がバリア表面を走ったが、効果は不明。電磁バリアは依然として機能している模様。",
                 involved_countries=[attacker_name, target_name, "global"]
             )
             self.sys_logs_this_turn.append(
@@ -366,7 +366,7 @@ class NuclearMixin:
             self.log_event(
                 f"☢️🛡️ 【核攻撃 vs 電磁バリア】{attacker_name}の戦略核{effective_warheads}発が"
                 f"{target_name}の電磁バリアに命中！"
-                f"バリアHP: {old_hp} → {target.alien_barrier_hp}",
+                f"閃光と衝撃波がバリア表面を走ったが、効果は不明。電磁バリアは依然として機能している模様。",
                 involved_countries=[attacker_name, target_name, "global"]
             )
             self.sys_logs_this_turn.append(

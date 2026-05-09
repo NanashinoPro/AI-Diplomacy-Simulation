@@ -613,9 +613,9 @@ class DiplomacyMixin:
                     target.alien_barrier_hp = max(0, target.alien_barrier_hp - barrier_damage)
 
                     self.log_event(
-                        f"⚡ 【バリア損傷】{attacker_name}の{attack_type}により{target_name}の電磁バリアに損傷！"
-                        f"（バリアHP: {old_hp} → {target.alien_barrier_hp}）",
-                        involved_countries=[attacker_name, target_name, "global"]
+                        f"⚡ 【バリア損傷】{attacker_name}の{attack_type}により{target_name}の電磁バリアに損傷を確認！"
+                        f"バリアの一部に乱れが生じているが、全体としては依然機能中。",
+                        involved_countries=[attacker_name, target_name]
                     )
                     self.sys_logs_this_turn.append(
                         f"[{attacker_name}→{target_name} Alien破壊工作] バリアHP: {old_hp} → {target.alien_barrier_hp} (-{barrier_damage}, {attack_type})"
@@ -626,7 +626,7 @@ class DiplomacyMixin:
                             f"通常兵器による攻撃が有効になりました！",
                             involved_countries=[target_name, "global"]
                         )
-                    attacker.hidden_plans += f" [工作成果: {target_name}の電磁バリアに損傷を与えた（バリアHP: {old_hp}→{target.alien_barrier_hp}）。継続して弱体化を狙う]"
+                    attacker.hidden_plans += f" [工作成果: {target_name}の電磁バリアに損傷を与えた。バリアの一部に乱れが生じていることを確認。継続して弱体化を狙う]"
                 else:
                     # === 通常の破壊工作ダメージ ===
                     dmg_approval = random.uniform(5.0, 15.0)

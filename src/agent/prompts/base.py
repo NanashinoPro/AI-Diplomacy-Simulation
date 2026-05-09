@@ -2,11 +2,25 @@ from typing import List
 from models import WorldState, CountryState
 
 
+# 全世界に配信されるべき重大イベントのキーワード
+# これらを含むニュースは、自国名が含まれていなくてもフィルタを通過する
+# （衛星画像・国際メディアにより全人類が認知するレベルの事象）
+GLOBAL_NEWS_KEYWORDS = [
+    "【シティ・デストロイヤー発射】",
+    "【電磁バリア作動】",
+    "【核攻撃 vs 電磁バリア】",
+    "【緊急速報：電磁バリア崩壊！】",
+]
+
+
 def _filter_news_for_country(news_list: List[str], country_name: str, all_country_names: List[str]) -> List[str]:
     """Filter news relevant to own country + global news (not mentioning any specific country).
     
     Excludes inter-country news not involving this country (e.g., Country A → Country B diplomacy)
     to reduce prompt size and encourage LLM DB search tool usage.
+    
+    Exception: Events containing GLOBAL_NEWS_KEYWORDS always pass through,
+    as they represent world-altering events visible to all nations via satellite/media.
     """
     filtered = []
     for news in news_list:
@@ -15,6 +29,9 @@ def _filter_news_for_country(news_list: List[str], country_name: str, all_countr
             filtered.append(news)
         # Contains no country name → global news (distributed to all)
         elif not any(name in news for name in all_country_names):
+            filtered.append(news)
+        # Contains global significance keywords → bypass filter (world-altering events)
+        elif any(kw in news for kw in GLOBAL_NEWS_KEYWORDS):
             filtered.append(news)
     return filtered
 
