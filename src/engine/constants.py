@@ -224,3 +224,17 @@ CITY_DESTROYER_ECON_DAMAGE = 0.15      # 経済ダメージ率（GDP × 15%）
 CITY_DESTROYER_POP_DAMAGE = 0.10       # 人口ダメージ率（人口 × 10%）
 CITY_DESTROYER_MIL_DAMAGE = 0.08       # 軍事ダメージ率（軍事力 × 8%）
 CITY_DESTROYER_APPROVAL_PENALTY = 15.0 # 支持率ペナルティ
+
+# --- AGI完全管理国家 (PROMETHEUS STATE) オーバーライド定数 ---
+# [設計思想]
+#   AGIが国家インフラを完全掌握した「ポスト民主主義国家」の特殊ルール。
+#   人間社会の摩擦（消費心理・政治的抵抗・官僚組織の非効率性）を排除し、
+#   純粋な最適化マシンとしての国家運営をシミュレーションする。
+#   これにより、他国との力学的格差が設計上の「脅威」として機能する。
+AGI_PLANNED_CONSUMPTION_RATIO = 0.45       # Override 1: 計画経済の消費GDP比率（市場原理によらず固定）
+AGI_MIL_CROWD_IN = 0.03                    # Override 2: 軍産統合によるクラウドイン乗数（軍事投資が民間投資を誘発）
+AGI_EXECUTION_POWER = 1.0                  # Override 4: AGI直接執行による完全効率政府（実行力常時100%）
+AGI_EDUCATION_MULTIPLIER = 2.0             # Override 5: AI個別最適化教育による学習速度加速（×2.0）
+AGI_INTEL_MULTIPLIER = 1.5                 # Override 6: サイバー能力による諜報成功率ブースト（×1.5）
+AGI_GOVERNMENT_EFFICIENCY = 1.10           # Override 7: 予算配分リアルタイム最適化による政府支出効率（+10%）
+

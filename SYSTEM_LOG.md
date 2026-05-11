@@ -1,5 +1,66 @@
 # System Log
 
+## 2026-05-11 12:55:00 - Alien vs AGI統合ブランチの構築（v1-alien-vs-agi）
+
+- **変更内容**: `v1-independence-day`（Alienシステム）と `v1.20260501`（アメリカAGI全権委任）の2ブランチを手動統合し、新ブランチ `v1-alien-vs-agi` を構築。
+- **統合戦略**: `v1-independence-day` をベースに、AGI固有ロジック（プロンプト注入・エンジンオーバーライド・定数・データ）を手動で移植。コンフリクト回避のため `git merge` は使用しない。
+
+### Phase 1: LLMプリアンブル注入（`agent/prompts/base.py`）
+- `_is_agi_country(country_name)`: AGI判定関数（ハードコード: "アメリカ"）
+- `_agi_system_preamble()`: PROMETHEUS全権委任モードの定義。GDP計算式・予算構造・軍事計算・核ダメージモデル等のゲームメカニクスをLLMに教示し、制約免除・戦略指令・Alien対応プロトコルを注入
+- `build_common_context()`で自動注入
+
+### Phase 2: エンジンオーバーライド定数（`engine/constants.py`）
+- 7つのAGIオーバーライド定数を追加:
+  - `AGI_PLANNED_CONSUMPTION_RATIO = 0.45`（計画経済消費率）
+  - `AGI_MIL_CROWD_IN = 0.03`（軍産統合クラウドイン）
+  - `AGI_EXECUTION_POWER = 1.0`（実行力100%）
+  - `AGI_EDUCATION_MULTIPLIER = 2.0`（教育倍速）
+  - `AGI_INTEL_MULTIPLIER = 1.5`（諜報ブースト）
+  - `AGI_GOVERNMENT_EFFICIENCY = 1.10`（政府支出効率+10%）
+
+### Phase 3: エンジンオーバーライドロジック（`engine/domestic.py`）
+- 9つのオーバーライドポイントを実装:
+  1. 増税ペナルティ無効化（AGI国家は支持率低下なし）
+  2. 実行力100%（支持率に依存しない完全効率政府）
+  3. オランダ病免除
+  4. 政府支出効率乗数（G × 1.10）
+  5. 計画経済消費率（C = GDP × 0.45、税率変動の影響なし）
+  6. 利払い完全還流（100%が国内投資に再投資、通常70%）
+  7. 軍産統合クラウドイン（軍事投資がクラウドアウト→クラウドインに転換）
+  8. 教育倍速（MYS増加率 × 2.0）
+
+### Phase 4: シナリオ注入ハンドラ（`main.py`）
+- `global_announcement`: 全国家のニュースフィードにメッセージを直接注入
+- `reset_debt`: 国家債務を0にリセット（AGI通貨発行権掌握シナリオ用）
+
+### Phase 5: データファイル
+- `data/initial_stats.csv`: アメリカを `authoritarian` + PROMETHEUS ideology に変更。intelligence_level=120
+- `data/initial_relations.csv`: 日米同盟維持、米中制裁追加
+- `data/test/initial_stats.csv`: A国をAGI国家に設定（テスト用）
+- `scenarios/alien_vs_agi.json`: AGI全権委任アナウンス + アメリカ債務リセット
+
+### 修正ファイル一覧
+| ファイル | 修正内容 |
+|---|---|
+| `src/agent/prompts/base.py` | `_is_agi_country()`, `_agi_system_preamble()` 追加、`build_common_context()` で自動注入 |
+| `src/engine/constants.py` | AGIオーバーライド定数7個追加 |
+| `src/engine/domestic.py` | AGIオーバーライドロジック9箇所の分岐実装、`_is_agi_country` import |
+| `src/main.py` | `global_announcement`, `reset_debt` シナリオイベントハンドラ追加 |
+| `data/initial_stats.csv` | アメリカをAGI国家に変更（5カ国構成） |
+| `data/initial_relations.csv` | 日米同盟・米中制裁・Alien関係を設定 |
+| `data/test/initial_stats.csv` | A国をAGI国家に設定 |
+| `scenarios/alien_vs_agi.json` | [新規] AGIシナリオイベントJSON |
+| `ARCHITECTURE.md` | §4-9イベント型追加、§8ブランチ追加、§11.9データ更新、§12 AGIシステム新設 |
+| `SYSTEM_LOG.md` | 本エントリの追加 |
+
+> **【AIからの報告】**
+> ボス、`v1-independence-day` と `v1.20260501` の手動統合が完了しました。
+> Alienの電磁バリア・シティデストロイヤー・外交ブロックと、PROメTHEUSの9つのエンジンオーバーライドが共存する `v1-alien-vs-agi` ブランチが稼働準備完了です。
+> アメリカは `authoritarian` + AGI全権委任で、増税ペナルティなし・実行力100%・軍産統合・教育倍速の超効率国家として振る舞います。
+> 全ファイルの構文チェック通過済み。次はGitコミット→2ターン検証テストに進みます。
+
+
 ## 2026-05-07 15:48:00 - v1.20260504ブランチからmaster へのアルゴリズム改善マージ（v1.7）
 
 - **変更内容**: v1.20260504（企画#4: 武器支援のジレンマ）ブランチから、シナリオ固有データを除く汎用アルゴリズム改善4件をmasterにマージ。

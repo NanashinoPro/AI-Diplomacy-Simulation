@@ -301,6 +301,31 @@ def _inject_scenario_events(engine, world_state, scenario_path: str, logger):
                 f"🚨 【サイバー攻撃】{attacker}が{target}に対して大規模なサイバー攻撃を実行！{description}",
                 involved_countries=[attacker, target, "global"]
             )
+
+        elif event_type == "global_announcement":
+            # グローバルアナウンス: 全国家のニュースフィードに直接注入
+            message = event.get("message", "")
+            if message:
+                world_state.news_events.append(message)
+                engine.log_event(message, involved_countries=list(world_state.countries.keys()))
+                # DBにも保存
+                if engine.db_manager:
+                    engine.db_manager.add_event(0, "scenario_announcement", message, False, list(world_state.countries.keys()))
+                logger.sys_log(f"[Scenario] グローバルアナウンス注入: {message[:80]}...")
+
+        elif event_type == "reset_debt":
+            # 国家債務リセット: AGI通貨発行権掌握等のシナリオ用
+            target_country = attacker  # JSON内の "attacker" フィールドを対象国として使用
+            reason = event.get("reason", "シナリオイベント")
+            if target_country and target_country in world_state.countries:
+                old_debt = world_state.countries[target_country].national_debt
+                world_state.countries[target_country].national_debt = 0.0
+                logger.sys_log(f"[Scenario] 債務リセット: {target_country} ({old_debt:.1f} → 0.0) 理由: {reason}")
+                engine.log_event(
+                    f"💰 【国家債務消滅】{target_country}の国家債務が全額帳消しにされました。({reason})",
+                    involved_countries=[target_country, "global"]
+                )
+
         else:
             logger.sys_log(f"[Scenario] 未知のイベントタイプ: {event_type}", "WARNING")
 

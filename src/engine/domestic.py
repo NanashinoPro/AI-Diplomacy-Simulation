@@ -3,6 +3,8 @@ import random
 from typing import Dict
 from models import AgentAction, GovernmentType
 
+from agent.prompts.base import _is_agi_country
+
 from .constants import (
     DEMOCRACY_WARN_APPROVAL, CRITICAL_APPROVAL,
     DEMOCRACY_MIN_EXECUTION_POWER, MANDATORY_SPENDING_RATIO, DISCRETIONARY_MIN_EXECUTION,
@@ -14,7 +16,9 @@ from .constants import (
     INTEL_GROWTH_RATE, INTEL_MAINTENANCE_ALPHA,
     MINCER_RETURN_PRIMARY, MINCER_RETURN_SECONDARY, MINCER_RETURN_TERTIARY,
     MYS_GROWTH_RATE, MYS_DECAY_RATE,
-    GDP_GROWTH_FLOOR_EARLY, GDP_GROWTH_FLOOR_NORMAL
+    GDP_GROWTH_FLOOR_EARLY, GDP_GROWTH_FLOOR_NORMAL,
+    AGI_PLANNED_CONSUMPTION_RATIO, AGI_MIL_CROWD_IN, AGI_EXECUTION_POWER,
+    AGI_EDUCATION_MULTIPLIER, AGI_GOVERNMENT_EFFICIENCY,
 )
 
 def compute_pwt_hci(s: float) -> float:
@@ -137,9 +141,13 @@ class DomesticMixin:
         
         tax_diff = new_tax_rate - old_tax_rate
         if tax_diff > 0:
-            penalty = tax_diff * TAX_APPROVAL_PENALTY_MULTIPLIER
-            country.approval_rating = max(0.0, country.approval_rating - penalty)
-            self.sys_logs_this_turn.append(f"[{country.name} 増税] 税率 {old_tax_rate:.1%}→{new_tax_rate:.1%} (支持率ペナルティ: -{penalty:.1f}%)")
+            if _is_agi_country(country_name):
+                # AGI完全管理国家: 増税による支持率ペナルティを無効化（国民に選択権がない）
+                self.sys_logs_this_turn.append(f"[{country.name} AGI増税] 税率 {old_tax_rate:.1%}→{new_tax_rate:.1%} (PROMETHEUS: 支持率ペナルティ無効)")
+            else:
+                penalty = tax_diff * TAX_APPROVAL_PENALTY_MULTIPLIER
+                country.approval_rating = max(0.0, country.approval_rating - penalty)
+                self.sys_logs_this_turn.append(f"[{country.name} 増税] 税率 {old_tax_rate:.1%}→{new_tax_rate:.1%} (支持率ペナルティ: -{penalty:.1f}%)")
         elif tax_diff < 0:
             bonus = abs(tax_diff) * TAX_REDUCTION_APPROVAL_BONUS_MULTIPLIER
             country.approval_rating = min(100.0, country.approval_rating + bonus)
@@ -176,22 +184,27 @@ class DomesticMixin:
         # 支持率低迷や議会グリッドロックの影響を受けない (CBO 2024, Eurostat)。
         # 裁量的経費のみが政治的実行力に左右される。
         # 出典: CBO "The Federal Budget in FY2023"; Brookings Institution (legislative gridlock研究)
-        execution_power = 1.0
-        if country.government_type == GovernmentType.DEMOCRACY:
-            if country.approval_rating < DEMOCRACY_WARN_APPROVAL:
-                # 裁量的経費の実行力: 支持率に応じて線形低下（最低30%）
-                discretionary_execution = max(DISCRETIONARY_MIN_EXECUTION,
-                    (country.approval_rating - CRITICAL_APPROVAL) / (DEMOCRACY_WARN_APPROVAL - CRITICAL_APPROVAL))
-                # 二層合成: 義務的経費（自動執行）+ 裁量的経費（支持率依存）
-                execution_power = MANDATORY_SPENDING_RATIO + (1.0 - MANDATORY_SPENDING_RATIO) * discretionary_execution
-        elif country.government_type == GovernmentType.AUTHORITARIAN:
-            if country.approval_rating < 25.0:
-                execution_power = max(0.5, 0.5 + (country.approval_rating / 50.0))
-                
-        # オランダ病ペナルティの適用
-        if country_name in self.turn_dutch_disease_penalty:
-            penalty_ratio = self.turn_dutch_disease_penalty[country_name]
-            execution_power = max(0.1, execution_power * penalty_ratio)
+        if _is_agi_country(country_name):
+            # AGI完全管理国家: 官僚機構が存在しない。AGIが行政を直接実行するため常に100%
+            execution_power = AGI_EXECUTION_POWER
+            self.sys_logs_this_turn.append(f"[{country.name} AGI] 実行力={AGI_EXECUTION_POWER:.0%} (PROMETHEUS直接執行)")
+        else:
+            execution_power = 1.0
+            if country.government_type == GovernmentType.DEMOCRACY:
+                if country.approval_rating < DEMOCRACY_WARN_APPROVAL:
+                    # 裁量的経費の実行力: 支持率に応じて線形低下（最低30%）
+                    discretionary_execution = max(DISCRETIONARY_MIN_EXECUTION,
+                        (country.approval_rating - CRITICAL_APPROVAL) / (DEMOCRACY_WARN_APPROVAL - CRITICAL_APPROVAL))
+                    # 二層合成: 義務的経費（自動執行）+ 裁量的経費（支持率依存）
+                    execution_power = MANDATORY_SPENDING_RATIO + (1.0 - MANDATORY_SPENDING_RATIO) * discretionary_execution
+            elif country.government_type == GovernmentType.AUTHORITARIAN:
+                if country.approval_rating < 25.0:
+                    execution_power = max(0.5, 0.5 + (country.approval_rating / 50.0))
+                    
+            # オランダ病ペナルティの適用（AGI国家には適用しない）
+            if country_name in self.turn_dutch_disease_penalty:
+                penalty_ratio = self.turn_dutch_disease_penalty[country_name]
+                execution_power = max(0.1, execution_power * penalty_ratio)
         
         # --- マクロ経済モデリング (SNAベース: Y = C + I + G + NX) ---
         old_gdp = country.economy
@@ -258,6 +271,10 @@ class DomesticMixin:
         g_edu = budget * inv_edu * execution_power
         G = g_econ + g_mil + g_wel + g_intel + g_edu
 
+        # AGI完全管理国家: 政府支出効率乗数（予算配分リアルタイム最適化）
+        if _is_agi_country(country_name):
+            G *= AGI_GOVERNMENT_EFFICIENCY
+
         # 政府の未執行予算（余剰金）を算出
         S_gov = max(0.0, budget - G)
         
@@ -281,10 +298,14 @@ class DomesticMixin:
         # 1. 民間消費 (C_q)
         # ケインズ型消費関数: C = (Y_q - T_q) * (1 - s)
         # 増税すると即座に消費が減る。減税すると消費が大きく活性化するボーナスを追加。
-        C = max(0.0, (quarterly_gdp - tax_revenue_q) * (1.0 - saving_rate))
-        if tax_diff < 0:
-            consumption_bonus_multiplier = 1.0 + (abs(tax_diff) * 2.0)
-            C *= consumption_bonus_multiplier
+        if _is_agi_country(country_name):
+            # AGI完全管理国家: 計画経済モデル。消費はGDPの一定比率で安定し、税率変動の影響を受けない
+            C = quarterly_gdp * AGI_PLANNED_CONSUMPTION_RATIO
+        else:
+            C = max(0.0, (quarterly_gdp - tax_revenue_q) * (1.0 - saving_rate))
+            if tax_diff < 0:
+                consumption_bonus_multiplier = 1.0 + (abs(tax_diff) * 2.0)
+                C *= consumption_bonus_multiplier
             
         S_private = max(0.0, (quarterly_gdp - tax_revenue_q) - C)
 
@@ -301,13 +322,26 @@ class DomesticMixin:
         # 所得移転であり、その一定割合（INTEREST_REINVESTMENT_RATE=70%）が
         # 資本市場を通じて国内民間投資に再投資される [Mankiw "Macroeconomics" Ch.3]
         interest_leakage = max(0.0, tax_revenue_q - budget)
-        interest_reinvested = interest_leakage * INTEREST_REINVESTMENT_RATE
+        if _is_agi_country(country_name):
+            # AGI完全管理国家: 通貨発行権と金融システムを完全掌握。
+            # 利払いは内部的に相殺され、全額が投資に還流する
+            interest_reinvested = interest_leakage * 1.0
+        else:
+            interest_reinvested = interest_leakage * INTEREST_REINVESTMENT_RATE
         
-        induced_investment = (S_private * 0.95 
-                              + interest_reinvested
-                              + (S_gov * DEBT_REPAYMENT_CROWD_IN_MULTIPLIER) 
-                              + (g_econ * GOVERNMENT_CROWD_IN_MULTIPLIER) 
-                              - (g_mil * GOVERNMENT_CROWD_OUT_MULTIPLIER))
+        if _is_agi_country(country_name):
+            # AGI完全管理国家: 軍産統合。クラウドアウトを排除し、軍事投資がデュアルユース技術で民間投資を誘発
+            induced_investment = (S_private * 0.95 
+                                  + interest_reinvested
+                                  + (S_gov * DEBT_REPAYMENT_CROWD_IN_MULTIPLIER) 
+                                  + (g_econ * GOVERNMENT_CROWD_IN_MULTIPLIER) 
+                                  + (g_mil * AGI_MIL_CROWD_IN))  # クラウドアウト→クラウドイン
+        else:
+            induced_investment = (S_private * 0.95 
+                                  + interest_reinvested
+                                  + (S_gov * DEBT_REPAYMENT_CROWD_IN_MULTIPLIER) 
+                                  + (g_econ * GOVERNMENT_CROWD_IN_MULTIPLIER) 
+                                  - (g_mil * GOVERNMENT_CROWD_OUT_MULTIPLIER))
         base_investment = quarterly_gdp * BASE_INVESTMENT_RATE
         I = max(0.0, max(base_investment, induced_investment))
         
@@ -528,7 +562,8 @@ class DomesticMixin:
         
         # Step 1: 教育投資のGDP比から就学年数の増加量を算出
         edu_investment_ratio = g_edu / max(1.0, old_gdp)
-        delta_mys = math.log1p(edu_investment_ratio * 10.0) * MYS_GROWTH_RATE
+        _edu_multiplier = AGI_EDUCATION_MULTIPLIER if _is_agi_country(country_name) else 1.0
+        delta_mys = math.log1p(edu_investment_ratio * 10.0) * MYS_GROWTH_RATE * _edu_multiplier
         
         # Step 2: 自然減衰（退職・知識陳腐化）を適用して新MYSを算出
         country.mean_years_schooling = max(0.0, 

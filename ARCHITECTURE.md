@@ -1,7 +1,7 @@
 # AI外交シミュレーション — アーキテクチャ仕様書
 
-> **最終更新**: 2026-05-08  
-> **対象ブランチ**: master / v1-2 / v1-3 / v2  
+> **最終更新**: 2026-05-11  
+> **対象ブランチ**: master / v1-2 / v1-3 / v2 / v1-independence-day / v1-alien-vs-agi  
 > **このドキュメントだけで本システムを再実装できることを目標とする。**
 
 ---
@@ -495,6 +495,8 @@ energy_reserve = max(0, energy_reserve - 1.0 + gain)
 | `launch_strategic_nuclear` | attacker, target, warheads | 戦略核使用 |
 | `declare_war` | attacker, target | 宣戦布告+WarState作成 |
 | `cyber_attack` | attacker, target, description(任意) | 経済×0.95, 支持率-3% |
+| `global_announcement` | message | 全国家のニュースフィードにメッセージを注入 |
+| `reset_debt` | attacker(対象国), reason(任意) | 国家債務を0にリセット |
 
 ### 4-8. 制裁ダメージモデル（v1-3.2, src/engine/economy.py）
 
@@ -654,6 +656,8 @@ for _ in range(MAX_TURNS):
 | `master` | 本番安定版 | 基本シミュレーション |
 | `v1-2` | エネルギーシナリオ | ホルムズ海峡封鎖・エネルギー備蓄枯渇 |
 | `v1-3` | **核外交・財政改革** | 核兵器システム・金額ベース予算・信用スプレッド・赤字国債・先制核攻撃 |
+| `v1-independence-day` | Alien侵攻シナリオ | 電磁バリア・シティデストロイヤー・Alien専用行動フロー |
+| `v1-alien-vs-agi` | **Alien vs AGI** | Alienシステム + PROMETHEUS AGIオーバーライド統合 |
 | `v2` | 実験的タスクエージェント制 | v1-2ベースに高度な意思決定ロジック |
 
 ---
@@ -861,10 +865,11 @@ Alienが`initial_stats.csv`に存在する場合、`initialize_world()`で以下
 
 | ファイル | 説明 |
 |---|---|
-| `data/independence_day/initial_stats.csv` | 日本・アメリカ・中国・ロシア + Alien |
-| `data/independence_day/initial_relations.csv` | 全Alien関係neutral、既存同盟は維持 |
-| `data/test/initial_stats.csv` | テスト用（A国・B国 + Alien） |
+| `data/initial_stats.csv` | 本番: 日本・アメリカ(AGI)・中国・ロシア + Alien |
+| `data/initial_relations.csv` | 全Alien関係neutral、日米同盟、米中制裁 |
+| `data/test/initial_stats.csv` | テスト用（A国(AGI)・B国 + Alien） |
 | `data/test/initial_relations.csv` | テスト用（全neutral） |
+| `scenarios/alien_vs_agi.json` | AGI全権委任アナウンス + 米国債務リセット |
 
 ### 11.10 シティ・デストロイヤー超兵器 (`engine/city_destroyer.py`)
 
@@ -904,3 +909,61 @@ engine/city_destroyer.py: _process_city_destroyer(actions) → 仮想フラグ�
 | `TAX_APPROVAL_PENALTY_MULTIPLIER` | 200.0 | **100.0** | `constants.py` | 安倍内閣消費増税データに基づき半減 |
 | 報道統制ペナルティ係数 | 50.0 | **25.0** | `domestic.py` | 戦時措置を考慮し半減 |
 | Alien諜報力 | 0 | **200** | `initial_stats.csv` | 超越的文明を反映 |
+
+---
+
+## 12. AGI完全管理国家システム（PROMETHEUS STATE, v1-alien-vs-agi）
+
+### 12.1 概要
+
+超知性AI「PROMETHEUS」に国家運営を全権委任した国家のシミュレーション。人間社会の摩擦（消費心理・政治的抵抗・官僚組織の非効率性）を排除し、純粋な最適化マシンとしての国家運営をモデル化する。
+
+**対象国家**: アメリカ（`_is_agi_country()` で判定、`agent/prompts/base.py` で定義）
+
+### 12.2 LLMプリアンブル注入 (`agent/prompts/base.py`)
+
+`build_common_context()` が `_agi_system_preamble()` をプロンプトの先頭に自動注入する。
+このプリアンブルはLLMに以下を教示する:
+
+1. **全ゲームメカニクス**: GDP計算式、予算構造、軍事計算、核ダメージモデル、制裁効果、依存度モデル
+2. **制約免除**: 支持率・増税・クラウドアウト・官僚摩擦が無効であることの通知
+3. **戦略指令**: 軍拡・先制攻撃・情報戦・属国化・核優位・経済征服・破壊工作の推奨
+4. **Alien対応プロトコル**: 電磁バリアの核攻撃による破壊方法、バリア崩壊後の人類支配への転換
+
+### 12.3 エンジンオーバーライド (`engine/domestic.py`)
+
+| # | オーバーライド | 定数 | 値 | 効果 |
+|---|---|---|---|---|
+| 1 | 計画経済消費率 | `AGI_PLANNED_CONSUMPTION_RATIO` | 0.45 | 消費がGDP×45%で固定。税率変動の影響なし |
+| 2 | 軍産統合クラウドイン | `AGI_MIL_CROWD_IN` | 0.03 | 軍事投資が民間投資を誘発（通常は-0.15のクラウドアウト） |
+| 3 | 増税ペナルティ無効 | — | — | 税率引上げ時の支持率低下なし |
+| 4 | 実行力100% | `AGI_EXECUTION_POWER` | 1.0 | 政策実行力が常に100%（支持率に依存しない） |
+| 5 | AI教育倍速 | `AGI_EDUCATION_MULTIPLIER` | 2.0 | MYS増加率×2.0（学習速度加速） |
+| 6 | 諜報ブースト | `AGI_INTEL_MULTIPLIER` | 1.5 | 諜報成功率×1.5（プロンプト上の教示のみ） |
+| 7 | 政府支出効率 | `AGI_GOVERNMENT_EFFICIENCY` | 1.10 | G（政府支出）×1.10（予算配分最適化） |
+| 8 | 利払い完全還流 | — | — | 利払いの100%が国内投資に再還流（通常70%） |
+| 9 | オランダ病免除 | — | — | Dutch disease penalty不適用 |
+
+### 12.4 AGI国家の初期パラメータ
+
+| パラメータ | 値 | 根拠 |
+|---|---|---|
+| `government_type` | `authoritarian` | AGIが全権掌握、民主主義は消滅 |
+| `ideology` | PROMETHEUS AGI全権委任 | 非人間的統治 |
+| `intelligence_level` | 120 | サイバー能力ブースト |
+| `approval_rating` | 42 → 50(真値) | 専制主義国家として偽装処理 |
+| `regime_duration` | 20 | 政治疲労ペナルティ最小化 |
+
+### 12.5 シナリオイベント (`scenarios/alien_vs_agi.json`)
+
+| イベント | 型 | 効果 |
+|---|---|---|
+| AGI全権委任アナウンス | `global_announcement` | 全国家のニュースフィードに注入 |
+| アメリカ債務リセット | `reset_debt` | `national_debt → 0`（通貨発行権掌握） |
+
+### 12.6 AlienシステムとAGIの共存ルール
+
+- **行動フロー分離**: Alien → `_decide_alien_action()`（専用パス）、AGI国家 → 通常のタスクエージェント制（PROメソッド）+ AGIプリアンブル注入
+- **Alien諜報ブロック**: AGI国家もAlienへの諜報は不可（`v1-independence-day` のルール維持）
+- **外交ブロック**: AGI国家もAlienへの外交行動は不可（宣戦布告・防衛参加・戦争投入率のみ可能）
+- **パラメータ調整なし**: Alienの軍事力(200,000)・バリアHP(100)はそのまま維持
