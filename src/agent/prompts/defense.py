@@ -16,25 +16,24 @@ def build_defense_minister_prompt(country_name: str, country_state: CountryState
     # 海岸線情報
     coastline_note = ""
     if not country_state.has_coastline:
-        coastline_note = "\n⚠️ あなたの国には海岸線がないため、海軍を保有・配備することはできません。force_allocationのnavy_ratioは0.0にしてください。\n"
+        coastline_note = "\n⚠️ あなたの国には海岸線がないため、海軍を保有・配備することはできません。deployments で type: \"navy\" は使わないでください。\n"
     
     # 現在の配備状況
     current_deployment_info = ""
     if country_state.military_deployment.deployments:
         current_deployment_info = "\n---🗺️【現在の軍事配備状況】🗺️---\n"
-        current_deployment_info += f"兵科比率: 陸軍{country_state.military_deployment.force_allocation.army_ratio:.0%} / 海軍{country_state.military_deployment.force_allocation.navy_ratio:.0%} / 空軍{country_state.military_deployment.force_allocation.air_ratio:.0%}\n"
         for d in country_state.military_deployment.deployments:
             d_type = d.type.value
             if d_type == "army":
                 posture_str = d.posture.value if d.posture else "defensive"
                 fort_str = f", 要塞:{d.fortify.value}" if d.fortify.value != "none" else ""
-                current_deployment_info += f"  陸軍 {d.divisions}師団 → {d.target_country}方面 ({posture_str}{fort_str})\n"
+                current_deployment_info += f"  陸軍 ${d.budget_amount:.1f}B → {d.target_country}方面 ({posture_str}{fort_str})\n"
             elif d_type == "navy":
                 mission_str = d.naval_mission.value if d.naval_mission else "patrol"
-                current_deployment_info += f"  海軍 {d.fleets}艦隊 → {d.target_country}方面 ({mission_str})\n"
+                current_deployment_info += f"  海軍 ${d.budget_amount:.1f}B → {d.target_country}方面 ({mission_str})\n"
             elif d_type == "air":
                 mission_str = d.air_mission.value if d.air_mission else "air_superiority"
-                current_deployment_info += f"  空軍 {d.squadrons}飛行隊 → {d.target_country}方面 ({mission_str})\n"
+                current_deployment_info += f"  空軍 ${d.budget_amount:.1f}B → {d.target_country}方面 ({mission_str})\n"
         current_deployment_info += "\n"
     
     instructions = f"""
@@ -57,26 +56,25 @@ def build_defense_minister_prompt(country_name: str, country_state: CountryState
 【諜報投資（invest_intelligence）の決定ルール】
 諜報レベルが相手より高いほど有利になります。諜報技術は毎ターン自然に陳腐化するため、継続的な投資が必要です。
 
-【⭐ 軍事配備命令（deployments）— 完全自由配備システム ⭐】
-あなたは毎ターン、自国の全軍をどの国の方面にどのように配備するかを自由に決定します。
-これはAge of Empires のように、ユニットをどの方面に派遣するかの指示です。
+【⭐ 軍事配備命令（deployments）— 軍事費ベース配備システム ⭐】
+あなたは毎ターン、自国の軍事力をどの国の方面にどの兵科でいくら投入するかを自由に決定します。
+配備は**軍事費（十億ドル = Billion USD）**で指定します。
 
-▼ `force_allocation` — 兵科比率（陸海空の配分）
-  army_ratio/navy_ratio/air_ratio で自国の軍事力をどの兵科に配分するか決めます（合計1.0）。
+⚠️ **予算上限**: 全配備の`budget_amount`の合計は、自国の現在の軍事力（**{country_state.military:.1f}**）を超えることはできません。超えた場合、エンジンが自動で按分スケールダウンします。
+**配備先未指定の兵力は首都防衛に自動配属されます。**
 
 ▼ `deployments` — 各方面への配備命令  
-  target_country（対象国名）を指定し、兵力の種類(type)と数、任務を命令します。
-  **配備先未指定の兵力は首都防衛に自動配属されます。**
+  target_country（対象国名）を指定し、兵科(type)と投入額(budget_amount)、任務を命令します。
 
   🟩 陸軍 (type: "army"):
     - target_country: どの国の方面に配備するか
-    - divisions: 師団数
+    - budget_amount: 投入する軍事費（十億ドル）
     - posture: "offensive"(攻+20%/守-10%) / "defensive"(守+30%/攻-20%) / "intimidation"(戦闘効果なし、緊張度↑)
     - fortify: "none" / "light"(防御+25%) / "heavy"(防御+50%, コスト高)
     
   🔵 海軍 (type: "navy"):
     - target_country: どの国の近海に展開するか
-    - fleets: 艦隊数
+    - budget_amount: 投入する軍事費（十億ドル）
     - naval_mission:
       ・"patrol" — 通商護衛（平時/戦時OK）
       ・"show_of_force" — 砲艦外交・武力示威（平時/戦時OK、緊張度大幅↑）
@@ -87,7 +85,7 @@ def build_defense_minister_prompt(country_name: str, country_state: CountryState
   
   ✈️ 空軍 (type: "air"):
     - target_country: 任務の対象国
-    - squadrons: 飛行隊数
+    - budget_amount: 投入する軍事費（十億ドル）
     - air_mission:
       ・"air_superiority" — 制空権確保（平時/戦時OK）
       ・"ground_support" — 地上支援（⚠️戦時のみ、陸軍攻撃力+15%）  
@@ -106,29 +104,24 @@ def build_defense_minister_prompt(country_name: str, country_state: CountryState
   "reasoning_for_military_investment": "軍事投資の論理的算出プロセス",
   "invest_military": 0.0から1.0の数値,
   "invest_intelligence": 0.0から1.0の数値,
-  "force_allocation": {{
-    "army_ratio": 0.0-1.0,
-    "navy_ratio": 0.0-1.0,
-    "air_ratio": 0.0-1.0
-  }},
   "deployments": [
     {{
       "type": "army",
       "target_country": "対象国名",
-      "divisions": 整数,
+      "budget_amount": 投入額（十億ドル）,
       "posture": "offensive"/"defensive"/"intimidation",
       "fortify": "none"/"light"/"heavy"
     }},
     {{
       "type": "navy",
       "target_country": "対象国名",
-      "fleets": 整数,
+      "budget_amount": 投入額（十億ドル）,
       "naval_mission": "patrol"/"show_of_force"/"blockade"/"naval_engagement"/"amphibious_support"/"shore_bombardment"
     }},
     {{
       "type": "air",
       "target_country": "対象国名",
-      "squadrons": 整数,
+      "budget_amount": 投入額（十億ドル）,
       "air_mission": "air_superiority"/"ground_support"/"strategic_bombing"/"recon_flight"
     }}
   ],
@@ -146,6 +139,7 @@ def build_defense_minister_prompt(country_name: str, country_state: CountryState
   "update_hidden_plans": "次期への秘匿計画メモ"
 }}
 ※ deployments は複数の配備命令を自由に指定可能です。配備先がなければ空のリストでOKです。
+※ budget_amount の合計が軍事力（{country_state.military:.1f}）を超えないように注意してください。
 ※ espionage_targets は対象国がない場合は空のリストにしてください。
 ※ ⚠️戦時のみとマークされたミッションを平時に指定した場合、エンジンにより無視されます。
 """

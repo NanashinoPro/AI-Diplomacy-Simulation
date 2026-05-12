@@ -16,7 +16,7 @@ from models import (
     PresidentPolicy,
     MinisterDecisionForeign, MinisterDecisionDefense,
     MinisterDecisionEconomic, MinisterDecisionFinance, PresidentDecision,
-    ForceAllocation, MilitaryDeploymentOrder, DeploymentType,
+    MilitaryDeploymentOrder, DeploymentType,
     ArmyPosture, FortifyLevel, NavalMission, AirMission,
 )
 from logger import SimulationLogger
@@ -516,7 +516,6 @@ class AgentSystem:
             "invest_intelligence": 0.05,
             "war_commitment_ratios": {},
             "espionage_actions": [],  # List[dict] {target, gather, gather_strategy, sabotage, sabotage_strategy, sabotage_reasoning}
-            "force_allocation": None,  # ForceAllocation or None
             "deployments": [],  # List[MilitaryDeploymentOrder]
         }
 
@@ -556,16 +555,7 @@ class AgentSystem:
             if d.get("reasoning_for_military_investment"):
                 result["reasoning_for_military_investment"] = d["reasoning_for_military_investment"]
 
-            # 兵科比率
-            fa_raw = d.get("force_allocation")
-            if fa_raw and isinstance(fa_raw, dict):
-                result["force_allocation"] = ForceAllocation(
-                    army_ratio=float(fa_raw.get("army_ratio", 0.5)),
-                    navy_ratio=float(fa_raw.get("navy_ratio", 0.3)),
-                    air_ratio=float(fa_raw.get("air_ratio", 0.2)),
-                )
-
-            # 配備命令
+            # 配備命令（軍事費ベース）
             dep_raw = d.get("deployments", [])
             parsed_deployments = []
             for dep in dep_raw:
@@ -574,12 +564,10 @@ class AgentSystem:
                     order = MilitaryDeploymentOrder(
                         type=DeploymentType(dep_type),
                         target_country=dep.get("target_country", ""),
-                        divisions=int(dep.get("divisions", 0)),
+                        budget_amount=float(dep.get("budget_amount", 0.0)),
                         posture=ArmyPosture(dep.get("posture", "defensive")) if dep_type == "army" else ArmyPosture.DEFENSIVE,
                         fortify=FortifyLevel(dep.get("fortify", "none")) if dep_type == "army" else FortifyLevel.NONE,
-                        fleets=int(dep.get("fleets", 0)),
                         naval_mission=NavalMission(dep.get("naval_mission", "patrol")) if dep_type == "navy" else NavalMission.PATROL,
-                        squadrons=int(dep.get("squadrons", 0)),
                         air_mission=AirMission(dep.get("air_mission", "air_superiority")) if dep_type == "air" else AirMission.AIR_SUPERIORITY,
                     )
                     parsed_deployments.append(order)
@@ -920,7 +908,6 @@ class AgentSystem:
             update_hidden_plans=policy.hidden_plans,
             domestic_policy=domestic_action,
             diplomatic_policies=list(merged.values()),
-            force_allocation=military_data.get("force_allocation"),
             deployments=military_data.get("deployments", []),
         )
 

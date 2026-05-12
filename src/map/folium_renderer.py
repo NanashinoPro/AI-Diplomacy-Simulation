@@ -247,11 +247,11 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
         if target_poly is None:
             continue
 
-        total_divs = sum(
-            (d.divisions if hasattr(d, 'divisions') else d.get('divisions', 0))
+        total_budget = sum(
+            (d.budget_amount if hasattr(d, 'budget_amount') else d.get('budget_amount', 0.0))
             for d in army_list
         )
-        if total_divs == 0:
+        if total_budget <= 0:
             continue
 
         x, y = calc_army_position(self_poly, target_poly, 0, 1)
@@ -260,17 +260,17 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
         posture_val = posture.value if hasattr(posture, 'value') else str(posture) if posture else 'defensive'
         color = POSTURE_COLORS.get(posture_val, ACCENT_GREEN)
 
-        size = 24 + total_divs * 3
+        size = 24 + int(total_budget * 0.5)
         icon_html = _UNIT_HTML_TEMPLATE.format(
             size=size, bg_color=color, border_color="#fff",
             border_radius="3px", font_size=max(10, size // 2),
-            label=str(total_divs), extra_style="",
+            label=str(int(total_budget)), extra_style="",
         )
 
         popup_html = _POPUP_HTML_TEMPLATE.format(
             unit_type_label=f"🟩 陸軍",
             accent_color=color, owner=country_name,
-            target=target_name, quantity=f"{total_divs} 師団",
+            target=target_name, quantity=f"${total_budget:.1f}B",
             mission=posture_val.upper(), mission_color=color,
         )
 
@@ -279,7 +279,7 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
             icon=DivIcon(html=icon_html, icon_size=(size, size),
                          icon_anchor=(size // 2, size // 2)),
             popup=folium.Popup(popup_html, max_width=250),
-            tooltip=f"{country_name} 陸軍 {total_divs}師団",
+            tooltip=f"{country_name} 陸軍 ${total_budget:.1f}B",
         ).add_to(fg)
 
     # ---- 海軍 ----
@@ -288,11 +288,11 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
         if target_poly is None:
             continue
 
-        total_fleets = sum(
-            (d.fleets if hasattr(d, 'fleets') else d.get('fleets', 0))
+        total_budget = sum(
+            (d.budget_amount if hasattr(d, 'budget_amount') else d.get('budget_amount', 0.0))
             for d in navy_list
         )
-        if total_fleets == 0:
+        if total_budget <= 0:
             continue
 
         mission = navy_list[0].naval_mission if hasattr(navy_list[0], 'naval_mission') else 'patrol'
@@ -300,19 +300,19 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
 
         x, y = calc_navy_position(self_poly, target_poly, 0, 1, mission_val)
         color = NAVAL_MISSION_COLORS.get(mission_val, ACCENT_CYAN)
-        size = 24 + total_fleets * 3
+        size = 24 + int(total_budget * 0.5)
 
         icon_html = _UNIT_HTML_TEMPLATE.format(
             size=size, bg_color=color, border_color="#fff",
             border_radius="50%", font_size=max(10, size // 2),
-            label=str(total_fleets),
+            label=str(int(total_budget)),
             extra_style="transform:rotate(45deg);",
         )
 
         popup_html = _POPUP_HTML_TEMPLATE.format(
             unit_type_label=f"🔷 海軍",
             accent_color=color, owner=country_name,
-            target=target_name, quantity=f"{total_fleets} 艦隊",
+            target=target_name, quantity=f"${total_budget:.1f}B",
             mission=mission_val.upper().replace("_", " "), mission_color=color,
         )
 
@@ -321,7 +321,7 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
             icon=DivIcon(html=icon_html, icon_size=(size, size),
                          icon_anchor=(size // 2, size // 2)),
             popup=folium.Popup(popup_html, max_width=250),
-            tooltip=f"{country_name} 海軍 {total_fleets}艦隊",
+            tooltip=f"{country_name} 海軍 ${total_budget:.1f}B",
         ).add_to(fg)
 
     # ---- 空軍 ----
@@ -330,11 +330,11 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
         if target_poly is None:
             continue
 
-        total_sq = sum(
-            (d.squadrons if hasattr(d, 'squadrons') else d.get('squadrons', 0))
+        total_budget = sum(
+            (d.budget_amount if hasattr(d, 'budget_amount') else d.get('budget_amount', 0.0))
             for d in air_list
         )
-        if total_sq == 0:
+        if total_budget <= 0:
             continue
 
         mission = air_list[0].air_mission if hasattr(air_list[0], 'air_mission') else 'air_superiority'
@@ -342,19 +342,19 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
 
         x, y = calc_air_position(self_poly, target_poly, mission_val, 0)
         color = AIR_MISSION_COLORS.get(mission_val, ACCENT_CYAN)
-        size = 24 + total_sq * 3
+        size = 24 + int(total_budget * 0.5)
 
         # 三角形のCSS
         icon_html = _UNIT_HTML_TEMPLATE.format(
             size=size, bg_color=color, border_color="#fff",
             border_radius="3px 3px 50% 50%", font_size=max(10, size // 2),
-            label=str(total_sq), extra_style="",
+            label=str(int(total_budget)), extra_style="",
         )
 
         popup_html = _POPUP_HTML_TEMPLATE.format(
             unit_type_label=f"🔺 空軍",
             accent_color=color, owner=country_name,
-            target=target_name, quantity=f"{total_sq} 飛行隊",
+            target=target_name, quantity=f"${total_budget:.1f}B",
             mission=mission_val.upper().replace("_", " "), mission_color=color,
         )
 
@@ -363,7 +363,7 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
             icon=DivIcon(html=icon_html, icon_size=(size, size),
                          icon_anchor=(size // 2, size // 2)),
             popup=folium.Popup(popup_html, max_width=250),
-            tooltip=f"{country_name} 空軍 {total_sq}飛行隊",
+            tooltip=f"{country_name} 空軍 ${total_budget:.1f}B",
         ).add_to(fg)
 
 

@@ -18,27 +18,27 @@ from models import (
 # 緊張度スコアの計算
 # ---------------------------------------------------------
 
-# 配備ウェイト定数
+# 配備ウェイト定数（十億ドルあたり）
 ARMY_TENSION_WEIGHTS = {
-    "intimidation": 3.0,
-    "offensive": 2.0,
-    "defensive": 0.5,
+    "intimidation": 0.6,
+    "offensive": 0.4,
+    "defensive": 0.1,
 }
 
 NAVAL_TENSION_WEIGHTS = {
-    "show_of_force": 5.0,
-    "blockade": 8.0,
-    "naval_engagement": 6.0,
-    "amphibious_support": 4.0,
-    "shore_bombardment": 7.0,
-    "patrol": 0.3,
+    "show_of_force": 1.0,
+    "blockade": 1.6,
+    "naval_engagement": 1.2,
+    "amphibious_support": 0.8,
+    "shore_bombardment": 1.4,
+    "patrol": 0.06,
 }
 
 AIR_TENSION_WEIGHTS = {
-    "recon_flight": 2.0,
-    "strategic_bombing": 10.0,
-    "air_superiority": 1.0,
-    "ground_support": 1.5,
+    "recon_flight": 0.4,
+    "strategic_bombing": 2.0,
+    "air_superiority": 0.2,
+    "ground_support": 0.3,
 }
 
 
@@ -60,21 +60,19 @@ def calc_tension_score(deployments: List[MilitaryDeploymentOrder], target_countr
             continue
         
         d_type = d.type.value if hasattr(d.type, 'value') else str(d.type) if hasattr(d, 'type') else d.get('type', '')
+        budget = d.budget_amount if hasattr(d, 'budget_amount') else d.get('budget_amount', 0.0)
         
         if d_type == "army":
             posture = d.posture.value if hasattr(d, 'posture') and d.posture and hasattr(d.posture, 'value') else (d.get('posture', 'defensive') if isinstance(d, dict) else 'defensive')
-            divisions = d.divisions if hasattr(d, 'divisions') else d.get('divisions', 0)
-            tension += divisions * ARMY_TENSION_WEIGHTS.get(posture, 0.5)
+            tension += budget * ARMY_TENSION_WEIGHTS.get(posture, 0.1)
             
         elif d_type == "navy":
             mission = d.naval_mission.value if hasattr(d, 'naval_mission') and d.naval_mission and hasattr(d.naval_mission, 'value') else (d.get('naval_mission', 'patrol') if isinstance(d, dict) else 'patrol')
-            fleets = d.fleets if hasattr(d, 'fleets') else d.get('fleets', 0)
-            tension += fleets * NAVAL_TENSION_WEIGHTS.get(mission, 0.3)
+            tension += budget * NAVAL_TENSION_WEIGHTS.get(mission, 0.06)
             
         elif d_type == "air":
             mission = d.air_mission.value if hasattr(d, 'air_mission') and d.air_mission and hasattr(d.air_mission, 'value') else (d.get('air_mission', 'air_superiority') if isinstance(d, dict) else 'air_superiority')
-            squadrons = d.squadrons if hasattr(d, 'squadrons') else d.get('squadrons', 0)
-            tension += squadrons * AIR_TENSION_WEIGHTS.get(mission, 1.0)
+            tension += budget * AIR_TENSION_WEIGHTS.get(mission, 0.2)
     
     return tension
 
@@ -255,13 +253,13 @@ def build_tension_info_for_target(world_state: WorldState, country_name: str) ->
             d_type = d.type.value if hasattr(d.type, 'value') else str(d.type)
             if d_type == "army":
                 posture = d.posture.value if d.posture and hasattr(d.posture, 'value') else 'defensive'
-                lines.append(f"  └ 陸軍{d.divisions}師団が{posture}態勢で配備中")
+                lines.append(f"  └ 陸軍${d.budget_amount:.1f}Bが{posture}態勢で配備中")
             elif d_type == "navy":
                 mission = d.naval_mission.value if d.naval_mission and hasattr(d.naval_mission, 'value') else 'patrol'
-                lines.append(f"  └ 海軍{d.fleets}艦隊が{mission}態勢")
+                lines.append(f"  └ 海軍${d.budget_amount:.1f}Bが{mission}態勢")
             elif d_type == "air":
                 mission = d.air_mission.value if d.air_mission and hasattr(d.air_mission, 'value') else 'air_superiority'
-                lines.append(f"  └ 空軍{d.squadrons}飛行隊が{mission}を実施中")
+                lines.append(f"  └ 空軍${d.budget_amount:.1f}Bが{mission}を実施中")
     
     if not lines:
         return ""
@@ -313,13 +311,13 @@ def build_tension_info_for_threatener(world_state: WorldState, country_name: str
             d_type = d.type.value if hasattr(d.type, 'value') else str(d.type)
             if d_type == "army":
                 posture = d.posture.value if d.posture and hasattr(d.posture, 'value') else 'defensive'
-                details.append(f"陸軍{d.divisions}師団({posture})")
+                details.append(f"陸軍${d.budget_amount:.1f}B({posture})")
             elif d_type == "navy":
                 mission = d.naval_mission.value if d.naval_mission and hasattr(d.naval_mission, 'value') else 'patrol'
-                details.append(f"海軍{d.fleets}艦隊({mission})")
+                details.append(f"海軍${d.budget_amount:.1f}B({mission})")
             elif d_type == "air":
                 mission = d.air_mission.value if d.air_mission and hasattr(d.air_mission, 'value') else 'air_superiority'
-                details.append(f"空軍{d.squadrons}飛行隊({mission})")
+                details.append(f"空軍${d.budget_amount:.1f}B({mission})")
         if details:
             lines.append(f"  └ 配備中: {', '.join(details)}")
     

@@ -1,6 +1,6 @@
 """
 軍事ユニットマーカー描画モジュール
-師団・艦隊・飛行隊・要塞のマーカーを地図上に描画する
+軍事費ベースの配備マーカーを地図上に描画する
 """
 
 import numpy as np
@@ -205,27 +205,27 @@ def draw_military_units(ax, deployments: list, self_polygon, target_polygons: Di
         if target_poly is None:
             continue
         
-        total_divs = sum(
-            (d.divisions if hasattr(d, 'divisions') else d.get('divisions', 0))
+        total_budget = sum(
+            (d.budget_amount if hasattr(d, 'budget_amount') else d.get('budget_amount', 0.0))
             for d in army_list
         )
-        if total_divs == 0:
+        if total_budget <= 0:
             continue
         
-        # 代表点を1つ計算（全師団を1つのマーカーで表現）
+        # 代表点を1つ計算（全配備を1つのマーカーで表現）
         x, y = calc_army_position(self_polygon, target_poly, 0, 1)
         
         posture = army_list[0].posture if hasattr(army_list[0], 'posture') else army_list[0].get('posture', 'defensive')
         posture_val = posture.value if hasattr(posture, 'value') else str(posture) if posture else 'defensive'
         color = POSTURE_COLORS.get(posture_val, ACCENT_GREEN)
         
-        # 師団数に応じたマーカーサイズ
-        size = MARKER_SIZE_BASE + total_divs * 8
+        # 投入額に応じたマーカーサイズ
+        size = MARKER_SIZE_BASE + int(total_budget * 2)
         
         ax.scatter(x, y, marker=ARMY_MARKER, c=color, s=size,
                    edgecolors=UNIT_BORDER_COLOR, linewidth=0.5,
                    alpha=MARKER_ALPHA, zorder=10)
-        ax.annotate(f"{total_divs}", (x, y), fontsize=UNIT_LABEL_FONT_SIZE,
+        ax.annotate(f"{int(total_budget)}", (x, y), fontsize=UNIT_LABEL_FONT_SIZE,
                     color='white', ha='center', va='center',
                     fontweight='bold', zorder=11)
     
@@ -235,11 +235,11 @@ def draw_military_units(ax, deployments: list, self_polygon, target_polygons: Di
         if target_poly is None:
             continue
         
-        total_fleets = sum(
-            (d.fleets if hasattr(d, 'fleets') else d.get('fleets', 0))
+        total_budget = sum(
+            (d.budget_amount if hasattr(d, 'budget_amount') else d.get('budget_amount', 0.0))
             for d in navy_list
         )
-        if total_fleets == 0:
+        if total_budget <= 0:
             continue
         
         mission = navy_list[0].naval_mission if hasattr(navy_list[0], 'naval_mission') else navy_list[0].get('naval_mission', 'patrol')
@@ -247,12 +247,12 @@ def draw_military_units(ax, deployments: list, self_polygon, target_polygons: Di
         
         x, y = calc_navy_position(self_polygon, target_poly, 0, 1, mission_val)
         color = NAVAL_MISSION_COLORS.get(mission_val, ACCENT_CYAN)
-        size = MARKER_SIZE_BASE + total_fleets * 10
+        size = MARKER_SIZE_BASE + int(total_budget * 2)
         
         ax.scatter(x, y, marker=NAVY_MARKER, c=color, s=size,
                    edgecolors=UNIT_BORDER_COLOR, linewidth=0.5,
                    alpha=MARKER_ALPHA, zorder=10)
-        ax.annotate(f"{total_fleets}", (x, y), fontsize=UNIT_LABEL_FONT_SIZE,
+        ax.annotate(f"{int(total_budget)}", (x, y), fontsize=UNIT_LABEL_FONT_SIZE,
                     color='white', ha='center', va='center',
                     fontweight='bold', zorder=11)
     
@@ -262,11 +262,11 @@ def draw_military_units(ax, deployments: list, self_polygon, target_polygons: Di
         if target_poly is None:
             continue
         
-        total_sq = sum(
-            (d.squadrons if hasattr(d, 'squadrons') else d.get('squadrons', 0))
+        total_budget = sum(
+            (d.budget_amount if hasattr(d, 'budget_amount') else d.get('budget_amount', 0.0))
             for d in air_list
         )
-        if total_sq == 0:
+        if total_budget <= 0:
             continue
         
         mission = air_list[0].air_mission if hasattr(air_list[0], 'air_mission') else air_list[0].get('air_mission', 'air_superiority')
@@ -274,12 +274,12 @@ def draw_military_units(ax, deployments: list, self_polygon, target_polygons: Di
         
         x, y = calc_air_position(self_polygon, target_poly, mission_val, 0)
         color = AIR_MISSION_COLORS.get(mission_val, ACCENT_CYAN)
-        size = MARKER_SIZE_BASE + total_sq * 8
+        size = MARKER_SIZE_BASE + int(total_budget * 2)
         
         ax.scatter(x, y, marker=AIR_MARKER, c=color, s=size,
                    edgecolors=UNIT_BORDER_COLOR, linewidth=0.5,
                    alpha=MARKER_ALPHA, zorder=10)
-        ax.annotate(f"{total_sq}", (x, y), fontsize=UNIT_LABEL_FONT_SIZE,
+        ax.annotate(f"{int(total_budget)}", (x, y), fontsize=UNIT_LABEL_FONT_SIZE,
                     color='white', ha='center', va='center',
                     fontweight='bold', zorder=11)
         

@@ -48,30 +48,21 @@ class AirMission(str, Enum):
     STRATEGIC_BOMBING = "strategic_bombing"
     RECON_FLIGHT = "recon_flight"
 
-class ForceAllocation(BaseModel):
-    """兵科比率（陸海空の配分）"""
-    army_ratio: float = Field(0.5, ge=0.0, le=1.0)
-    navy_ratio: float = Field(0.3, ge=0.0, le=1.0)
-    air_ratio: float = Field(0.2, ge=0.0, le=1.0)
-
 class MilitaryDeploymentOrder(BaseModel):
-    """個別の軍事配備命令"""
+    """個別の軍事配備命令（軍事費ベース）"""
     type: DeploymentType = Field(..., description="配備する兵科")
     target_country: str = Field(..., description="配備先の対象国")
+    budget_amount: float = Field(0.0, ge=0.0, description="投入する軍事費（十億ドル）")
     # 陸軍パラメータ
-    divisions: int = Field(0, ge=0, description="陸軍師団数")
     posture: Optional[ArmyPosture] = Field(ArmyPosture.DEFENSIVE, description="陸軍態勢")
     fortify: Optional[FortifyLevel] = Field(FortifyLevel.NONE, description="要塞化レベル")
     # 海軍パラメータ
-    fleets: int = Field(0, ge=0, description="海軍艦隊数")
     naval_mission: Optional[NavalMission] = Field(NavalMission.PATROL, description="海軍任務")
     # 空軍パラメータ
-    squadrons: int = Field(0, ge=0, description="空軍飛行隊数")
     air_mission: Optional[AirMission] = Field(AirMission.AIR_SUPERIORITY, description="空軍任務")
 
 class MilitaryDeploymentState(BaseModel):
     """国家の軍事配備状態"""
-    force_allocation: ForceAllocation = Field(default_factory=ForceAllocation)
     deployments: List[MilitaryDeploymentOrder] = Field(default_factory=list)
 
 class CountryState(BaseModel):
@@ -264,8 +255,7 @@ class AgentAction(BaseModel):
     domestic_policy: DomesticAction = Field(..., description="内政の予算分配")
     diplomatic_policies: List[DiplomaticAction] = Field(..., description="他国に対する個別の外交アクションのリスト")
     # 軍事配備指示
-    force_allocation: Optional[ForceAllocation] = Field(None, description="兵科比率の変更指示（Noneなら現状維持）")
-    deployments: List[MilitaryDeploymentOrder] = Field(default_factory=list, description="軍事配備命令リスト")
+    deployments: List[MilitaryDeploymentOrder] = Field(default_factory=list, description="軍事配備命令リスト（軍事費ベース）")
 
 # ---------------------------------------------------------
 # 大臣最終決定制 モデル（v1.18〜）
