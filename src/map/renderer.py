@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 
 # 日本語フォントの設定（macOS: Hiragino Sans）
-plt.rcParams["font.family"] = ["Hiragino Sans", "Hiragino Kaku Gothic Pro", "sans-serif"]
+plt.rcParams["font.family"] = ["Hiragino Sans", "BIZ UDGothic", "sans-serif"]
 plt.rcParams["axes.unicode_minus"] = False
 from matplotlib.gridspec import GridSpec
 from matplotlib.patches import FancyBboxPatch

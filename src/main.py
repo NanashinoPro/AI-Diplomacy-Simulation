@@ -17,6 +17,12 @@ try:
 except ImportError:
     MAP_RENDERER_AVAILABLE = False
 
+try:
+    from map.folium_renderer import render_turn_map_html
+    FOLIUM_RENDERER_AVAILABLE = True
+except ImportError:
+    FOLIUM_RENDERER_AVAILABLE = False
+
 def _safe_float(value: str, default: float) -> float:
     """CSVから読み込んだ文字列を安全に float に変換する。空文字列や非数値はデフォルト値を返す。"""
     if not value or not value.strip():
@@ -665,9 +671,19 @@ def main():
                 map_output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "maps")
                 map_path = render_turn_map(world_state, output_dir=map_output_dir)
                 logger.sys_log(f"[🗺️ Map] 戦略マップを出力: {map_path}")
-                logger.console.print(f"  🗺️  戦略マップを出力しました: [dim]{map_path}[/dim]")
+                logger.console.print(f"  🗺️  戦略マップ(PNG)を出力: [dim]{map_path}[/dim]")
             except Exception as map_err:
-                logger.sys_log(f"[🗺️ Map] レンダリング失敗 (シミュレーションは継続): {map_err}", "WARNING")
+                logger.sys_log(f"[🗺️ Map] PNGレンダリング失敗: {map_err}", "WARNING")
+
+        # インタラクティブマップ（Folium HTML）のレンダリング
+        if FOLIUM_RENDERER_AVAILABLE:
+            try:
+                map_output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "maps")
+                html_path = render_turn_map_html(world_state, output_dir=map_output_dir)
+                logger.sys_log(f"[🗺️ Map] インタラクティブマップを出力: {html_path}")
+                logger.console.print(f"  🌐  インタラクティブマップ(HTML)を出力: [dim]{html_path}[/dim]")
+            except Exception as html_err:
+                logger.sys_log(f"[🗺️ Map] Foliumレンダリング失敗: {html_err}", "WARNING")
 
         logger.console.print("\n" + "═" * 70 + "\n")
         time.sleep(3)
