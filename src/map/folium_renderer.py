@@ -30,6 +30,9 @@ from map.styles import (
     ACCENT_GREEN, ACCENT_RED, ACCENT_YELLOW, ACCENT_CYAN, ACCENT_ORANGE,
 )
 
+# ワールドラッピング用の経度オフセット
+WORLD_WRAP_OFFSETS = [0, 360, -360]
+
 
 # ---------------------------------------------------------
 # ユニットマーカーの HTML テンプレート
@@ -97,6 +100,7 @@ def render_turn_map_html(world_state: WorldState, output_dir: str = "output/maps
         attr='&copy; <a href="https://carto.com/">CARTO</a>',
         control_scale=True,
         prefer_canvas=True,
+        world_copy_jump=False,
     )
 
     # ---- 領土レイヤー ----
@@ -172,21 +176,33 @@ def _add_territory_layer(m: folium.Map, participant_iso_codes: Dict[str, str]):
 
         primary_color = colors.get(country_name, {}).get("primary", "#4a7a4a")
 
-        GeoJson(
-            simplified.__geo_interface__,
-            style_function=lambda _, c=primary_color: {
-                "fillColor": c,
-                "color": PARTICIPANT_BORDER_COLOR,
-                "weight": 1.0,
-                "fillOpacity": 0.65,
-            },
-            tooltip=folium.Tooltip(
-                f"<b>{country_name}</b>",
-                style="background:#161b22;color:#c9d1d9;border:1px solid #30363d;"
-                      "border-radius:4px;padding:4px 8px;font-family:'Noto Sans JP',sans-serif;",
-            ),
-            name=country_name,
-        ).add_to(m)
+        # ワールドラッピング: 元の位置 + lon±360 に複製
+        for lon_offset in WORLD_WRAP_OFFSETS:
+            if lon_offset != 0:
+                offset_gdf = simplified.copy()
+                from shapely.affinity import translate
+                offset_gdf["geometry"] = offset_gdf.geometry.apply(
+                    lambda g: translate(g, xoff=lon_offset)
+                )
+                geo_data = offset_gdf.__geo_interface__
+            else:
+                geo_data = simplified.__geo_interface__
+
+            GeoJson(
+                geo_data,
+                style_function=lambda _, c=primary_color: {
+                    "fillColor": c,
+                    "color": PARTICIPANT_BORDER_COLOR,
+                    "weight": 1.0,
+                    "fillOpacity": 0.65,
+                },
+                tooltip=folium.Tooltip(
+                    f"<b>{country_name}</b>",
+                    style="background:#161b22;color:#c9d1d9;border:1px solid #30363d;"
+                          "border-radius:4px;padding:4px 8px;font-family:'Noto Sans JP',sans-serif;",
+                ),
+                name=f"{country_name}_off{lon_offset}",
+            ).add_to(m)
 
 
 # ---------------------------------------------------------
@@ -260,10 +276,10 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
         posture_val = posture.value if hasattr(posture, 'value') else str(posture) if posture else 'defensive'
         color = POSTURE_COLORS.get(posture_val, ACCENT_GREEN)
 
-        size = 24 + int(total_budget * 0.5)
+        size = max(18, min(40, 18 + int(total_budget * 0.02)))
         icon_html = _UNIT_HTML_TEMPLATE.format(
             size=size, bg_color=color, border_color="#fff",
-            border_radius="3px", font_size=max(10, size // 2),
+            border_radius="3px", font_size=max(8, size // 2),
             label=str(int(total_budget)), extra_style="",
         )
 
@@ -274,13 +290,15 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
             mission=posture_val.upper(), mission_color=color,
         )
 
-        Marker(
-            location=[y, x],
-            icon=DivIcon(html=icon_html, icon_size=(size, size),
-                         icon_anchor=(size // 2, size // 2)),
-            popup=folium.Popup(popup_html, max_width=250),
-            tooltip=f"{country_name} 陸軍 ${total_budget:.1f}B",
-        ).add_to(fg)
+        # ワールドラップ: 3箇所に複製
+        for lon_offset in WORLD_WRAP_OFFSETS:
+            Marker(
+                location=[y, x + lon_offset],
+                icon=DivIcon(html=icon_html, icon_size=(size, size),
+                             icon_anchor=(size // 2, size // 2)),
+                popup=folium.Popup(popup_html, max_width=250),
+                tooltip=f"{country_name} 陸軍 ${total_budget:.1f}B",
+            ).add_to(fg)
 
     # ---- 海軍 ----
     for target_name, navy_list in navy_by_target.items():
@@ -300,11 +318,11 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
 
         x, y = calc_navy_position(self_poly, target_poly, 0, 1, mission_val)
         color = NAVAL_MISSION_COLORS.get(mission_val, ACCENT_CYAN)
-        size = 24 + int(total_budget * 0.5)
+        size = max(18, min(40, 18 + int(total_budget * 0.02)))
 
         icon_html = _UNIT_HTML_TEMPLATE.format(
             size=size, bg_color=color, border_color="#fff",
-            border_radius="50%", font_size=max(10, size // 2),
+            border_radius="50%", font_size=max(8, size // 2),
             label=str(int(total_budget)),
             extra_style="transform:rotate(45deg);",
         )
@@ -316,13 +334,15 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
             mission=mission_val.upper().replace("_", " "), mission_color=color,
         )
 
-        Marker(
-            location=[y, x],
-            icon=DivIcon(html=icon_html, icon_size=(size, size),
-                         icon_anchor=(size // 2, size // 2)),
-            popup=folium.Popup(popup_html, max_width=250),
-            tooltip=f"{country_name} 海軍 ${total_budget:.1f}B",
-        ).add_to(fg)
+        # ワールドラップ: 3箇所に複製
+        for lon_offset in WORLD_WRAP_OFFSETS:
+            Marker(
+                location=[y, x + lon_offset],
+                icon=DivIcon(html=icon_html, icon_size=(size, size),
+                             icon_anchor=(size // 2, size // 2)),
+                popup=folium.Popup(popup_html, max_width=250),
+                tooltip=f"{country_name} 海軍 ${total_budget:.1f}B",
+            ).add_to(fg)
 
     # ---- 空軍 ----
     for target_name, air_list in air_by_target.items():
@@ -342,12 +362,12 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
 
         x, y = calc_air_position(self_poly, target_poly, mission_val, 0)
         color = AIR_MISSION_COLORS.get(mission_val, ACCENT_CYAN)
-        size = 24 + int(total_budget * 0.5)
+        size = max(18, min(40, 18 + int(total_budget * 0.02)))
 
         # 三角形のCSS
         icon_html = _UNIT_HTML_TEMPLATE.format(
             size=size, bg_color=color, border_color="#fff",
-            border_radius="3px 3px 50% 50%", font_size=max(10, size // 2),
+            border_radius="3px 3px 50% 50%", font_size=max(8, size // 2),
             label=str(int(total_budget)), extra_style="",
         )
 
@@ -358,13 +378,15 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
             mission=mission_val.upper().replace("_", " "), mission_color=color,
         )
 
-        Marker(
-            location=[y, x],
-            icon=DivIcon(html=icon_html, icon_size=(size, size),
-                         icon_anchor=(size // 2, size // 2)),
-            popup=folium.Popup(popup_html, max_width=250),
-            tooltip=f"{country_name} 空軍 ${total_budget:.1f}B",
-        ).add_to(fg)
+        # ワールドラップ: 3箇所に複製
+        for lon_offset in WORLD_WRAP_OFFSETS:
+            Marker(
+                location=[y, x + lon_offset],
+                icon=DivIcon(html=icon_html, icon_size=(size, size),
+                             icon_anchor=(size // 2, size // 2)),
+                popup=folium.Popup(popup_html, max_width=250),
+                tooltip=f"{country_name} 空軍 ${total_budget:.1f}B",
+            ).add_to(fg)
 
 
 # ---------------------------------------------------------
@@ -400,14 +422,17 @@ def _add_war_arrows(m: folium.Map, world_state: WorldState,
         progress = war.target_occupation_progress
         weight = 2 + (progress / 100.0) * 4
 
-        PolyLine(
-            locations=[[agg_c.y, agg_c.x], [def_c.y, def_c.x]],
-            color=ACCENT_RED,
-            weight=weight,
-            opacity=0.7,
-            dash_array="10 6",
-            tooltip=f"⚔ {war.aggressor} → {war.defender} (占領 {progress:.0f}%)",
-        ).add_to(fg)
+        # ワールドラップ: 戦争矢印も3箇所に複製
+        for lon_offset in WORLD_WRAP_OFFSETS:
+            PolyLine(
+                locations=[[agg_c.y, agg_c.x + lon_offset],
+                           [def_c.y, def_c.x + lon_offset]],
+                color=ACCENT_RED,
+                weight=weight,
+                opacity=0.7,
+                dash_array="10 6",
+                tooltip=f"⚔ {war.aggressor} → {war.defender} (占領 {progress:.0f}%)",
+            ).add_to(fg)
 
     fg.add_to(m)
 
