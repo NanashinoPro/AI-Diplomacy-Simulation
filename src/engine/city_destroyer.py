@@ -10,6 +10,7 @@ Alien専用の超兵器「シティ・デストロイヤー」の処理を担当
   - ダメージ: GDP-15%, 人口-10%, 軍事-8%, 支持率-15%
 """
 
+from agent.prompts.base import _is_agi_country
 from .constants import (
     CITY_DESTROYER_ECON_DAMAGE,
     CITY_DESTROYER_POP_DAMAGE,
@@ -75,7 +76,9 @@ class CityDestroyerMixin:
         target.economy = max(1.0, target.economy - econ_damage)
         target.population = max(0.1, target.population - pop_damage)
         target.military = max(0.0, target.military - mil_damage)
-        target.approval_rating = max(0.0, target.approval_rating - CITY_DESTROYER_APPROVAL_PENALTY)
+        # AGI完全管理国家: 支持率ペナルティを免除（物理ダメージは維持）
+        if not _is_agi_country(target_name):
+            target.approval_rating = max(0.0, target.approval_rating - CITY_DESTROYER_APPROVAL_PENALTY)
 
         # ニュースイベント
         self.log_event(

@@ -2,6 +2,7 @@ import random
 import uuid
 from scipy.stats import skewnorm
 from models import CountryState, GovernmentType, WarState, DisasterEvent, BreakthroughState, TradeState
+from agent.prompts.base import _is_agi_country
 from .constants import (
     GLOBAL_DISASTERS, NATIONAL_DISASTERS, EARTH_LAND_AREA,
     FRAGMENTATION_BASE_INSTABILITY_MULTIPLIER, FRAGMENTATION_SIZE_FACTOR_MULTIPLIER, FRAGMENTATION_TRADE_FACTOR_MULTIPLIER,
@@ -24,6 +25,15 @@ class EventsMixin:
         for name, country in list(self.state.countries.items()):
             # === Alien特殊処理: 反乱・選挙・分裂が発生しない ===
             if getattr(country, 'is_alien', False):
+                continue
+            
+            # === AGI完全管理国家: 反乱・選挙・分裂が発生しない ===
+            # PROMETHEUS直接統治により国内の政治プロセスが完全に無効化されている
+            if _is_agi_country(name):
+                country.rebellion_risk = 0.0  # 反乱リスクも常時リセット
+                self.sys_logs_this_turn.append(
+                    f"[{name} AGI] 反乱・分裂判定免除（PROMETHEUS完全統制）"
+                )
                 continue
             
             # 【新設】クールダウン期間: 新政権発足後4ターン（1年）は分裂・クーデター免除

@@ -1,6 +1,7 @@
 from typing import Dict, List, Any
 from models import GovernmentType
 
+from agent.prompts.base import _is_agi_country
 from .constants import WMA_HISTORY_WEIGHT, WMA_BASE_WEIGHT, WMA_BASE_VALUE
 
 class PublicOpinionMixin:
@@ -15,6 +16,15 @@ class PublicOpinionMixin:
             
             # === Alien特殊処理: 世論評価をスキップ（支持率固定） ===
             if getattr(country, 'is_alien', False):
+                continue
+            
+            # === AGI完全管理国家: 世論は統制下にあり、支持率は100%に固定 ===
+            # PROMETHEUS直接統治により国内の政治プロセスが完全に無効化されている
+            if _is_agi_country(country_name):
+                country.approval_rating = 100.0
+                self.sys_logs_this_turn.append(
+                    f"[{country_name} AGI] 世論評価スキップ（PROMETHEUS統制: 支持率100%固定）"
+                )
                 continue
             
             sns_history = []

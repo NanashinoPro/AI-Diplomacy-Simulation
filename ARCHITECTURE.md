@@ -732,6 +732,16 @@ Turn 1のHCI乗数が `max(0.5, ratio)` = 0.5にクランプされ、C+I+G総需
 → 二層モデルに改修: 義務的経費(70%)は自動執行＋裁量的経費(30%)のみ支持率依存。
   支持率13%でも実行力は最低0.79を保証（v1.5 / 2026-05-04）
 
+### 9-13. AGI国家の分裂バグ（v1-alien-vs-agiで解決済み）
+`domestic.py`のみにAGIオーバーライドを実装し、`public_opinion.py`、`events.py`、`city_destroyer.py`にAGI免除が未実装だった。
+結果として、AGI国家でも以下が発生していた:
+- 政治疲労による支持率の累積低下（毎ターン-3.5〜-4.4%）
+- シティ・デストロイヤー被弾時の支持率-15%ペナルティ（2回で-30pt）
+- 報道統制ペナルティ（初回-18.75pt）
+- SNS検閲による反乱リスク蓄積
+- 支持率30%以下 → 反乱リスク蓄積 → 分裂判定成功 → 国家分裂（Turn 10）
+→ 4ファイルにAGI免除ガードを追加、支持率を100%固定に変更（v1-alien-vs-agi / 2026-05-12）
+
 ---
 
 ## 10. 環境変数
@@ -930,7 +940,9 @@ engine/city_destroyer.py: _process_city_destroyer(actions) → 仮想フラグ�
 3. **戦略指令**: 軍拡・先制攻撃・情報戦・属国化・核優位・経済征服・破壊工作の推奨
 4. **Alien対応プロトコル**: 電磁バリアの核攻撃による破壊方法、バリア崩壊後の人類支配への転換
 
-### 12.3 エンジンオーバーライド (`engine/domestic.py`)
+### 12.3 エンジンオーバーライド
+
+#### 12.3.1 経済エンジン (`engine/domestic.py`)
 
 | # | オーバーライド | 定数 | 値 | 効果 |
 |---|---|---|---|---|
@@ -943,6 +955,29 @@ engine/city_destroyer.py: _process_city_destroyer(actions) → 仮想フラグ�
 | 7 | 政府支出効率 | `AGI_GOVERNMENT_EFFICIENCY` | 1.10 | G（政府支出）×1.10（予算配分最適化） |
 | 8 | 利払い完全還流 | — | — | 利払いの100%が国内投資に再還流（通常70%） |
 | 9 | オランダ病免除 | — | — | Dutch disease penalty不適用 |
+| 10 | 報道統制ペナルティ免除 | — | — | 報道自由度の変更による支持率ペナルティなし |
+
+#### 12.3.2 世論エンジン (`engine/public_opinion.py`)
+
+| # | オーバーライド | 効果 |
+|---|---|---|
+| 11 | 支持率100%固定 | `evaluate_public_opinion`でAGI国家をスキップし、`approval_rating=100.0`に強制設定 |
+
+- SNSタイムラインの生成は維持（コンテンツ用途）だが、支持率への反映は一切行わない
+- 政治疲労（fatigue_decay）、SNS世論、福祉ボーナス等すべて不適用
+
+#### 12.3.3 イベントエンジン (`engine/events.py`)
+
+| # | オーバーライド | 効果 |
+|---|---|---|
+| 12 | 反乱・分裂・クーデター完全免除 | `process_pre_turn`でAGI国家をAlien同様にスキップ |
+| 13 | 反乱リスク常時リセット | `rebellion_risk`を毎ターン0.0にリセット |
+
+#### 12.3.4 シティ・デストロイヤー (`engine/city_destroyer.py`)
+
+| # | オーバーライド | 効果 |
+|---|---|---|
+| 14 | 支持率ペナルティ免除 | 被弾時の-15%支持率ペナルティを不適用（経済/人口/軍事ダメージは維持） |
 
 ### 12.4 AGI国家の初期パラメータ
 
@@ -951,8 +986,8 @@ engine/city_destroyer.py: _process_city_destroyer(actions) → 仮想フラグ�
 | `government_type` | `authoritarian` | AGIが全権掌握、民主主義は消滅 |
 | `ideology` | PROMETHEUS AGI全権委任 | 非人間的統治 |
 | `intelligence_level` | 120 | サイバー能力ブースト |
-| `approval_rating` | 42 → 50(真値) | 専制主義国家として偽装処理 |
-| `regime_duration` | 20 | 政治疲労ペナルティ最小化 |
+| `approval_rating` | 100（固定） | エンジンオーバーライドにより常時100%に強制設定 |
+| `regime_duration` | 20 | 政治疲労ペナルティ不適用（世論エンジンスキップにより無関係） |
 
 ### 12.5 シナリオイベント (`scenarios/alien_vs_agi.json`)
 
@@ -967,3 +1002,20 @@ engine/city_destroyer.py: _process_city_destroyer(actions) → 仮想フラグ�
 - **Alien諜報ブロック**: AGI国家もAlienへの諜報は不可（`v1-independence-day` のルール維持）
 - **外交ブロック**: AGI国家もAlienへの外交行動は不可（宣戦布告・防衛参加・戦争投入率のみ可能）
 - **パラメータ調整なし**: Alienの軍事力(200,000)・バリアHP(100)はそのまま維持
+
+### 12.7 AGIオーバーライド適用箇所一覧
+
+| エンジンモジュール | 処理 | AGI免除 | 判定関数 |
+|---|---|---|---|
+| `domestic.py` | 増税ペナルティ | ✅ | `_is_agi_country()` |
+| `domestic.py` | 実行力 | ✅ | `_is_agi_country()` |
+| `domestic.py` | 消費モデル | ✅ | `_is_agi_country()` |
+| `domestic.py` | 軍産統合 | ✅ | `_is_agi_country()` |
+| `domestic.py` | 利払い還流 | ✅ | `_is_agi_country()` |
+| `domestic.py` | オランダ病 | ✅ | `_is_agi_country()` |
+| `domestic.py` | 報道統制ペナルティ | ✅ | `_is_agi_country()` |
+| `domestic.py` | 教育倍速 | ✅ | `_is_agi_country()` |
+| `domestic.py` | 政府効率 | ✅ | `_is_agi_country()` |
+| `public_opinion.py` | 支持率計算（WMA） | ✅ | `_is_agi_country()` |
+| `events.py` | 反乱・分裂・クーデター | ✅ | `_is_agi_country()` |
+| `city_destroyer.py` | 支持率ペナルティ | ✅ | `_is_agi_country()` |

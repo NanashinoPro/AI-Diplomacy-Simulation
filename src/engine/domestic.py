@@ -222,9 +222,12 @@ class DomesticMixin:
         
         if freedom_diff < -0.05:
             # 自由度を下げた場合: 0.1の制限につき、支持率-2.5%程度のペナルティ（v2: 戦時を考慮し50→25に緩和）
-            freedom_penalty = abs(freedom_diff) * 25.0
-            country.approval_rating = max(0.0, country.approval_rating - freedom_penalty)
-            self.sys_logs_this_turn.append(f"[{country.name} 報道統制] 自由度低下({freedom_diff:+.2f})により支持率急落 -{freedom_penalty:.1f}%")
+            if _is_agi_country(country_name):
+                self.sys_logs_this_turn.append(f"[{country.name} AGI報道統制] 自由度低下({freedom_diff:+.2f}) → 支持率ペナルティ免除 (PROMETHEUS統制下)")
+            else:
+                freedom_penalty = abs(freedom_diff) * 25.0
+                country.approval_rating = max(0.0, country.approval_rating - freedom_penalty)
+                self.sys_logs_this_turn.append(f"[{country.name} 報道統制] 自由度低下({freedom_diff:+.2f})により支持率急落 -{freedom_penalty:.1f}%")
         elif freedom_diff > 0.05:
             # 自由度を上げた場合: 0.1の緩和につき、支持率+2%程度のボーナス（統制解除による限定的な支持回復）
             freedom_bonus = freedom_diff * 20.0

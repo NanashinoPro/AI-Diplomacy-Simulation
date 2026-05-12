@@ -1,0 +1,30 @@
+[2026-05-08 11:02:38] [INFO] ===== v1.13 エンジン修正 =====
+[2026-05-08 11:02:38] [INFO] 1. main.py: AlienのSNSフェーズスキップ追加（市民SNS生成ループにis_alienガード挿入）
+[2026-05-08 11:02:38] [INFO] 2. models.py: CountryStateにalien_city_destroyer_charged: boolフィールド追加
+[2026-05-08 11:02:38] [INFO] 3. constants.py: TAX_APPROVAL_PENALTY_MULTIPLIER 200.0→100.0に半減
+[2026-05-08 11:02:38] [INFO] 4. constants.py: シティ・デストロイヤー定数追加（ECON_DAMAGE=0.15, POP_DAMAGE=0.10, MIL_DAMAGE=0.08, APPROVAL_PENALTY=15.0）
+[2026-05-08 11:02:38] [INFO] 5. engine/city_destroyer.py: CityDestroyerMixin新規作成 — チャージ1ターン→AI判断で発射
+[2026-05-08 11:02:38] [INFO] 6. engine/core.py: CityDestroyerMixin追加 + process_turn内に_process_city_destroyer呼び出し
+[2026-05-08 11:02:38] [INFO] 7. agent/prompts/alien.py: シティ・デストロイヤー発射対象選択プロンプト追加
+[2026-05-08 11:02:38] [INFO] 8. agent/core.py: _decide_alien_action()にcity_destroyer_targets処理追加
+[2026-05-08 11:02:38] [INFO] 9. initial_stats.csv: 日本regime_duration 20→1（政治疲労-3.2%→-1.0%緩和）
+[2026-05-08 11:02:38] [INFO] 10. domestic.py: 報道統制ペナルティ係数50.0→25.0に半減
+[2026-05-08 11:02:38] [INFO] 11. diplomacy.py: Alien破壊工作成功時にバリアHP減少（サイバー-25、通常-10）、SNSリクエストスキップ
+[2026-05-08 11:02:38] [INFO] 12. ARCHITECTURE.md: v2.1セクション追加（シティ・デストロイヤー、バリア解除、パラメータ変更履歴）
+
+[2026-05-08 14:46:00] [INFO] ===== v1.14 ログ完全記録改修 =====
+[2026-05-08 14:46:00] [INFO] 1. core.py: _execute_agentに全タスク共通のsys_log_detail出力を追加（M-01〜M-05, D-01〜D-08, I-01〜I-08, B-01のLLM生JSON応答をシステムログに記録）
+[2026-05-08 14:46:00] [INFO] 2. core.py: P-01/P-02/A-01の個別sys_log_detailを削除（_execute_agentの共通出力で重複排除）
+[2026-05-08 14:46:00] [INFO] 3. core.py: M-01の核使用提言がnull時もログに「核使用提言: なし」を記録
+[2026-05-08 14:46:00] [INFO] 4. diplomacy.py: 破壊工作の判定結果を全パターン（成功/失敗 × 発覚/未発覚）でsys_logに記録（手法・成功率・結果を含む）
+[2026-05-08 14:46:00] [INFO] 5. diplomacy.py: 情報収集の判定結果を全パターンでsys_logに記録
+[2026-05-08 14:46:00] [INFO] 6. ARCHITECTURE.md: セクション5-4にログ仕様詳細と諜報判定ログ仕様（5-4-1）を追記
+
+[2026-05-12 13:28:00] [INFO] ===== v1.15 AGI分裂バグ修正 =====
+[2026-05-12 13:28:00] [INFO] 【バグ内容】AGI国家（PROMETHEUS/アメリカ）がTurn 10で国家分裂。支持率が14.3%まで低下し、反乱→分裂判定を通過。
+[2026-05-12 13:28:00] [INFO] 【根本原因】domestic.pyのみにAGIオーバーライドを実装し、他3モジュールにAGI免除ガードが未実装だった。
+[2026-05-12 13:28:00] [INFO] 1. public_opinion.py: AGI国家の世論評価（WMA）をスキップし、支持率を100%に固定。政治疲労・SNS世論・福祉ボーナス等すべて不適用。
+[2026-05-12 13:28:00] [INFO] 2. events.py: AGI国家を反乱・分裂・クーデター判定から完全免除（Alien同様のスキップ）。rebellion_riskも毎ターン0.0にリセット。
+[2026-05-12 13:28:00] [INFO] 3. city_destroyer.py: AGI国家へのシティ・デストロイヤー被弾時の支持率-15%ペナルティを免除（経済/人口/軍事ダメージは維持）。
+[2026-05-12 13:28:00] [INFO] 4. domestic.py: 報道統制（press_freedom低下）による支持率ペナルティにAGI免除ガードを追加。
+[2026-05-12 13:28:00] [INFO] 5. ARCHITECTURE.md: セクション12.3を細分化（12.3.1〜12.3.4）、12.7 AGIオーバーライド適用箇所一覧を追加、9-13にバグを記録。
