@@ -276,7 +276,7 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
         posture_val = posture.value if hasattr(posture, 'value') else str(posture) if posture else 'defensive'
         color = POSTURE_COLORS.get(posture_val, ACCENT_GREEN)
 
-        size = max(18, min(40, 18 + int(total_budget * 0.02)))
+        size = max(16, min(42, 16 + int(np.sqrt(total_budget) * 1.4)))
         icon_html = _UNIT_HTML_TEMPLATE.format(
             size=size, bg_color=color, border_color="#fff",
             border_radius="3px", font_size=max(8, size // 2),
@@ -318,7 +318,7 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
 
         x, y = calc_navy_position(self_poly, target_poly, 0, 1, mission_val)
         color = NAVAL_MISSION_COLORS.get(mission_val, ACCENT_CYAN)
-        size = max(18, min(40, 18 + int(total_budget * 0.02)))
+        size = max(16, min(42, 16 + int(np.sqrt(total_budget) * 1.4)))
 
         icon_html = _UNIT_HTML_TEMPLATE.format(
             size=size, bg_color=color, border_color="#fff",
@@ -362,7 +362,7 @@ def _add_country_units(fg: folium.FeatureGroup, deployments: list,
 
         x, y = calc_air_position(self_poly, target_poly, mission_val, 0)
         color = AIR_MISSION_COLORS.get(mission_val, ACCENT_CYAN)
-        size = max(18, min(40, 18 + int(total_budget * 0.02)))
+        size = max(16, min(42, 16 + int(np.sqrt(total_budget) * 1.4)))
 
         # 三角形のCSS
         icon_html = _UNIT_HTML_TEMPLATE.format(
