@@ -15,6 +15,65 @@ class RelationType(str, Enum):
     NEUTRAL = "neutral"           # 中立
     AT_WAR = "at_war"             # 戦争状態（交戦中）
 
+# ---------------------------------------------------------
+# 軍事配備システム (Military Deployment)
+# ---------------------------------------------------------
+
+class DeploymentType(str, Enum):
+    ARMY = "army"
+    NAVY = "navy"
+    AIR = "air"
+
+class ArmyPosture(str, Enum):
+    OFFENSIVE = "offensive"
+    DEFENSIVE = "defensive"
+    INTIMIDATION = "intimidation"
+
+class FortifyLevel(str, Enum):
+    NONE = "none"
+    LIGHT = "light"
+    HEAVY = "heavy"
+
+class NavalMission(str, Enum):
+    PATROL = "patrol"
+    SHOW_OF_FORCE = "show_of_force"
+    BLOCKADE = "blockade"
+    NAVAL_ENGAGEMENT = "naval_engagement"
+    AMPHIBIOUS_SUPPORT = "amphibious_support"
+    SHORE_BOMBARDMENT = "shore_bombardment"
+
+class AirMission(str, Enum):
+    AIR_SUPERIORITY = "air_superiority"
+    GROUND_SUPPORT = "ground_support"
+    STRATEGIC_BOMBING = "strategic_bombing"
+    RECON_FLIGHT = "recon_flight"
+
+class ForceAllocation(BaseModel):
+    """兵科比率（陸海空の配分）"""
+    army_ratio: float = Field(0.5, ge=0.0, le=1.0)
+    navy_ratio: float = Field(0.3, ge=0.0, le=1.0)
+    air_ratio: float = Field(0.2, ge=0.0, le=1.0)
+
+class MilitaryDeploymentOrder(BaseModel):
+    """個別の軍事配備命令"""
+    type: DeploymentType = Field(..., description="配備する兵科")
+    target_country: str = Field(..., description="配備先の対象国")
+    # 陸軍パラメータ
+    divisions: int = Field(0, ge=0, description="陸軍師団数")
+    posture: Optional[ArmyPosture] = Field(ArmyPosture.DEFENSIVE, description="陸軍態勢")
+    fortify: Optional[FortifyLevel] = Field(FortifyLevel.NONE, description="要塞化レベル")
+    # 海軍パラメータ
+    fleets: int = Field(0, ge=0, description="海軍艦隊数")
+    naval_mission: Optional[NavalMission] = Field(NavalMission.PATROL, description="海軍任務")
+    # 空軍パラメータ
+    squadrons: int = Field(0, ge=0, description="空軍飛行隊数")
+    air_mission: Optional[AirMission] = Field(AirMission.AIR_SUPERIORITY, description="空軍任務")
+
+class MilitaryDeploymentState(BaseModel):
+    """国家の軍事配備状態"""
+    force_allocation: ForceAllocation = Field(default_factory=ForceAllocation)
+    deployments: List[MilitaryDeploymentOrder] = Field(default_factory=list)
+
 class CountryState(BaseModel):
     """各国の状況を表すモデル"""
     name: str = Field(..., description="国名")
@@ -40,6 +99,7 @@ class CountryState(BaseModel):
     working_age_ratio: float = Field(0.60, description="生産年齢人口比率（労働力計算用。初期値60%）")
     
     # 地理・貿易パラメータ
+    iso_code: Optional[str] = Field(None, description="ISO 3166-1 alpha-3 国コード（マップレンダリング用）")
     capital_lat: float = Field(0.0, description="首都の緯度")
     capital_lon: float = Field(0.0, description="首都の経度")
     tariff_revenue: float = Field(0.0, description="前ターンの関税収入")
@@ -101,6 +161,10 @@ class CountryState(BaseModel):
         1.0, ge=0.0,
         description="各国の目標備蓄量（ターン単位）。供給再開後のリセット先。initial_stats.csvで設定。"
     )
+    # 軍事配備状態
+    military_deployment: MilitaryDeploymentState = Field(default_factory=MilitaryDeploymentState)
+    has_coastline: bool = Field(True, description="海岸線の有無（内陸国はFalse）")
+
     energy_export_blocked: bool = Field(
         False,
         description=(
@@ -199,6 +263,9 @@ class AgentAction(BaseModel):
     update_hidden_plans: str = Field("", description="次ターンの自分に引き継ぐべき非公開の計画や長期戦略のメモ（変更がなければ前回のままにするか、空欄にするのではなく記載してください）")
     domestic_policy: DomesticAction = Field(..., description="内政の予算分配")
     diplomatic_policies: List[DiplomaticAction] = Field(..., description="他国に対する個別の外交アクションのリスト")
+    # 軍事配備指示
+    force_allocation: Optional[ForceAllocation] = Field(None, description="兵科比率の変更指示（Noneなら現状維持）")
+    deployments: List[MilitaryDeploymentOrder] = Field(default_factory=list, description="軍事配備命令リスト")
 
 # ---------------------------------------------------------
 # 大臣最終決定制 モデル（v1.18〜）

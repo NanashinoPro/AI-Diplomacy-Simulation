@@ -8,6 +8,7 @@ def build_analyst_prompt(
     world_state: WorldState,
     target_country_name: str,
     past_news: List = None,
+    use_real_stats: bool = True,
 ) -> str:
     """統合型分析官のプロンプトを構築する。
     
@@ -93,16 +94,28 @@ def build_analyst_prompt(
         elif p.donor == country_name and p.target == target_country_name:
             pending_aid_info += f"保留中の援助: 自国→{target_country_name} (経済{p.amount_economy:.1f}, 軍事{p.amount_military:.1f})\n"
     
+    # 偽装値の適用判定
+    if use_real_stats:
+        t_economy = target_state.economy
+        t_military = target_state.military
+        t_intel = target_state.intelligence_level
+        t_approval = target_state.approval_rating
+    else:
+        t_economy = target_state.reported_economy if target_state.reported_economy is not None else target_state.economy
+        t_military = target_state.reported_military if target_state.reported_military is not None else target_state.military
+        t_intel = target_state.reported_intelligence_level if target_state.reported_intelligence_level is not None else target_state.intelligence_level
+        t_approval = target_state.reported_approval_rating if target_state.reported_approval_rating is not None else target_state.approval_rating
+
     target_info = (
         f"---分析対象国: {target_country_name} の詳細情報---\n"
         f"政治体制: {target_state.government_type.value}\n"
         f"イデオロギー: {target_state.ideology}\n"
-        f"経済力(GDP): {target_state.economy:.1f}\n"
-        f"1人当たりGDP: {(target_state.economy / max(0.1, target_state.population)):.1f}\n"
-        f"軍事力: {target_state.military:.1f}\n"
-        f"諜報レベル: {target_state.intelligence_level:.1f}\n"
+        f"経済力(GDP): {t_economy:.1f}\n"
+        f"1人当たりGDP: {(t_economy / max(0.1, target_state.population)):.1f}\n"
+        f"軍事力: {t_military:.1f}\n"
+        f"諜報レベル: {t_intel:.1f}\n"
         f"人口: {target_state.population:.1f}百万人\n"
-        f"支持率: {target_state.approval_rating:.1f}%\n"
+        f"支持率: {t_approval:.1f}%\n"
         f"国家債務(GDP比): {(target_state.national_debt / max(0.1, target_state.economy)):.1%}\n"
         f"二国間関係: {rel_str}\n"
         f"{trade_info}\n"

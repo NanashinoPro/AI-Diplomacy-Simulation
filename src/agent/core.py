@@ -15,7 +15,9 @@ from models import (
     WorldState, CountryState, AgentAction, DomesticAction, DiplomaticAction,
     PresidentPolicy,
     MinisterDecisionForeign, MinisterDecisionDefense,
-    MinisterDecisionEconomic, MinisterDecisionFinance, PresidentDecision
+    MinisterDecisionEconomic, MinisterDecisionFinance, PresidentDecision,
+    ForceAllocation, MilitaryDeploymentOrder, DeploymentType,
+    ArmyPosture, FortifyLevel, NavalMission, AirMission,
 )
 from logger import SimulationLogger
 
@@ -46,6 +48,7 @@ from agent.prompts.military.tasks import (
     build_espionage_gather_prompt,
     build_espionage_sabotage_prompt,
 )
+from agent.prompts.defense import build_defense_minister_prompt
 
 # diplomatic
 from agent.prompts.diplomatic.tasks import (
@@ -513,6 +516,8 @@ class AgentSystem:
             "invest_intelligence": 0.05,
             "war_commitment_ratios": {},
             "espionage_actions": [],  # List[dict] {target, gather, gather_strategy, sabotage, sabotage_strategy, sabotage_reasoning}
+            "force_allocation": None,  # ForceAllocation or None
+            "deployments": [],  # List[MilitaryDeploymentOrder]
         }
 
         # M-01: 軍事投資
@@ -536,21 +541,80 @@ class AgentSystem:
         except Exception as e:
             self.logger.sys_log(f"[{country_name}:M-02] エラー: {e}", "ERROR")
 
-        # M-03: 前線投入比率（交戦中のみ）
-        is_at_war = any(
-            w.aggressor == country_name or w.defender == country_name
-            for w in world_state.active_wars
-        )
-        if is_at_war:
-            try:
-                raw = self._execute_agent(country_name, "軍事:前線投入(M-03)",
-                    build_war_commitment_prompt(country_name, country_state, world_state, policy, past_news),
-                    "mil_commitment", "gemini-2.5-flash")
-                d = self._safe_json(raw)
-                ratios = d.get("war_commitment_ratios", {})
-                result["war_commitment_ratios"] = {k: float(v) for k, v in ratios.items()}
-            except Exception as e:
-                self.logger.sys_log(f"[{country_name}:M-03] エラー: {e}", "ERROR")
+        # M-03: 防衛大臣タスク（兵科比率 + 軍事配備命令 + 前線投入比率）
+        try:
+            raw = self._execute_agent(country_name, "防衛大臣(M-03)",
+                build_defense_minister_prompt(country_name, country_state, world_state, past_news, analyst_reports),
+                "mil_defense", "gemini-2.5-flash")
+            d = self._safe_json(raw)
+
+            # 軍事投資（防衛大臣の値で上書き — M-01と併用する場合は平均化可能）
+            if "invest_military" in d:
+                result["invest_military"] = float(d["invest_military"])
+            if "invest_intelligence" in d:
+                result["invest_intelligence"] = float(d["invest_intelligence"])
+            if d.get("reasoning_for_military_investment"):
+                result["reasoning_for_military_investment"] = d["reasoning_for_military_investment"]
+
+            # 兵科比率
+            fa_raw = d.get("force_allocation")
+            if fa_raw and isinstance(fa_raw, dict):
+                result["force_allocation"] = ForceAllocation(
+                    army_ratio=float(fa_raw.get("army_ratio", 0.5)),
+                    navy_ratio=float(fa_raw.get("navy_ratio", 0.3)),
+                    air_ratio=float(fa_raw.get("air_ratio", 0.2)),
+                )
+
+            # 配備命令
+            dep_raw = d.get("deployments", [])
+            parsed_deployments = []
+            for dep in dep_raw:
+                try:
+                    dep_type = dep.get("type", "army")
+                    order = MilitaryDeploymentOrder(
+                        type=DeploymentType(dep_type),
+                        target_country=dep.get("target_country", ""),
+                        divisions=int(dep.get("divisions", 0)),
+                        posture=ArmyPosture(dep.get("posture", "defensive")) if dep_type == "army" else ArmyPosture.DEFENSIVE,
+                        fortify=FortifyLevel(dep.get("fortify", "none")) if dep_type == "army" else FortifyLevel.NONE,
+                        fleets=int(dep.get("fleets", 0)),
+                        naval_mission=NavalMission(dep.get("naval_mission", "patrol")) if dep_type == "navy" else NavalMission.PATROL,
+                        squadrons=int(dep.get("squadrons", 0)),
+                        air_mission=AirMission(dep.get("air_mission", "air_superiority")) if dep_type == "air" else AirMission.AIR_SUPERIORITY,
+                    )
+                    parsed_deployments.append(order)
+                except Exception as dep_e:
+                    self.logger.sys_log(f"[{country_name}:M-03] 配備命令パースエラー: {dep_e}", "WARNING")
+            result["deployments"] = parsed_deployments
+
+            # 前線投入比率（交戦中の場合のみ）
+            wcr = d.get("war_commitment_ratio")
+            if wcr is not None:
+                # 交戦中の全相手に適用
+                for w in world_state.active_wars:
+                    if w.aggressor == country_name:
+                        result["war_commitment_ratios"][w.defender] = float(wcr)
+                    elif w.defender == country_name:
+                        result["war_commitment_ratios"][w.aggressor] = float(wcr)
+
+            # 諜報ターゲット（防衛大臣が生成した場合）
+            esp_targets = d.get("espionage_targets", [])
+            for et in esp_targets:
+                tc = et.get("target_country", "")
+                if not tc:
+                    continue
+                esp_entry = {
+                    "target": tc,
+                    "gather": bool(et.get("espionage_gather_intel", False)),
+                    "gather_strategy": et.get("espionage_intel_strategy"),
+                    "sabotage": bool(et.get("espionage_sabotage", False)),
+                    "sabotage_strategy": et.get("espionage_sabotage_strategy"),
+                    "sabotage_reasoning": et.get("reasoning_for_sabotage", ""),
+                }
+                result["espionage_actions"].append(esp_entry)
+        except Exception as e:
+            self.logger.sys_log(f"[{country_name}:M-03] エラー: {e}", "ERROR")
+            traceback.print_exc()
 
         # M-04 + M-05: 諜報収集・破壊工作（他国ごと）
         other_countries = [n for n in world_state.countries if n != country_name]
@@ -856,6 +920,8 @@ class AgentSystem:
             update_hidden_plans=policy.hidden_plans,
             domestic_policy=domestic_action,
             diplomatic_policies=list(merged.values()),
+            force_allocation=military_data.get("force_allocation"),
+            deployments=military_data.get("deployments", []),
         )
 
     # =================================================================

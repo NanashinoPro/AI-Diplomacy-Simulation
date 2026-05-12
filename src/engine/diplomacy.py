@@ -459,3 +459,33 @@ class DiplomacyMixin:
         self.state.pending_summits = [s for s in self.state.pending_summits if s.proposer != absorbed_name and s.target != absorbed_name]
         self.state.pending_alliances = [a for a in self.state.pending_alliances if a.proposer != absorbed_name and a.target != absorbed_name]
         self.state.pending_annexations = [a for a in self.state.pending_annexations if a.proposer != absorbed_name and a.target != absorbed_name]
+
+    def _process_strait_blockade_actions(self, actions: Dict[str, AgentAction]):
+        """タスクエージェント制の海峡封鎖決定を処理（diplomatic_policiesの仮想ターゲット方式）"""
+        for country_name, action in actions.items():
+            for dip in action.diplomatic_policies:
+                tc = dip.target_country
+                # 海峡封鎖宣言
+                if tc.startswith("__STRAIT_DECLARE__"):
+                    strait_name = tc.replace("__STRAIT_DECLARE__", "")
+                    if strait_name and strait_name not in self.state.active_strait_blockades:
+                        self.state.active_strait_blockades.append(strait_name)
+                        self.state.strait_blockade_owners[strait_name] = country_name
+                        self.log_event(
+                            f"🚨 【海峡封鎖】{country_name}が{strait_name}の封鎖を宣言しました！",
+                            involved_countries=[country_name, "global"]
+                        )
+                        self.sys_logs_this_turn.append(f"[海峡封鎖宣言] {country_name} → {strait_name}")
+                # 海峡封鎖解除
+                elif tc.startswith("__STRAIT_RESOLVE__"):
+                    strait_name = tc.replace("__STRAIT_RESOLVE__", "")
+                    owner = self.state.strait_blockade_owners.get(strait_name)
+                    if strait_name in self.state.active_strait_blockades and owner == country_name:
+                        self.state.active_strait_blockades.remove(strait_name)
+                        del self.state.strait_blockade_owners[strait_name]
+                        self.log_event(
+                            f"✅ 【海峡封鎖解除】{country_name}が{strait_name}の封鎖を解除しました。",
+                            involved_countries=[country_name, "global"]
+                        )
+                        self.sys_logs_this_turn.append(f"[海峡封鎖解除] {country_name} → {strait_name}")
+

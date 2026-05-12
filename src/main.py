@@ -10,6 +10,13 @@ import summarizer
 import notifier
 from db_manager import DBManager
 
+# 戦略マップレンダラー（オプション — 依存ライブラリが未インストールの場合はスキップ）
+try:
+    from map.renderer import render_turn_map
+    MAP_RENDERER_AVAILABLE = True
+except ImportError:
+    MAP_RENDERER_AVAILABLE = False
+
 def _safe_float(value: str, default: float) -> float:
     """CSVから読み込んだ文字列を安全に float に変換する。空文字列や非数値はデフォルト値を返す。"""
     if not value or not value.strip():
@@ -62,6 +69,8 @@ def initialize_world(data_dir: str = None) -> WorldState:
                 energy_self_sufficiency=_safe_float(row.get("energy_self_sufficiency"), 0.13),
                 energy_reserve_target_turns=_safe_float(row.get("energy_reserve_target_turns"), 1.0),
                 energy_reserve_turns=_safe_float(row.get("energy_reserve_target_turns"), 1.0),  # 初期備蓄は目標値でスタート
+                has_coastline=row.get("has_coastline", "true").strip().lower() == "true",
+                iso_code=row.get("iso_code", "").strip() or None,
             )
             # 専制主義国家は初期から支持率を対外偽装する
             # CSVの approval_rating は政府の「公表値（偽装値）」であり、真の民意は不明
@@ -649,6 +658,16 @@ def main():
         # ターンサマリー（変化量テーブル）
         logger.display_section_header("📊 ターンサマリー")
         logger.display_turn_summary(_country_snapshot, world_state)
+
+        # 戦略マップのレンダリング
+        if MAP_RENDERER_AVAILABLE:
+            try:
+                map_output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "maps")
+                map_path = render_turn_map(world_state, output_dir=map_output_dir)
+                logger.sys_log(f"[🗺️ Map] 戦略マップを出力: {map_path}")
+                logger.console.print(f"  🗺️  戦略マップを出力しました: [dim]{map_path}[/dim]")
+            except Exception as map_err:
+                logger.sys_log(f"[🗺️ Map] レンダリング失敗 (シミュレーションは継続): {map_err}", "WARNING")
 
         logger.console.print("\n" + "═" * 70 + "\n")
         time.sleep(3)
