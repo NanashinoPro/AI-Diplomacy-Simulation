@@ -113,17 +113,7 @@ class AgentSystem:
         self.model_name = model_name
         self.token_usage = {}
 
-        sub_api_key = os.environ.get("GEMINI_API_KEY_SUB")
-        if sub_api_key:
-            self.client_sub = genai.Client(api_key=sub_api_key, http_options={'timeout': 60000})
-            if self.logger:
-                self.logger.sys_log("[System] サブAPIキー検出 → フォールバック用クライアント初期化完了")
-        else:
-            self.client_sub = None
-            if self.logger:
-                self.logger.sys_log("[System] サブAPIキー未設定 → フォールバック無効")
-
-        self.sentiment_analyzer = GeminiSentimentAnalyzer(self.client, client_sub=self.client_sub, token_usage=self.token_usage)
+        self.sentiment_analyzer = GeminiSentimentAnalyzer(self.client, token_usage=self.token_usage)
 
         try:
             self.ollama_client = OllamaClient()
@@ -134,7 +124,7 @@ class AgentSystem:
                 self.logger.sys_log(f"[System] Ollamaクライアント初期化エラー: {e}", "ERROR")
             self.ollama_client = None
 
-    @retry(stop=stop_after_attempt(4), wait=wait_exponential(multiplier=2, min=4, max=30))
+    @retry(stop=stop_after_attempt(8), wait=wait_exponential(multiplier=2, min=4, max=30))
     def _generate_with_retry_internal(self, client, model: str, contents: str, config: types.GenerateContentConfig = None, category: str = "default") -> Any:
         if model.startswith("mistral-small") and self.ollama_client:
             json_mode = config and hasattr(config, 'response_mime_type') and getattr(config, 'response_mime_type', None) == "application/json"
@@ -161,22 +151,7 @@ class AgentSystem:
         return response
 
     def _generate_with_retry(self, model: str, contents: str, config: types.GenerateContentConfig = None, category: str = "default") -> Any:
-        try:
-            return self._generate_with_retry_internal(self.client, model, contents, config, category)
-        except Exception as main_error:
-            if self.client_sub is None:
-                raise
-            if self.logger:
-                self.logger.sys_log(f"[API Fallback] メインキーで全リトライ失敗 ({type(main_error).__name__}: {main_error})。サブAPIキーで再試行します...", "WARNING")
-            try:
-                response = self._generate_with_retry_internal(self.client_sub, model, contents, config, category)
-                if self.logger:
-                    self.logger.sys_log("[API Fallback] サブAPIキーでの呼び出しに成功しました。")
-                return response
-            except Exception as sub_error:
-                if self.logger:
-                    self.logger.sys_log(f"[API Fallback] サブAPIキーでも失敗しました ({type(sub_error).__name__}: {sub_error})。", "ERROR")
-                raise
+        return self._generate_with_retry_internal(self.client, model, contents, config, category)
 
     def _create_search_tool(self, country_name: str, role: str = ""):
         db_manager = getattr(self, "db_manager", None)

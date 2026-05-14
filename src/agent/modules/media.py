@@ -11,9 +11,8 @@ class GeminiSentimentAnalyzer:
     SENTIMENT_MODEL = "gemini-2.5-flash-lite"
     CATEGORY = "sentiment"
     
-    def __init__(self, client, client_sub=None, token_usage=None):
+    def __init__(self, client, token_usage=None):
         self.client = client
-        self.client_sub = client_sub
         self.token_usage = token_usage if token_usage is not None else {}
     
     def _track_usage(self, response):
@@ -62,11 +61,6 @@ class GeminiSentimentAnalyzer:
         try:
             return self._call_api(self.client, prompt)
         except Exception:
-            if self.client_sub:
-                try:
-                    return self._call_api(self.client_sub, prompt)
-                except Exception:
-                    pass
             return [0.0]
 
 def generate_citizen_sns_posts(
