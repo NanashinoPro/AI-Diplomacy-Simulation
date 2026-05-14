@@ -31,7 +31,7 @@ from map.layers import draw_territories, get_country_polygon
 from map.military_units import draw_military_units
 
 
-def render_turn_map(world_state: WorldState, output_dir: str = "output/maps",
+def render_turn_map(world_state: WorldState, output_dir: str = "logs/png",
                     bbox: Optional[tuple] = None) -> str:
     """
     1ターン分のダッシュボード地図をPNGとして出力する。

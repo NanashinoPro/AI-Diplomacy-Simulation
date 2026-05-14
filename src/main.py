@@ -668,8 +668,8 @@ def main():
         # 戦略マップのレンダリング
         if MAP_RENDERER_AVAILABLE:
             try:
-                map_output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "maps")
-                map_path = render_turn_map(world_state, output_dir=map_output_dir)
+                png_output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs", "png")
+                map_path = render_turn_map(world_state, output_dir=png_output_dir)
                 logger.sys_log(f"[🗺️ Map] 戦略マップを出力: {map_path}")
                 logger.console.print(f"  🗺️  戦略マップ(PNG)を出力: [dim]{map_path}[/dim]")
             except Exception as map_err:
@@ -678,8 +678,8 @@ def main():
         # インタラクティブマップ（Folium HTML）のレンダリング
         if FOLIUM_RENDERER_AVAILABLE:
             try:
-                map_output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "maps")
-                html_path = render_turn_map_html(world_state, output_dir=map_output_dir)
+                html_output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs", "html")
+                html_path = render_turn_map_html(world_state, output_dir=html_output_dir)
                 logger.sys_log(f"[🗺️ Map] インタラクティブマップを出力: {html_path}")
                 logger.console.print(f"  🌐  インタラクティブマップ(HTML)を出力: [dim]{html_path}[/dim]")
             except Exception as html_err:

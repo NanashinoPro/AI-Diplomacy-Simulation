@@ -70,7 +70,7 @@ _POPUP_HTML_TEMPLATE = """
 # 公開 API
 # ---------------------------------------------------------
 
-def render_turn_map_html(world_state: WorldState, output_dir: str = "output/maps",
+def render_turn_map_html(world_state: WorldState, output_dir: str = "logs/html",
                          bbox: Optional[tuple] = None) -> str:
     """
     1ターン分のインタラクティブ地図を HTML として出力する。
