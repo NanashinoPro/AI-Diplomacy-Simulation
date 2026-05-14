@@ -1,3 +1,10 @@
+"""
+M-01: 軍事投資（金額ベース）
+M-02: 諜報投資（金額ベース）
+M-03: 前線投入比率
+M-04: 諜報収集
+M-05: 破壊工作
+"""
 from typing import Dict
 from models import WorldState, CountryState, PresidentPolicy
 from agent.prompts.base import build_common_context
@@ -8,25 +15,33 @@ def build_military_invest_prompt(
     country_name: str, country_state: CountryState, world_state: WorldState,
     policy: PresidentPolicy, analyst_reports: Dict[str, str] = None, past_news=None
 ) -> str:
-    """M-01: 軍事投資比率の決定（flash）"""
+    """M-01: 軍事投資金額の決定（flash）"""
     ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="軍事担当官（軍事投資）")
     ar = ""
     if analyst_reports:
         ar = "\n---【分析官レポート（軍事バランス参照）】---\n"
         for t, r in analyst_reports.items():
             ar += f"▼ 対{t}:\n{r}\n\n"
+
+    budget = country_state.government_budget
+    debt_ratio = country_state.national_debt / max(1.0, country_state.economy) * 100
+
     return ctx + build_policy_section(policy) + ar + f"""
 現在の軍事力={country_state.military:.1f} / 経済力={country_state.economy:.1f}
+
+【💰 現在の歳入: {budget:.1f} B$】
+国家債務: {country_state.national_debt:.1f} B$（対GDP比: {debt_ratio:.0f}%）
+歳入を超える要求も可能ですが、超過分は赤字国債となり将来の利払い負担が増加します。
 
 【リチャードソン・モデルに基づく算出プロセス】
 1. 相手側の脅威: 自国より強い敵がいるか？
 2. 経済的疲弊: 軍事投資は経済を圧迫するか？
 3. 動員限界(10%の壁): 軍事力が人口×10%を超えていないか？
 
-施政方針（{policy.stance}）に従い、reasoning_for_military_investmentで算出プロセスを説明した上で投資比率を決定してください。
+施政方針（{policy.stance}）に従い、reasoning_for_military_investmentで算出プロセスを説明した上で投資額を決定してください。
 
-JSONのみ出力（コードブロック不要、数値は自分で判断すること）:
-{{"invest_military": ???, "reasoning_for_military_investment": "算出プロセスの説明"}}
+JSONのみ出力（コードブロック不要、金額はB$単位で自分で判断すること）:
+{{"request_military": ???, "reasoning_for_military_investment": "算出プロセスの説明"}}
 """
 
 
@@ -34,16 +49,19 @@ def build_intel_invest_prompt(
     country_name: str, country_state: CountryState, world_state: WorldState,
     policy: PresidentPolicy, past_news=None
 ) -> str:
-    """M-02: 諜報投資比率の決定（flash-lite）"""
+    """M-02: 諜報投資金額の決定（flash-lite）"""
     ctx = build_common_context(country_name, country_state, world_state, past_news, role_name="諜報担当官（諜報投資）")
     others_intel = {n: s.intelligence_level for n, s in world_state.countries.items() if n != country_name}
     intel_str = ", ".join(f"{n}:{v:.1f}" for n, v in others_intel.items())
+    budget = country_state.government_budget
     return ctx + build_policy_section(policy) + f"""
 自国諜報レベル={country_state.intelligence_level:.1f} / 他国: {intel_str}
-【ルール】諜報レベルが高いほど諜報成功率が向上。invest_intelligence(0.0〜1.0)で蓄積。
 
-JSONのみ出力（コードブロック不要、数値は自分で判断すること）:
-{{"invest_intelligence": ???, "reason": "理由（30文字以内）"}}
+【💰 現在の歳入: {budget:.1f} B$】
+【ルール】諜報レベルが高いほど諜報成功率が向上。B$単位で投資額を指定してください。
+
+JSONのみ出力（コードブロック不要、金額はB$単位で自分で判断すること）:
+{{"request_intelligence": ???, "reason": "理由（30文字以内）"}}
 """
 
 
