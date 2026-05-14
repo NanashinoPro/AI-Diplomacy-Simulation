@@ -5,7 +5,6 @@
 威嚇する側のオーディエンスコスト + 威嚇される側のRally効果/恐怖を統合的に計算
 """
 
-import random
 from typing import Dict, List, Tuple
 
 from models import (
@@ -79,11 +78,11 @@ def calc_tension_score(deployments: List[MilitaryDeploymentOrder], target_countr
 
 def get_tension_level(tension_score: float) -> str:
     """緊張度スコアからレベルを返す"""
-    if tension_score >= 50:
+    if tension_score >= 500:
         return "extreme"
-    elif tension_score >= 30:
+    elif tension_score >= 300:
         return "high"
-    elif tension_score >= 10:
+    elif tension_score >= 100:
         return "medium"
     return "low"
 
@@ -100,9 +99,8 @@ def apply_tension_effects(
     """
     全国間の緊張度効果を適用する。
     
-    - 威嚇される側: Rally効果（中緊張）→ 不安（高緊張）→ 恐怖（極高緊張）
+    - 威嚇される側: Rally効果（中緊張）→ 不安（高緊張）
     - 威嚇する側: オーディエンスコスト（民主主義国家のみ）
-    - 偶発衝突: 極高緊張時に5%の確率で自動発生
     
     Returns:
         生成されたニュースイベントのリスト
@@ -160,41 +158,14 @@ def apply_tension_effects(
             )
             
         elif level == "extreme":
-            # 恐怖: -3%/ターン
-            target.approval_rating = max(0.0, target.approval_rating - 3.0)
+            # 極高緊張: ニュースイベントのみ（支持率ペナルティなし）
             sys_logs.append(
-                f"[緊張度:極高] {target_name}: 国民恐怖 -3.0% "
+                f"[緊張度:極高] {target_name}: 深刻な安全保障上の危機 "
                 f"(威嚇元:{threatener_name}, 緊張度:{tension:.1f})"
             )
             news_events.append(
                 f"🔴 {threatener_name}の大規模な軍事展開により{target_name}で深刻な安全保障上の危機が発生！"
             )
-            
-            # 偶発衝突リスク (5%)
-            if random.random() < 0.05:
-                # 偶発的な軍事衝突 → 戦争を自動開始
-                # ただし、既に交戦中の場合はスキップ
-                already_at_war = any(
-                    (w.aggressor == threatener_name and w.defender == target_name) or
-                    (w.aggressor == target_name and w.defender == threatener_name)
-                    for w in world_state.active_wars
-                )
-                if not already_at_war:
-                    from models import WarState
-                    world_state.active_wars.append(WarState(
-                        aggressor=threatener_name,
-                        defender=target_name,
-                        aggressor_commitment_ratio=0.3,
-                        defender_commitment_ratio=0.5
-                    ))
-                    news_events.append(
-                        f"💥 【偶発衝突】{threatener_name}と{target_name}の軍事的緊張が限界を超え、"
-                        f"偶発的な武力衝突が発生！戦争に突入しました！"
-                    )
-                    sys_logs.append(
-                        f"[偶発衝突] {threatener_name} → {target_name}: "
-                        f"緊張度{tension:.1f}による5%リスクが発動。戦争自動開始"
-                    )
         
         # ----- 威嚇する側の効果 (Schultz 2001 / Fearon 1994 Audience Cost) -----
         if level in ("high", "extreme"):
@@ -268,10 +239,10 @@ def build_tension_info_for_target(world_state: WorldState, country_name: str) ->
     header += "以下の国があなたの国に対して軍事的圧力を行使しています：\n\n"
     
     footer = "\n\n【緊張度の効果（あなたの国への影響）】\n"
-    footer += "- 緊張度 0-10 (低): 影響なし。\n"
-    footer += "- 緊張度 10-30 (中): Rally効果で支持率+1〜+3%/ターン上昇。\n"
-    footer += "- 緊張度 30-50 (高): 国民不安で支持率-1%/ターン低下。軍備増強を検討してください。\n"
-    footer += "- 緊張度 50+ (極高): 支持率-3%/ターン。偶発衝突5%リスクあり。\n"
+    footer += "- 緊張度 0-100 (低): 影響なし。\n"
+    footer += "- 緊張度 100-300 (中): Rally効果で支持率+1〜+3%/ターン上昇。\n"
+    footer += "- 緊張度 300-500 (高): 国民不安で支持率-1%/ターン低下。軍備増強を検討してください。\n"
+    footer += "- 緊張度 500+ (極高): 深刻な安全保障上の危機。\n"
     
     return header + "\n".join(lines) + footer
 
