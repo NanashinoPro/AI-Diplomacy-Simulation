@@ -205,12 +205,20 @@ class AgentSystem:
                 return f"検索中にエラーが発生しました: {e}"
         return search_historical_events if db_manager else None
 
+    # ツール呼び出し上限（1回のエージェント実行あたり）
+    MAX_TOOL_CALLS = 3
+
     def _execute_agent(self, country_name: str, role: str, prompt: str, category: str, override_model: Optional[str] = None) -> str:
         """エージェントの推論を実行し、必要に応じて検索ツールを呼び出す"""
         start_time = time.time()
         self.logger.sys_log(f"[{country_name}:{role}] API推論開始...")
 
-        search_tool = self._create_search_tool(country_name, role)
+        # 1ターン目はDBにデータが蓄積されていないため検索ツールを無効化
+        current_turn = getattr(self, 'current_turn', 1)
+        if current_turn <= 1:
+            search_tool = None
+        else:
+            search_tool = self._create_search_tool(country_name, role)
         tools = [search_tool] if search_tool else None
 
         target_model = override_model if override_model else self.model_name
@@ -223,7 +231,11 @@ class AgentSystem:
                 category=category
             )
 
-            if getattr(response, 'function_calls', None):
+            # ツール呼び出しループ（上限 MAX_TOOL_CALLS 回）
+            tool_call_count = 0
+            while search_tool and getattr(response, 'function_calls', None) and tool_call_count < self.MAX_TOOL_CALLS:
+                tool_call_count += 1
+                handled = False
                 for function_call in response.function_calls:
                     if function_call.name == "search_historical_events":
                         args = function_call.args if isinstance(function_call.args, dict) else dict(function_call.args)
@@ -233,10 +245,15 @@ class AgentSystem:
                         response = self._generate_with_retry(
                             model=target_model,
                             contents=follow_up_prompt,
-                            config=types.GenerateContentConfig(temperature=0.4),
+                            config=types.GenerateContentConfig(tools=tools, temperature=0.4),
                             category=category
                         )
+                        handled = True
                         break
+                if not handled:
+                    break
+            if tool_call_count >= self.MAX_TOOL_CALLS:
+                self.logger.sys_log(f"[{country_name}:{role}] ⚠️ ツール呼び出し上限({self.MAX_TOOL_CALLS}回)に到達。ループを終了します。", "WARNING")
 
             response_text = response.text.strip() if response and hasattr(response, 'text') else "{}"
             if response_text.startswith("```json"):
@@ -1052,6 +1069,8 @@ class AgentSystem:
         """全国家の行動を生成し、(actions, all_analyst_reports, all_task_logs) のタプルで返す"""
         # ターン開始時にバッファをリセット
         self._task_log_buffer: Dict[str, Dict[str, str]] = {}
+        # 現在のターン番号を保持（1ターン目のTool Call抑止に使用）
+        self.current_turn = getattr(world_state, 'turn', 1)
 
         actions: Dict[str, AgentAction] = {}
         all_analyst_reports: Dict[str, Dict[str, str]] = {}

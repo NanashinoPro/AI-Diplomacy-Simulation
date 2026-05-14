@@ -166,12 +166,18 @@ def build_analyst_prompt(
             news_info += "\n"
     
     # ---- DB検索ツールの利用ガイド ----
-    rag_guide = (
-        "---🗄️【国家情報局(RAG) 過去の重要記録アクセス】🗄️---\n"
-        "あなたは `search_historical_events(query)` ツールを使用可能です。\n"
-        f"対象国「{target_country_name}」に関する過去の密約、外交事件、軍事衝突、経済制裁の履歴など、\n"
-        "分析に必要な情報が不足している場合は、**必ずこのツールで検索してから結論を出してください。**\n\n"
-    )
+    if world_state.turn <= 1:
+        rag_guide = (
+            "---🗄️【国家情報局(RAG) 過去の重要記録アクセス】🗄️---\n"
+            "【※1ターン目のためデータベースに記録がありません。search_historical_eventsツールは使用できません。】\n\n"
+        )
+    else:
+        rag_guide = (
+            "---🗄️【国家情報局(RAG) 過去の重要記録アクセス】🗄️---\n"
+            "あなたは `search_historical_events(query)` ツールを使用可能です。\n"
+            f"対象国「{target_country_name}」に関する過去の密約、外交事件、軍事衝突、経済制裁の履歴など、\n"
+            "分析に必要な情報が不足している場合は、**必ずこのツールで検索してから結論を出してください。**\n\n"
+        )
     
     # ---- 分析指示 ----
     instructions = f"""---分析指示---

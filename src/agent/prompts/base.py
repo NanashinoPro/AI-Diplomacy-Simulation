@@ -90,9 +90,12 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
     my_info += f"あなたの脳内（非公開の計画など）には次のような情報があります: '{country_state.hidden_plans}'\n\n"
     
     my_info += "---🗄️【国家情報局(RAG) 過去の重要記録アクセス機能】🗄️---\n"
-    my_info += "あなたは関数呼び出し(Function Calling)により `search_historical_events(query)` ツールを使用可能です。\n"
-    my_info += "【重要】現在の意思決定において、過去の事件の詳細、他国との過去の密約、特定の技術革新の履歴など、文脈上不足している重要な情報がある場合は、**推論を決定する前に必ずこのツールを呼び出して情報を検索してください。**\n"
-    my_info += "※ニュースは自国に関連するもののみ表示されています。他国間の動向を知りたい場合は、必ずこのツールで検索してください。\n\n"
+    if world_state.turn <= 1:
+        my_info += "【※1ターン目のためデータベースに記録がありません。search_historical_eventsツールは使用できません。】\n\n"
+    else:
+        my_info += "あなたは関数呼び出し(Function Calling)により `search_historical_events(query)` ツールを使用可能です。\n"
+        my_info += "【重要】現在の意思決定において、過去の事件の詳細、他国との過去の密約、特定の技術革新の履歴など、文脈上不足している重要な情報がある場合は、**推論を決定する前に必ずこのツールを呼び出して情報を検索してください。**\n"
+        my_info += "※ニュースは自国に関連するもののみ表示されています。他国間の動向を知りたい場合は、必ずこのツールで検索してください。\n\n"
     
     active_trades = world_state.active_trades if hasattr(world_state, 'active_trades') else []
     my_trades = []

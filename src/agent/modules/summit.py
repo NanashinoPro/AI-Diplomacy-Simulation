@@ -7,17 +7,21 @@ from models import WorldState, CountryState, SummitProposal
 from logger import SimulationLogger
 
 SUMMIT_MODEL = "gemini-2.5-flash"
+MAX_SUMMIT_TOOL_CALLS = 3  # 首脳会談でのツール呼び出し上限
 
 def _generate_with_tool(generate_func, logger: SimulationLogger, model: str, prompt: str, category: str, 
                         search_tool=None, country_name: str = "Summit") -> str:
-    """DB検索ツール付きでLLMを呼び出し、ツール呼び出しがあればフォローアップする"""
+    """DB検索ツール付きでLLMを呼び出し、ツール呼び出しがあればフォローアップする（上限: MAX_SUMMIT_TOOL_CALLS回）"""
     tools = [search_tool] if search_tool else None
     config = genai_types.GenerateContentConfig(tools=tools, temperature=0.4) if tools else None
     
     response = generate_func(model=model, contents=prompt, config=config, category=category)
     
-    # ツール呼び出しの処理（core.py _execute_agent と同等）
-    if search_tool and getattr(response, 'function_calls', None):
+    # ツール呼び出しの処理（上限 MAX_SUMMIT_TOOL_CALLS 回のループ制御）
+    tool_call_count = 0
+    while search_tool and getattr(response, 'function_calls', None) and tool_call_count < MAX_SUMMIT_TOOL_CALLS:
+        tool_call_count += 1
+        handled = False
         for function_call in response.function_calls:
             if function_call.name == "search_historical_events":
                 args = function_call.args if isinstance(function_call.args, dict) else dict(function_call.args)
@@ -25,8 +29,13 @@ def _generate_with_tool(generate_func, logger: SimulationLogger, model: str, pro
                 tool_result = search_tool(query)
                 
                 follow_up_prompt = prompt + f"\n\nエージェントツールからの検索結果 '{query}':\n{tool_result}\n\nこれらを踏まえ、発言を行ってください。"
-                response = generate_func(model=model, contents=follow_up_prompt, category=category)
+                response = generate_func(model=model, contents=follow_up_prompt, config=config, category=category)
+                handled = True
                 break
+        if not handled:
+            break
+    if tool_call_count >= MAX_SUMMIT_TOOL_CALLS:
+        logger.sys_log(f"[{country_name}] ⚠️ 首脳会談ツール呼び出し上限({MAX_SUMMIT_TOOL_CALLS}回)に到達。ループを終了します。", "WARNING")
     
     return response.text.strip() if response and hasattr(response, 'text') else "..."
 
