@@ -656,14 +656,8 @@ def main():
         past_news_queue.append(world_state.news_events.copy())
         if len(past_news_queue) > 4:
             past_news_queue.pop(0)
-            
-        engine.advance_time()
-        
-        # ターンサマリー（変化量テーブル）
-        logger.display_section_header("📊 ターンサマリー")
-        logger.display_turn_summary(_country_snapshot, world_state)
 
-        # 戦略マップのレンダリング
+        # 戦略マップのレンダリング（advance_time前に実行し、正しいターン番号でファイルを出力する）
         if MAP_RENDERER_AVAILABLE:
             try:
                 map_path = render_turn_map(world_state, output_dir=logger.png_dir)
@@ -678,8 +672,16 @@ def main():
                 html_path = render_turn_map_html(world_state, output_dir=logger.html_dir)
                 logger.sys_log(f"[🗺️ Map] インタラクティブマップを出力: {html_path}")
                 logger.console.print(f"  🌐  インタラクティブマップ(HTML)を出力: [dim]{html_path}[/dim]")
+                # ターン横断ビューアを毎ターン更新（ターン1から閲覧可能にする）
+                logger.generate_map_viewer()
             except Exception as html_err:
                 logger.sys_log(f"[🗺️ Map] Foliumレンダリング失敗: {html_err}", "WARNING")
+
+        engine.advance_time()
+        
+        # ターンサマリー（変化量テーブル）
+        logger.display_section_header("📊 ターンサマリー")
+        logger.display_turn_summary(_country_snapshot, world_state)
 
         logger.console.print("\n" + "═" * 70 + "\n")
         time.sleep(3)
