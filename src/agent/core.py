@@ -434,6 +434,10 @@ class AgentSystem:
                 build_multilateral_summit_prompt(country_name, country_state, world_state, policy, past_news),
                 "dipl_multilateral", "gemini-2.5-flash")
             d = self._safe_json(raw)
+            # LLMがlist形式で返した場合のフォールバック
+            if isinstance(d, list):
+                self.logger.sys_log(f"[{country_name}:D-05] レスポンスがlist形式 → dict変換", "WARNING")
+                d = {"multilateral_actions": d}
             for s in d.get("multilateral_actions", []):
                 tc = s.get("target_country", "")
                 if not tc: continue
