@@ -27,7 +27,7 @@ from map.styles import (
     HEADER_HEIGHT_RATIO, MAP_HEIGHT_RATIO, FOOTER_HEIGHT_RATIO,
     HEADER_FONT_SIZE, SUBHEADER_FONT_SIZE, TABLE_FONT_SIZE, LABEL_FONT_SIZE
 )
-from map.layers import draw_territories, get_country_polygon
+from map.layers import draw_territories, get_country_polygon, get_display_polygon
 from map.military_units import draw_military_units
 
 
@@ -130,7 +130,7 @@ def _draw_all_military_units(ax, world_state: WorldState,
     # 各国のポリゴンをキャッシュ
     polygons = {}
     for name, iso in participant_iso_codes.items():
-        gdf = get_country_polygon(iso)
+        gdf = get_display_polygon(name, iso)
         if gdf is not None:
             # MultiPolygon の場合は union で1つにまとめる
             poly = gdf.geometry.union_all() if hasattr(gdf.geometry, 'union_all') else gdf.geometry.unary_union

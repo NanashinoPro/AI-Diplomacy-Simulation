@@ -17,7 +17,7 @@ from branca.element import MacroElement, Template
 
 from models import WorldState, CountryState
 
-from map.layers import _load_geodata, _load_colors, get_country_polygon
+from map.layers import _load_geodata, _load_colors, get_country_polygon, get_display_polygon
 from map.military_units import (
     calc_army_position, calc_navy_position, calc_air_position,
     POSTURE_COLORS, NAVAL_MISSION_COLORS, AIR_MISSION_COLORS,
@@ -136,8 +136,8 @@ def _calc_initial_view(participant_iso_codes: Dict[str, str],
         return [center_lat, center_lon], zoom
 
     all_bounds = []
-    for iso in participant_iso_codes.values():
-        gdf = get_country_polygon(iso)
+    for country_name, iso in participant_iso_codes.items():
+        gdf = get_display_polygon(country_name, iso)
         if gdf is not None:
             all_bounds.append(gdf.total_bounds)
 
@@ -166,7 +166,7 @@ def _add_territory_layer(m: folium.Map, participant_iso_codes: Dict[str, str]):
 
     # 参加国のみ描画（非参加国はCartoDB dark_matterタイルで自然に表示される）
     for country_name, iso in participant_iso_codes.items():
-        country_gdf = get_country_polygon(iso)
+        country_gdf = get_display_polygon(country_name, iso)
         if country_gdf is None:
             continue
 
@@ -215,7 +215,7 @@ def _add_military_layer(m: folium.Map, world_state: WorldState,
     # ポリゴンキャッシュ
     polygons = {}
     for name, iso in participant_iso_codes.items():
-        gdf = get_country_polygon(iso)
+        gdf = get_display_polygon(name, iso)
         if gdf is not None:
             poly = (gdf.geometry.union_all()
                     if hasattr(gdf.geometry, 'union_all')

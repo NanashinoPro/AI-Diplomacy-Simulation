@@ -324,9 +324,24 @@ class EventsMixin:
         )
         new_country.national_debt = new_debt
         
-        # 地図表示用: 新国家にユニークな色を動的に割り当て
-        from map.layers import _assign_dynamic_color
+        # 地図表示用: 新国家にユニークな色を動的に割り当て + ポリゴン分割
+        from map.layers import _assign_dynamic_color, split_polygon_for_fragmentation
         _assign_dynamic_color(new_name)
+        
+        # ポリゴン機械分割: 旧国ポリゴンをsplit_ratioに基づいてランダム方角から切断
+        if old_country.iso_code:
+            split_success = split_polygon_for_fragmentation(
+                old_name, new_name, old_country.iso_code, split_ratio
+            )
+            if split_success:
+                self.sys_logs_this_turn.append(
+                    f"[地図] {old_name} のポリゴンを {split_ratio:.1%} の比率で分割し、{new_name} に割り当てました"
+                )
+            else:
+                self.sys_logs_this_turn.append(
+                    f"[地図] 警告: {old_name} のポリゴン分割に失敗。新国家 {new_name} はポリゴンなしで表示されます"
+                )
+        
         if new_gov_type == GovernmentType.DEMOCRACY:
             new_country.turns_until_election = 16
             
@@ -373,5 +388,8 @@ class EventsMixin:
             
         # もし100%乗っ取られて旧政権のリソースが微小（1.0未満）になった場合、事実上の滅亡処理
         if old_country.economy <= 1.5 or old_country.military <= 1.0:
+             # 地図ポリゴンの移管: 消滅した旧国家のポリゴンを新国家に統合
+             from map.layers import transfer_polygon_on_defeat
+             transfer_polygon_on_defeat(old_name, new_name)
              self._handle_defeat(old_name, new_name)
              self.log_event(f"☠️ 【旧体制消滅】リソースのほぼ全てを掌握した{new_name}により、旧体制({old_name})は完全に歴史から抹消されました。", involved_countries=[old_name, new_name, "global"])
