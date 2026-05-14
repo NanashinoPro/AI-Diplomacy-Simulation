@@ -224,6 +224,10 @@ def initialize_world(data_dir: str = None) -> WorldState:
 
     return world
 
+# コスト出力用グローバル参照（エラー/中断時でも出力を保証するため）
+_agent_system_ref = None
+_logger_ref = None
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="AI Diplomacy Simulation")
@@ -381,6 +385,10 @@ def main():
                 print(f"  ⚠️ {country_name}: フォールバック使用 ({fallback})")
         print()
     
+    global _agent_system_ref, _logger_ref
+    _agent_system_ref = agent_system
+    _logger_ref = logger
+
     for _ in range(MAX_TURNS):
         # 1. ターン開始時のシステム内政判定（選挙・クーデター）
         engine.process_pre_turn()
@@ -710,7 +718,20 @@ def main():
     # except Exception as e:
     #     print(f"Failed to auto-generate summary: {e}")
 
-    # コスト計算と出力
+    # シミュレーション完了通知
+    notifier.send_notification(
+        "🌍 AI外交シミュレーション完了",
+        f"全 {MAX_TURNS} ターンのシミュレーションが正常に終了しました。"
+    )
+
+
+def _report_costs():
+    """APIコストを出力する。エラーや中断時でも必ず呼ばれることを保証する。"""
+    if _agent_system_ref is None:
+        return
+    agent_system = _agent_system_ref
+    logger = _logger_ref
+
     print("\n" + "="*50)
     print("💰 APIトークン使用量と推定コスト")
     print("="*50)
@@ -721,7 +742,7 @@ def main():
         p_tokens = usage["prompt_tokens"]
         c_tokens = usage["candidates_token_count"]
         t_tokens = usage.get("thoughts_token_count", 0)
-        
+
         # 単価 (100万トークンあたり)
         # 思考トークン単価 (Gemini 2.5系: Promptと同額)
         if "gemini-3.1-pro" in model.lower():
@@ -732,34 +753,39 @@ def main():
             p_price, c_price, t_price = 0.10, 0.40, 0.10
         elif "gemini-2.5-flash" in model.lower():
             p_price, c_price, t_price = 0.30, 2.50, 0.30
-        else: # 分からないモデルのフォールバック (flash扱い)
+        else:  # 分からないモデルのフォールバック (flash扱い)
             p_price, c_price, t_price = 0.30, 2.50, 0.30
-            
+
         cat_cost = (p_tokens / 1_000_000 * p_price) + (c_tokens / 1_000_000 * c_price) + (t_tokens / 1_000_000 * t_price)
         total_cost += cat_cost
-        
+
         if t_tokens > 0:
             report_line = f"- [{category}] {model}: Prompt {p_tokens} ({p_price}$/M), Output {c_tokens} ({c_price}$/M), Thinking {t_tokens} ({t_price}$/M) -> ${cat_cost:.4f}"
         else:
             report_line = f"- [{category}] {model}: Prompt {p_tokens} ({p_price}$/M), Output {c_tokens} ({c_price}$/M) -> ${cat_cost:.4f}"
         print(report_line)
         cost_log_lines.append(report_line)
-        
+
     total_line = f"▶ Total Estimated Cost: ${total_cost:.4f}"
     print("-" * 50)
     print(total_line)
     print("=" * 50 + "\n")
     cost_log_lines.append(total_line)
-    
-    # システムログに追記
-    for line in cost_log_lines:
-        logger.sys_log(line)
 
-    # シミュレーション完了通知
-    notifier.send_notification(
-        "🌍 AI外交シミュレーション完了",
-        f"全 {MAX_TURNS} ターンのシミュレーションが正常に終了しました。"
-    )
+    # システムログに追記
+    if logger:
+        for line in cost_log_lines:
+            logger.sys_log(line)
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n⚠️ KeyboardInterruptを検出しました。シミュレーションを中断します。")
+    except Exception as e:
+        print(f"\n\n❌ 予期しないエラーが発生しました: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        _report_costs()
