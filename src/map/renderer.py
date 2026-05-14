@@ -104,8 +104,8 @@ def render_turn_map(world_state: WorldState, output_dir: str = "logs/png",
     # 軍事ユニット描画
     _draw_all_military_units(ax_map, world_state, participant_iso_codes)
     
-    # 戦争の進軍矢印
-    _draw_war_arrows(ax_map, world_state, participant_iso_codes)
+    # 戦争の進軍矢印（視認性向上のため無効化）
+    # _draw_war_arrows(ax_map, world_state, participant_iso_codes)
     
     # =================== フッター（国家一覧テーブル） ===================
     ax_footer = fig.add_subplot(gs[2])

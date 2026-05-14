@@ -109,8 +109,8 @@ def render_turn_map_html(world_state: WorldState, output_dir: str = "logs/html",
     # ---- 軍事ユニットレイヤー ----
     _add_military_layer(m, world_state, participant_iso_codes)
 
-    # ---- 戦争矢印レイヤー ----
-    _add_war_arrows(m, world_state, participant_iso_codes)
+    # ---- 戦争矢印レイヤー（視認性向上のため無効化） ----
+    # _add_war_arrows(m, world_state, participant_iso_codes)
 
     # ---- UI オーバーレイ（MacroElement で安全に注入） ----
     _add_overlays(m, world_state)
