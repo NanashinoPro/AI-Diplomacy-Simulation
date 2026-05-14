@@ -283,7 +283,8 @@ class DiplomacyMixin:
                 # ホスト国を含む全参加国リストを構築
                 all_participants = [country_name] + [p for p in summit_participants_list if p != country_name and p in self.state.countries]
                 
-                if len(all_participants) >= 2:
+                if len(all_participants) >= 3:
+                    # 3カ国以上 → 多国間首脳会談として処理
                     is_private_summit = getattr(dip, 'is_private', False)
                     new_proposal = SummitProposal(
                         proposer=country_name,
@@ -303,6 +304,27 @@ class DiplomacyMixin:
                                 self.state.countries[p].private_messages.append(f"【{country_name}からの極秘の多国間会談招待】\n議題: {new_proposal.topic}\n参加国: {', '.join(all_participants)}")
                     else:
                         self.log_event(f"🌐 {country_name}が{invited_names}を招待し、多国間首脳会談を提案しました。議題: {new_proposal.topic}", involved_countries=all_participants)
+                elif len(all_participants) == 2:
+                    # 2カ国のみ → 通常の2国間首脳会談にフォールバック
+                    bilateral_target = [p for p in all_participants if p != country_name][0]
+                    is_private_summit = getattr(dip, 'is_private', False)
+                    self.state.pending_summits.append(SummitProposal(
+                        proposer=country_name, target=bilateral_target,
+                        topic=dip.summit_topic or "首脳会談",
+                        is_private=is_private_summit
+                    ))
+                    self.sys_logs_this_turn.append(
+                        f"[多国間→2国間フォールバック] {country_name}が多国間会談を提案しましたが、"
+                        f"参加国が{bilateral_target}のみのため2国間首脳会談に変換しました。"
+                    )
+                    if is_private_summit:
+                        self.sys_logs_this_turn.append(f"[非公開会談提案] {country_name} -> {bilateral_target}: {dip.summit_topic}")
+                        if bilateral_target in self.state.countries:
+                            self.state.countries[bilateral_target].private_messages.append(f"【{country_name}からの極秘の会談提案】\n議題: {dip.summit_topic}")
+                        if self.db_manager:
+                            self.db_manager.add_event(self.state.turn, "summit_proposal", f"【{country_name}からの極秘の会談提案（多国間→2国間変換）】\n議題: {dip.summit_topic}", True, [country_name, bilateral_target])
+                    else:
+                        self.log_event(f"✉️ {country_name}が{bilateral_target}に対して首脳会談を提案しました。議題: {dip.summit_topic}", involved_countries=[country_name, bilateral_target])
                     
             # 平和的統合（吸収合併）の提案
             if getattr(dip, 'propose_annexation', False):
