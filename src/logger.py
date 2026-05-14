@@ -305,3 +305,332 @@ class SimulationLogger:
             f.flush()
             os.fsync(f.fileno())
 
+    def generate_map_viewer(self):
+        """html_dir 内の turn_XXX.html を検出し、ターン横断ビューア viewer.html を生成する"""
+        import glob
+        import re
+
+        # turn_XXX.html を検出してソート
+        pattern = os.path.join(self.html_dir, "turn_*.html")
+        html_files = sorted(glob.glob(pattern))
+
+        if not html_files:
+            self.sys_log("[MapViewer] html_dir にターンHTMLが見つかりません。viewer生成をスキップ。", "WARNING")
+            return None
+
+        # ファイル名のみ抽出（turn_001.html, turn_002.html, ...）
+        turn_entries = []
+        for fpath in html_files:
+            basename = os.path.basename(fpath)
+            match = re.match(r"turn_(\d+)\.html", basename)
+            if match:
+                turn_num = int(match.group(1))
+                turn_entries.append({"num": turn_num, "file": basename})
+
+        if not turn_entries:
+            self.sys_log("[MapViewer] 有効なターンHTMLが見つかりません。", "WARNING")
+            return None
+
+        # JSON形式のターンリストを生成
+        turns_json = json.dumps(turn_entries, ensure_ascii=False)
+
+        viewer_html = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗺️ Map Viewer — Session {self.session_id}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {{
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #79c0ff;
+            --success: #3fb950;
+            --warning: #d29922;
+        }}
+
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+
+        body {{
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }}
+
+        /* --- Header Bar --- */
+        .header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            min-height: 48px;
+            flex-shrink: 0;
+            gap: 12px;
+        }}
+
+        .header-left {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }}
+
+        .logo {{
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+            white-space: nowrap;
+        }}
+
+        .session-badge {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 8px;
+        }}
+
+        /* --- Navigation --- */
+        .nav {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+
+        .nav-btn {{
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }}
+
+        .nav-btn:hover:not(:disabled) {{
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }}
+
+        .nav-btn:disabled {{
+            opacity: 0.35;
+            cursor: not-allowed;
+        }}
+
+        .turn-display {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }}
+
+        .turn-display .current {{
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 16px;
+            min-width: 28px;
+            text-align: center;
+        }}
+
+        .turn-display .total {{
+            color: var(--text-secondary);
+        }}
+
+        .turn-select {{
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            cursor: pointer;
+        }}
+
+        .turn-select:focus {{
+            outline: none;
+            border-color: var(--accent);
+        }}
+
+        /* --- Keyboard hint --- */
+        .hint {{
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }}
+
+        .kbd {{
+            display: inline-block;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-secondary);
+        }}
+
+        /* --- Map Frame --- */
+        .map-container {{
+            flex: 1;
+            position: relative;
+        }}
+
+        .map-container iframe {{
+            width: 100%;
+            height: 100%;
+            border: none;
+        }}
+
+        .loading-overlay {{
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            font-size: 14px;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }}
+
+        .loading-overlay.hidden {{
+            opacity: 0;
+            pointer-events: none;
+        }}
+
+        .spinner {{
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }}
+
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">🗺️ AI Diplomacy Map Viewer</div>
+            <span class="session-badge">{self.session_id}</span>
+        </div>
+
+        <div class="nav">
+            <button class="nav-btn" id="btn-prev" title="前のターン (← キー)">◀ 前</button>
+
+            <div class="turn-display">
+                <span>TURN</span>
+                <span class="current" id="turn-current">1</span>
+                <span class="total">/ <span id="turn-total">1</span></span>
+            </div>
+
+            <select class="turn-select" id="turn-select"></select>
+
+            <button class="nav-btn" id="btn-next" title="次のターン (→ キー)">次 ▶</button>
+        </div>
+
+        <div class="hint">
+            <span class="kbd">←</span> <span class="kbd">→</span> でターン移動
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div class="loading-overlay" id="loading">
+            <div class="spinner"></div>
+            マップを読み込み中...
+        </div>
+        <iframe id="map-frame" src="about:blank"></iframe>
+    </div>
+
+    <script>
+        const TURNS = {turns_json};
+        let currentIndex = 0;
+
+        const iframe    = document.getElementById('map-frame');
+        const loading   = document.getElementById('loading');
+        const btnPrev   = document.getElementById('btn-prev');
+        const btnNext   = document.getElementById('btn-next');
+        const turnCur   = document.getElementById('turn-current');
+        const turnTotal = document.getElementById('turn-total');
+        const turnSel   = document.getElementById('turn-select');
+
+        // ドロップダウン初期化
+        turnTotal.textContent = TURNS.length;
+        TURNS.forEach((t, i) => {{
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = 'Turn ' + t.num;
+            turnSel.appendChild(opt);
+        }});
+
+        function loadTurn(index) {{
+            if (index < 0 || index >= TURNS.length) return;
+            currentIndex = index;
+
+            loading.classList.remove('hidden');
+            iframe.src = TURNS[index].file;
+
+            turnCur.textContent = TURNS[index].num;
+            turnSel.value = index;
+            btnPrev.disabled = (index === 0);
+            btnNext.disabled = (index === TURNS.length - 1);
+        }}
+
+        iframe.addEventListener('load', () => {{
+            loading.classList.add('hidden');
+        }});
+
+        btnPrev.addEventListener('click', () => loadTurn(currentIndex - 1));
+        btnNext.addEventListener('click', () => loadTurn(currentIndex + 1));
+        turnSel.addEventListener('change', (e) => loadTurn(parseInt(e.target.value)));
+
+        document.addEventListener('keydown', (e) => {{
+            if (e.key === 'ArrowLeft')  loadTurn(currentIndex - 1);
+            if (e.key === 'ArrowRight') loadTurn(currentIndex + 1);
+        }});
+
+        // 初期表示
+        loadTurn(0);
+    </script>
+</body>
+</html>"""
+
+        viewer_path = os.path.join(self.html_dir, "viewer.html")
+        with open(viewer_path, "w", encoding="utf-8") as f:
+            f.write(viewer_html)
+
+        self.sys_log(f"[MapViewer] ターン横断ビューアを生成: {viewer_path} ({len(turn_entries)}ターン)")
+        return viewer_path
+

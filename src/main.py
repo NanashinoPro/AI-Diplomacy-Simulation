@@ -685,6 +685,15 @@ def main():
         time.sleep(3)
 
     print("🏁 指定ターン数のシミュレーションが終了しました。")
+
+    # マップビューアの自動生成
+    try:
+        viewer_path = logger.generate_map_viewer()
+        if viewer_path:
+            logger.console.print(f"  🗺️  ターン横断マップビューアを生成: [dim]{viewer_path}[/dim]")
+    except Exception as viewer_err:
+        logger.sys_log(f"[MapViewer] ビューア生成失敗: {viewer_err}", "WARNING")
+
     # 最後にシミュレーションの要約を自動生成 (コスト計算に含めるため先に実行)　-> サマリーは別途作成するためスキップ
     # try:
     #     if hasattr(logger, 'sim_log_file'):
