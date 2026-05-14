@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SIM_LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "logs", "simulations")
+LOGS_DIR = os.path.join(os.path.dirname(__file__), "..", "logs")
 
 class SimulationSummary(BaseModel):
     summary: str = Field(description="シミュレーション全体を通した各国の動き、戦略の変遷、主要な出来事の定性的な要約。Markdown形式で記述してください。")
@@ -140,11 +140,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     if args.all:
-        if os.path.exists(SIM_LOG_DIR):
-            for filename in os.listdir(SIM_LOG_DIR):
-                if filename.endswith(".jsonl"):
-                    filepath = os.path.join(SIM_LOG_DIR, filename)
-                    generate_summary(filepath, force=args.force)
+        if os.path.exists(LOGS_DIR):
+            for session_id in os.listdir(LOGS_DIR):
+                session_dir = os.path.join(LOGS_DIR, session_id)
+                sim_file = os.path.join(session_dir, "simulation.jsonl")
+                if os.path.isdir(session_dir) and os.path.exists(sim_file):
+                    generate_summary(sim_file, force=args.force)
     elif args.file:
         generate_summary(args.file, force=args.force)
     else:

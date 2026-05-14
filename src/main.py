@@ -317,11 +317,9 @@ def main():
             print(f"📋 元ファイルからターン 1〜{args.resume_turn} のデータ（{copied}行）を新しいログにコピーしました。")
         else:
             # 従来の --resume: 同じセッションに追記
-            filename = os.path.basename(args.resume)
-            if filename.startswith("sim_") and filename.endswith(".jsonl"):
-                session_id = filename[4:-6]
-            else:
-                session_id = None
+            # 新構造: logs/{session_id}/simulation.jsonl
+            resume_dir = os.path.dirname(os.path.abspath(args.resume))
+            session_id = os.path.basename(resume_dir)
             logger = SimulationLogger(session_id=session_id)
             logger.sys_log(f"[Reproducibility] 乱数シード: {current_seed}")
     else:
@@ -668,8 +666,7 @@ def main():
         # 戦略マップのレンダリング
         if MAP_RENDERER_AVAILABLE:
             try:
-                png_output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs", "png")
-                map_path = render_turn_map(world_state, output_dir=png_output_dir)
+                map_path = render_turn_map(world_state, output_dir=logger.png_dir)
                 logger.sys_log(f"[🗺️ Map] 戦略マップを出力: {map_path}")
                 logger.console.print(f"  🗺️  戦略マップ(PNG)を出力: [dim]{map_path}[/dim]")
             except Exception as map_err:
@@ -678,8 +675,7 @@ def main():
         # インタラクティブマップ（Folium HTML）のレンダリング
         if FOLIUM_RENDERER_AVAILABLE:
             try:
-                html_output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs", "html")
-                html_path = render_turn_map_html(world_state, output_dir=html_output_dir)
+                html_path = render_turn_map_html(world_state, output_dir=logger.html_dir)
                 logger.sys_log(f"[🗺️ Map] インタラクティブマップを出力: {html_path}")
                 logger.console.print(f"  🌐  インタラクティブマップ(HTML)を出力: [dim]{html_path}[/dim]")
             except Exception as html_err:

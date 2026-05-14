@@ -17,17 +17,20 @@ class SimulationLogger:
         if log_dir is None:
             log_dir = os.path.join(os.path.dirname(__file__), "..", "logs")
         self.base_log_dir = log_dir
-        self.sim_log_dir = f"{log_dir}/simulations"
-        self.sys_log_dir = f"{log_dir}/system"
         self.session_id = session_id or datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        for d in [self.sim_log_dir, self.sys_log_dir]:
+        # session_id 単位のディレクトリに全ログを集約
+        self.session_dir = os.path.join(log_dir, self.session_id)
+        self.html_dir = os.path.join(self.session_dir, "html")
+        self.png_dir = os.path.join(self.session_dir, "png")
+        
+        for d in [self.session_dir, self.html_dir, self.png_dir]:
             if not os.path.exists(d):
                 os.makedirs(d)
                 
         # ログファイルの設定
-        self.sys_log_file = f"{self.sys_log_dir}/system_{self.session_id}.log"
-        self.sim_log_file = f"{self.sim_log_dir}/sim_{self.session_id}.jsonl"
+        self.sys_log_file = os.path.join(self.session_dir, "system.log")
+        self.sim_log_file = os.path.join(self.session_dir, "simulation.jsonl")
         
         if session_id is None:
             self.sys_log("=== シミュレーションシステム起動 ===")

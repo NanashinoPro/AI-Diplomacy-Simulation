@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-SIM_LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "logs", "simulations")
+LOGS_DIR = os.path.join(os.path.dirname(__file__), "..", "logs")
 
 @app.route("/")
 def index():
@@ -16,15 +16,20 @@ def index():
 
 @app.route("/api/simulations")
 def list_simulations():
-    if not os.path.exists(SIM_LOG_DIR):
+    if not os.path.exists(LOGS_DIR):
         return jsonify([])
-    files = [f for f in os.listdir(SIM_LOG_DIR) if f.endswith(".jsonl")]
-    files.sort(reverse=True)
-    return jsonify(files)
+    # 新構造: logs/{session_id}/simulation.jsonl
+    sessions = []
+    for d in sorted(os.listdir(LOGS_DIR), reverse=True):
+        session_dir = os.path.join(LOGS_DIR, d)
+        sim_file = os.path.join(session_dir, "simulation.jsonl")
+        if os.path.isdir(session_dir) and os.path.exists(sim_file):
+            sessions.append(d)
+    return jsonify(sessions)
 
-@app.route("/api/simulations/<filename>")
-def get_simulation(filename):
-    filepath = os.path.join(SIM_LOG_DIR, filename)
+@app.route("/api/simulations/<session_id>")
+def get_simulation(session_id):
+    filepath = os.path.join(LOGS_DIR, session_id, "simulation.jsonl")
     if not os.path.exists(filepath):
         return jsonify({"error": "File not found"}), 404
     turns = []
@@ -37,10 +42,9 @@ def get_simulation(filename):
                     continue
     return jsonify(turns)
 
-@app.route("/api/simulations/<filename>/summary")
-def get_simulation_summary(filename):
-    summary_filename = filename.replace(".jsonl", ".summary.json")
-    filepath = os.path.join(SIM_LOG_DIR, summary_filename)
+@app.route("/api/simulations/<session_id>/summary")
+def get_simulation_summary(session_id):
+    filepath = os.path.join(LOGS_DIR, session_id, "simulation.summary.json")
     if not os.path.exists(filepath):
         return jsonify({"summary": ""}), 404
         
@@ -50,8 +54,8 @@ def get_simulation_summary(filename):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/simulations/<filename>/chat", methods=["POST"])
-def chat_about_simulation(filename):
+@app.route("/api/simulations/<session_id>/chat", methods=["POST"])
+def chat_about_simulation(session_id):
     data = request.json
     user_query = data.get("query", "")
     
@@ -62,7 +66,7 @@ def chat_about_simulation(filename):
     if not api_key:
         return jsonify({"error": "GEMINI_API_KEY is not set on the server."}), 500
         
-    log_filepath = os.path.join(SIM_LOG_DIR, filename)
+    log_filepath = os.path.join(LOGS_DIR, session_id, "simulation.jsonl")
     if not os.path.exists(log_filepath):
         return jsonify({"error": "Simulation file not found"}), 404
 
