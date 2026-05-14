@@ -315,9 +315,18 @@ class EventsMixin:
             human_capital_index=new_hci,
             initial_human_capital_index=max(1.0, new_initial_hci), # 0割りを防ぐ
             mean_years_schooling=new_mys,
-            intelligence_level=new_intelligence
+            intelligence_level=new_intelligence,
+            # 地図レンダリング用: 旧国家のISOコード・首都座標を引き継ぐ
+            # （同じGeoJSONポリゴン上に表示される。分裂国家は独自ポリゴンを持たないため）
+            iso_code=old_country.iso_code,
+            capital_lat=old_country.capital_lat,
+            capital_lon=old_country.capital_lon,
         )
         new_country.national_debt = new_debt
+        
+        # 地図表示用: 新国家にユニークな色を動的に割り当て
+        from map.layers import _assign_dynamic_color
+        _assign_dynamic_color(new_name)
         if new_gov_type == GovernmentType.DEMOCRACY:
             new_country.turns_until_election = 16
             

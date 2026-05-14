@@ -55,6 +55,48 @@ def _load_colors() -> Dict:
     return _color_data_cache
 
 
+# 分裂国家用の動的カラーパレット
+# 既存国（アメリカ=緑系、中国=赤系、日本=ベージュ系、台湾=エメラルド系）と
+# 十分に区別できる色相を選定
+_DYNAMIC_COLOR_PALETTE = [
+    {"primary": "#8b5cf6", "secondary": "#a78bfa", "military_accent": "#7c3aed"},  # パープル
+    {"primary": "#ec4899", "secondary": "#f472b6", "military_accent": "#db2777"},  # ピンク
+    {"primary": "#f59e0b", "secondary": "#fbbf24", "military_accent": "#d97706"},  # アンバー
+    {"primary": "#06b6d4", "secondary": "#22d3ee", "military_accent": "#0891b2"},  # シアン
+    {"primary": "#ef4444", "secondary": "#f87171", "military_accent": "#dc2626"},  # レッド
+    {"primary": "#14b8a6", "secondary": "#2dd4bf", "military_accent": "#0d9488"},  # ティール
+    {"primary": "#f97316", "secondary": "#fb923c", "military_accent": "#ea580c"},  # オレンジ
+    {"primary": "#6366f1", "secondary": "#818cf8", "military_accent": "#4f46e5"},  # インディゴ
+    {"primary": "#84cc16", "secondary": "#a3e635", "military_accent": "#65a30d"},  # ライム
+    {"primary": "#e11d48", "secondary": "#fb7185", "military_accent": "#be123c"},  # ローズ
+]
+
+_dynamic_color_index = 0
+
+
+def _assign_dynamic_color(country_name: str) -> Dict:
+    """
+    分裂で生まれた新国家に動的にユニークなカラーを割り当てる。
+    _load_colors() のキャッシュに直接追加することで、以降のレンダリングで即座に反映される。
+    """
+    global _dynamic_color_index, _color_data_cache
+    
+    colors = _load_colors()
+    
+    # 既に色が割り当てられていればスキップ
+    if country_name in colors:
+        return colors[country_name]
+    
+    # パレットから順番に割り当て（巡回）
+    color_entry = _DYNAMIC_COLOR_PALETTE[_dynamic_color_index % len(_DYNAMIC_COLOR_PALETTE)]
+    _dynamic_color_index += 1
+    
+    # キャッシュに追加（ファイルは変更しない — ランタイムのみ）
+    colors[country_name] = color_entry
+    
+    return color_entry
+
+
 def get_country_polygon(iso_code: str) -> Optional[gpd.GeoDataFrame]:
     """ISO コードから国のポリゴンを取得"""
     gdf = _load_geodata()
