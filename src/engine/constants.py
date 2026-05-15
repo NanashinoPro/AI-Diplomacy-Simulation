@@ -1,4 +1,6 @@
 # --- 定数（プロトコルパラメータ）定義 ---
+# 1ターン = 1年/TURNS_PER_YEAR（デフォルト: 4 = 四半期制）
+TURNS_PER_YEAR = 4
 DEMOCRACY_WARN_APPROVAL = 40.0
 CRITICAL_APPROVAL = 15.0
 WMA_HISTORY_WEIGHT = 0.8
@@ -22,7 +24,9 @@ TAX_APPROVAL_PENALTY_MULTIPLIER = 200.0 # 増税1%につき支持率が2%低下�
 TAX_REDUCTION_APPROVAL_BONUS_MULTIPLIER = 100.0 # 減税1%につき支持率が1%上昇する係数
 MAX_TAX_CHANGE_PER_TURN = 0.10 # 1ターンあたりの税率変動の上限（±10%）
 DEBT_TO_GDP_PENALTY_THRESHOLD = 1.0  # 債務対GDP比が100%を超えるとペナルティ発生
-DEBT_INTEREST_RATE = 0.01            # 国家債務の利払い金利（2%）
+# 国家債務の利払いモデル（全て年率で定義。ターン実行時に /TURNS_PER_YEAR で四半期化）
+DEBT_INTEREST_RATE_ANNUAL = 0.04     # 国家債務の利払い金利（年率4%）
+INTEREST_REINVESTMENT_RATE = 0.70    # 利払いのうち国内民間投資に還流する割合（債権者=国内銀行・年金基金等の再投資）
 
 # 貿易・マクロ経済モデルの定数
 MACRO_TAX_RATE = 0.30 # (旧定数。今後各国の可変 tax_rate で上書き)

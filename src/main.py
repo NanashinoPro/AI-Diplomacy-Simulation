@@ -445,10 +445,11 @@ def main():
         # 5. 各AIエージェントによる行動の決定（API呼び出し）
         # Agent呼出し前に政府予算を事前計算（process_turn内でも再計算されるが、
         # Agentプロンプトに正しい予算値を渡すために必要）
-        DEBT_INTEREST_RATE = 0.01
+        from engine.constants import DEBT_INTEREST_RATE_ANNUAL, TURNS_PER_YEAR
         for country_name, country in world_state.countries.items():
-            tax_revenue = country.economy * country.tax_rate
-            interest_payment = country.national_debt * DEBT_INTEREST_RATE
+            tax_revenue = (country.economy * country.tax_rate) / TURNS_PER_YEAR
+            effective_rate_per_turn = DEBT_INTEREST_RATE_ANNUAL / TURNS_PER_YEAR
+            interest_payment = country.national_debt * effective_rate_per_turn
             total_revenue = tax_revenue + country.tariff_revenue
             country.government_budget = max(0.0, total_revenue - interest_payment)
 

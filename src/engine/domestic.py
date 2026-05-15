@@ -6,9 +6,11 @@ from models import AgentAction, GovernmentType
 from .constants import (
     DEMOCRACY_WARN_APPROVAL, CRITICAL_APPROVAL,
     DEMOCRACY_MIN_EXECUTION_POWER,
-    DEBT_INTEREST_RATE, TAX_APPROVAL_PENALTY_MULTIPLIER, TAX_REDUCTION_APPROVAL_BONUS_MULTIPLIER, MAX_TAX_CHANGE_PER_TURN,
+    DEBT_INTEREST_RATE_ANNUAL, TURNS_PER_YEAR,
+    TAX_APPROVAL_PENALTY_MULTIPLIER, TAX_REDUCTION_APPROVAL_BONUS_MULTIPLIER, MAX_TAX_CHANGE_PER_TURN,
     AUTHORITARIAN_BASE_SAVING_RATE, DEMOCRACY_BASE_SAVING_RATE,
     DEBT_REPAYMENT_CROWD_IN_MULTIPLIER, GOVERNMENT_CROWD_IN_MULTIPLIER, GOVERNMENT_CROWD_OUT_MULTIPLIER,
+    BASE_INVESTMENT_RATE, INTEREST_REINVESTMENT_RATE,
     ENDOGENOUS_GROWTH_ALPHA, DEBT_TO_GDP_PENALTY_THRESHOLD,
     BASE_MILITARY_MAINTENANCE_ALPHA, MAX_MILITARY_FATIGUE_ALPHA, BASE_MILITARY_GROWTH_RATE,
     INTEL_GROWTH_RATE, INTEL_MAINTENANCE_ALPHA,
@@ -174,8 +176,8 @@ class DomesticMixin:
         # --- マクロ経済モデリング (SNAベース: Y = C + I + G + NX) ---
         old_gdp = country.economy
         
-        # 国家債務の利払い (利払い分だけ予算が減る、または債務が増える。ここでは簡単のため予算から天引き想定)
-        interest_payment = country.national_debt * DEBT_INTEREST_RATE
+        # 注: 利払いと予算算出は engine/core.py の process_turn() で四半期化して実行済み
+        # ここでは government_budget は利払い後の可処分予算として使用する
         
         # 税収T = GDP * 税率 (※前ターンのGDPをベースにする)
         # 報道の自由度の更新とペナルティ計算
@@ -242,25 +244,44 @@ class DomesticMixin:
         base_s_rate = AUTHORITARIAN_BASE_SAVING_RATE if country.government_type == GovernmentType.AUTHORITARIAN else DEMOCRACY_BASE_SAVING_RATE
         saving_rate = max(0.15, base_s_rate - (inv_wel * 0.15))
 
-        tax_revenue = old_gdp * country.tax_rate
+        # ===== 四半期スケールSNAモデル (Y_q = C_q + I_q + G_q + NX_q) =====
+        # 全フロー変数を四半期ベースで統一することで、政府支出G（四半期予算）とのスケール整合を保証
 
-        # 1. 民間消費 (C)
-        # ケインズ型消費関数: C = (Y - T) * (1 - s)
+        quarterly_gdp = old_gdp / TURNS_PER_YEAR
+        tax_revenue_q = old_gdp * country.tax_rate / TURNS_PER_YEAR  # 四半期税収
+
+        # 1. 民間消費 (C_q)
+        # ケインズ型消費関数: C = (Y_q - T_q) * (1 - s)
         # 増税すると即座に消費が減る。減税すると消費が大きく活性化するボーナスを追加。
-        C = max(0.0, (old_gdp - tax_revenue) * (1.0 - saving_rate))
+        C = max(0.0, (quarterly_gdp - tax_revenue_q) * (1.0 - saving_rate))
         if tax_diff < 0:
             consumption_bonus_multiplier = 1.0 + (abs(tax_diff) * 2.0)
             C *= consumption_bonus_multiplier
             
-        S_private = max(0.0, (old_gdp - tax_revenue) - C)
+        S_private = max(0.0, (quarterly_gdp - tax_revenue_q) - C)
 
-        # --- SNAマクロ経済モデル: 民間投資 (I) ---
+        # --- SNAマクロ経済モデル: 民間投資 (I_q) ---
         # [Harrod 1939; Domar 1946] 貯蓄=投資均衡仮定の下、民間貯蓄の一部が
-        # 資本市場を通じて国内投資へ還流すると仮定。係数0.85は国内投資率を表し、
-        # 残15%は海外流出・現預金積み上げ等として処理。
+        # 資本市場を通じて国内投資へ還流すると仮定。係数0.95は国内投資率を表し、
+        # 残5%は海外流出・現預金積み上げ等として処理。
+        # ベース投資(BASE_INVESTMENT_RATE)を生命線として底板に設定する。
         # 政府の経済投資は民間投資を誘発（クラウドイン）し、軍事費が民間投資を押し出す（クラウドアウト）。
         # 民間貯蓄に加え、政府の未執行予算(S_gov)が金融市場を通じて民間投資に還流する
-        I = max(0.0, S_private * 0.85 + (S_gov * DEBT_REPAYMENT_CROWD_IN_MULTIPLIER) + (g_econ * GOVERNMENT_CROWD_IN_MULTIPLIER) - (g_mil * GOVERNMENT_CROWD_OUT_MULTIPLIER))
+        
+        # --- 利払いリーケージ修正 ---
+        # 税収のうち利払いに使われた分は、債権者（国内銀行・年金基金・個人投資家）への
+        # 所得移転であり、その一定割合（INTEREST_REINVESTMENT_RATE=70%）が
+        # 資本市場を通じて国内民間投資に再投資される [Mankiw "Macroeconomics" Ch.3]
+        interest_leakage = max(0.0, tax_revenue_q - budget)
+        interest_reinvested = interest_leakage * INTEREST_REINVESTMENT_RATE
+        
+        induced_investment = (S_private * 0.95 
+                              + interest_reinvested
+                              + (S_gov * DEBT_REPAYMENT_CROWD_IN_MULTIPLIER) 
+                              + (g_econ * GOVERNMENT_CROWD_IN_MULTIPLIER) 
+                              - (g_mil * GOVERNMENT_CROWD_OUT_MULTIPLIER))
+        base_investment = quarterly_gdp * BASE_INVESTMENT_RATE
+        I = max(0.0, max(base_investment, induced_investment))
         
         # -- 災害・技術革新のフロー影響を適用 --
         disaster_damage_sum = sum(d.damage_percent for d in self.state.disaster_history if d.turn == self.state.turn and (d.country == country_name or d.country is None))
@@ -292,19 +313,40 @@ class DomesticMixin:
         else:
             h_ratio_capped = max(0.5, base_h_ratio)
 
-        # マクロ需要ベースライン (C+I+G 全体に強力なキャップをかけた教育バフを乗ずる)
-        base_aggregated_demand = (C + I + G) * h_ratio_capped
+        # マクロ需要ベースライン (C_q+I_q+G_q 全体に強力なキャップをかけた教育バフを乗ずる)
+        base_aggregated_demand_q = (C + I + G) * h_ratio_capped
 
         # --- 内生的成長理論 (Romer model) によるイノベーション効果 ---
-        # そのターンの教育・科学投資(g_edu)がGDPに対して占める割合が、技術進歩（基礎成長率）を押し上げる
-        edu_investment_ratio = g_edu / max(1.0, old_gdp)
+        # そのターンの教育・科学投資(g_edu)が四半期GDPに対して占める割合が、技術進歩（基礎成長率）を押し上げる
+        edu_investment_ratio = g_edu / max(1.0, quarterly_gdp)
         
         # 成長率バフへの変換式。対数を用いて異常な投資への耐性を持たせる
         # 例: 投資率0.05(5%)投入 -> log1p(0.5)*0.05 = 約2.0%の追加成長
         endogenous_growth_bonus = math.log1p(edu_investment_ratio * 10.0) * ENDOGENOUS_GROWTH_ALPHA
 
-        # 総需要に内生的な技術進歩を掛け合わせ、純輸出を足して新GDPを算出
-        new_gdp_provisional = base_aggregated_demand * (1.0 + endogenous_growth_bonus) + country.last_turn_nx
+        # 四半期の総需要に内生的な技術進歩を掛け合わせ、純輸出を足して四半期GDPを算出
+        new_quarterly_gdp = base_aggregated_demand_q * (1.0 + endogenous_growth_bonus) + country.last_turn_nx
+        
+        # 四半期GDPを年間GDPに変換して country.economy に格納
+        new_gdp_provisional = new_quarterly_gdp * TURNS_PER_YEAR
+        
+        # --- SNAモデル ブレークダウンログ ---
+        sna_growth_raw = (new_gdp_provisional - old_gdp) / max(1.0, old_gdp) * 100
+        self.sys_logs_this_turn.append(
+            f"[{country.name} SNA詳細] "
+            f"旧GDP(年):{old_gdp:.1f} → 新GDP(年):{new_gdp_provisional:.1f} (生成長率:{sna_growth_raw:+.1f}%)\n"
+            f"  四半期GDP:{quarterly_gdp:.1f} | 税収_q:{tax_revenue_q:.1f} | 貯蓄率:{saving_rate:.2f}\n"
+            f"  C_q:{C:.1f} ({C/max(0.1,quarterly_gdp)*100:.1f}%GDP) | "
+            f"I_q:{I:.1f} ({I/max(0.1,quarterly_gdp)*100:.1f}%GDP) [base:{base_investment:.1f}, induced:{induced_investment:.1f}] | "
+            f"G_q:{G:.1f} ({G/max(0.1,quarterly_gdp)*100:.1f}%GDP)\n"
+            f"  利払い漏出:{interest_leakage:.1f} → 還流(70%):{interest_reinvested:.1f} | "
+            f"NX:{country.last_turn_nx:+.1f} | HCI乗数:{h_ratio_capped:.3f} | "
+            f"内生成長:{endogenous_growth_bonus:.4f} | "
+            f"C+I+G(q):{C+I+G:.1f} → 需要_q:{base_aggregated_demand_q:.1f} → 新Q:{new_quarterly_gdp:.1f}\n"
+            f"  投資配分: 経済{inv_econ:.0%} 軍事{inv_mil:.0%} 福祉{inv_wel:.0%} 教育{inv_edu:.0%} 諜報{inv_intel:.0%} | "
+            f"実行力:{execution_power:.2f} | "
+            f"g_econ:{g_econ:.1f} g_mil:{g_mil:.1f} g_wel:{g_wel:.1f} g_edu:{g_edu:.1f}"
+        )
         
         # 災害ダメージは当期の経済から直接引く（巨大な資本破壊）
         if disaster_damage_sum > 0:

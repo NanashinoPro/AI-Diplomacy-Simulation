@@ -93,13 +93,18 @@ class WorldEngine(
             country.private_messages = []
         
         # 0. 基礎予算の算出と属国化による外交権のオーバーライド
-        from .constants import DEBT_INTEREST_RATE
+        from .constants import DEBT_INTEREST_RATE_ANNUAL, TURNS_PER_YEAR
         for country_name, country in self.state.countries.items():
             old_gdp = country.economy
-            tax_revenue = old_gdp * country.tax_rate
-            interest_payment = country.national_debt * DEBT_INTEREST_RATE
+            # 税収: 年間GDPに税率を掛け、ターン数で割って四半期化
+            tax_revenue = (old_gdp * country.tax_rate) / TURNS_PER_YEAR
+            
+            # 全て年率で計算してから /TURNS_PER_YEAR でターン単位に変換
+            effective_rate_per_turn = DEBT_INTEREST_RATE_ANNUAL / TURNS_PER_YEAR
+            interest_payment = country.national_debt * effective_rate_per_turn
             
             # 予算が利払いを下回る場合はデフォルト（未払い分は借金に上乗せ）
+            # 関税収入も四半期単位（economy.pyで計算済み）
             total_revenue = tax_revenue + country.tariff_revenue  # 税収 + 関税収入
             if total_revenue >= interest_payment:
                 country.government_budget = total_revenue - interest_payment
