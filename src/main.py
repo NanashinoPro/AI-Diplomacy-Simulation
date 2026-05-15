@@ -227,6 +227,7 @@ def initialize_world(data_dir: str = None) -> WorldState:
 # コスト出力用グローバル参照（エラー/中断時でも出力を保証するため）
 _agent_system_ref = None
 _logger_ref = None
+_db_manager_ref = None
 
 def main():
     import argparse
@@ -385,9 +386,10 @@ def main():
                 print(f"  ⚠️ {country_name}: フォールバック使用 ({fallback})")
         print()
     
-    global _agent_system_ref, _logger_ref
+    global _agent_system_ref, _logger_ref, _db_manager_ref
     _agent_system_ref = agent_system
     _logger_ref = logger
+    _db_manager_ref = db_manager
 
     for _ in range(MAX_TURNS):
         # 1. ターン開始時のシステム内政判定（選挙・クーデター）
@@ -790,3 +792,6 @@ if __name__ == "__main__":
         traceback.print_exc()
     finally:
         _report_costs()
+        # QdrantClientの明示的クローズ（Pythonシャットダウン時のImportError防止）
+        if _db_manager_ref is not None:
+            _db_manager_ref.close()

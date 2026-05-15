@@ -39,6 +39,21 @@ class DBManager:
         
         self._ensure_collection_exists()
 
+    def close(self):
+        """
+        Qdrantクライアントを明示的にクローズする。
+        Pythonシャットダウン時の __del__ による ImportError を防止するため、
+        プログラム終了前に必ず呼び出すこと。
+        """
+        if hasattr(self, 'client') and self.client is not None:
+            try:
+                self.client.close()
+                logger.info("Qdrant client closed successfully.")
+            except Exception as e:
+                logger.warning(f"Error closing Qdrant client: {e}")
+            finally:
+                self.client = None
+
     def _ensure_collection_exists(self):
         """コレクションが存在しない場合は作成する"""
         try:
