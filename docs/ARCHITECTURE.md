@@ -126,7 +126,7 @@ $$ \Delta Approval = +(|\Delta TaxRate| \times 100.0) $$
 
 1.  **政府予算 ($G$)**:
     *   次期の税収推定 ($T_{est}$) = 前期GDP ($Y_{t-1}$) $\times \text{Tax Rate}$
-    *   利払い = $\text{National Debt} \times 0.01$ (`DEBT_INTEREST_RATE = 0.01`)
+    *   利払い = $\text{National Debt} \times \frac{\text{DEBT\_INTEREST\_RATE\_ANNUAL}}{\text{TURNS\_PER\_YEAR}}$ (`DEBT_INTEREST_RATE_ANNUAL = 0.04`, 年率4%を四半期化: $0.04 / 4 = 0.01$)
     *   実質政府予算 = $T_{est} - \text{利払い}$ (マイナスの場合は $0.0$)
 2.  **民間消費 ($C$)**:
     *   `DEMOCRACY_BASE_SAVING_RATE = 0.25`
