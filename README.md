@@ -124,7 +124,9 @@ python src/web_ui.py
 | `TAX_APPROVAL_PENALTY_MULTIPLIER` | `200.0` | 増税1%あたりの支持率低下係数 |
 | `TAX_REDUCTION_APPROVAL_BONUS_MULTIPLIER` | `100.0` | 減税1%あたりの支持率上昇係数 |
 | `MAX_TAX_CHANGE_PER_TURN` | `0.10` | 1ターンの税率変動上限（±10%） |
-| `DEMOCRACY_MIN_EXECUTION_POWER` | `0.4` | 民主主義の最低政策実行力 |
+| `MANDATORY_SPENDING_RATIO` | `0.70` | 義務的経費の予算比率（支持率非依存で自動執行） |
+| `DISCRETIONARY_MIN_EXECUTION` | `0.30` | 裁量的経費の最低執行率（官僚機構による基本執行分） |
+| `DEMOCRACY_MIN_EXECUTION_POWER` | `0.79` | 民主主義の最低政策実行力（0.70 + 0.30 × 0.30） |
 
 #### 経済モデル
 
