@@ -4,7 +4,10 @@ from models import RelationType
 from .constants import (
     GRAVITY_TARIFF_ELASTICITY, GRAVITY_ALLIANCE_DISTANCE_FACTOR,
     GRAVITY_SANCTION_DISTANCE_FACTOR, GRAVITY_TRADE_SCALE,
-    DEFAULT_TARIFF_RATE
+    DEFAULT_TARIFF_RATE,
+    SANCTION_TARGET_DAMAGE_PER_CASE, SANCTION_TARGET_MAX_PER_CASE,
+    SANCTION_TARGET_MAX_CUMULATIVE, SANCTION_SENDER_COST_PER_CASE,
+    SANCTION_SENDER_MAX_COST
 )
 
 
@@ -162,27 +165,63 @@ class EconomyMixin:
                 # 単年度黒字ならカウンターを減少（またはリセット）
                 country.trade_deficit_counter = max(0, country.trade_deficit_counter - 1)
             
-        # Sanctions (Damage Model)
+        # === 制裁ダメージモデル（2フェーズ累積キャップ制）===
+        # [学術的根拠] Hufbauer et al. (2007): 制裁による年間GDP損失は最大-8%
+        # Phase 1: 全制裁のダメージを加算で集計（まだGDPに触らない）
+        sanction_damage_accumulator = {}   # {target_name: accumulated_damage_percent}
+        sanction_sender_count = {}         # {imposer_name: number_of_sanctions_imposed}
+        sanction_detail_logs = []          # ログ用の詳細情報
+
         for sanction in self.state.active_sanctions:
             if sanction.imposer not in self.state.countries or sanction.target not in self.state.countries:
                 continue
             imposer = self.state.countries[sanction.imposer]
             target = self.state.countries[sanction.target]
-            
-            # 制裁ダメージ: max 10%デバフ。2.0 * (imposer / target)
+
             ratio = imposer.economy / max(1.0, target.economy)
-            damage_percent = min(10.0, 2.0 * ratio)
-            
-            target.economy *= (1.0 - damage_percent / 100.0)
-            imposer.economy *= 0.99 # 発動国も1%の経済遅滞ダメージを受ける
-            
+            damage_per_case = min(SANCTION_TARGET_MAX_PER_CASE,
+                                  SANCTION_TARGET_DAMAGE_PER_CASE * ratio)
+
+            # ダメージを累積（まだGDPには適用しない）
+            sanction_damage_accumulator[sanction.target] = (
+                sanction_damage_accumulator.get(sanction.target, 0.0) + damage_per_case
+            )
+            sanction_sender_count[sanction.imposer] = (
+                sanction_sender_count.get(sanction.imposer, 0) + 1
+            )
+
             # 制裁による支持率ペナルティ（ARCHITECTURE.md §2.3 準拠）
-            target_approval_penalty = min(5.0, 1.0 * ratio)  # 対象国: GDP比率に応じて最大5%低下
-            imposer_approval_penalty = 0.5  # 発動国: 常に0.5%低下
+            target_approval_penalty = min(5.0, 1.0 * ratio)
+            imposer_approval_penalty = 0.5
             target.approval_rating = max(0.0, target.approval_rating - target_approval_penalty)
             imposer.approval_rating = max(0.0, imposer.approval_rating - imposer_approval_penalty)
-            self.sys_logs_this_turn.append(
-                f"[制裁ダメージ] {sanction.imposer} -> {sanction.target} | "
-                f"経済デバフ: -{damage_percent:.1f}% (発動国: -1.0%) | "
-                f"支持率ペナルティ: 対象国 -{target_approval_penalty:.1f}%, 発動国 -{imposer_approval_penalty:.1f}%"
+
+            sanction_detail_logs.append(
+                f"[制裁集計] {sanction.imposer} -> {sanction.target} | "
+                f"1件ダメージ: {damage_per_case:.2f}% (ratio: {ratio:.2f}) | "
+                f"支持率: 対象国 -{target_approval_penalty:.1f}%, 発動国 -{imposer_approval_penalty:.1f}%"
             )
+
+        # Phase 2: 累積合計にキャップを適用してからGDP調整
+        for target_name, raw_damage in sanction_damage_accumulator.items():
+            capped_damage = min(SANCTION_TARGET_MAX_CUMULATIVE, raw_damage)
+            target_country = self.state.countries[target_name]
+            target_country.economy *= (1.0 - capped_damage / 100.0)
+            self.sys_logs_this_turn.append(
+                f"[制裁ダメージ適用] {target_name} | "
+                f"累積ダメージ: {raw_damage:.2f}% -> キャップ後: {capped_damage:.2f}%"
+            )
+
+        # 発動国コスト: 1件あたり0.1%、上限0.5%
+        for imposer_name, count in sanction_sender_count.items():
+            total_cost = min(SANCTION_SENDER_MAX_COST,
+                             SANCTION_SENDER_COST_PER_CASE * count)
+            imposer_country = self.state.countries[imposer_name]
+            imposer_country.economy *= (1.0 - total_cost)
+            self.sys_logs_this_turn.append(
+                f"[制裁発動コスト] {imposer_name} | "
+                f"件数: {count}, コスト: {total_cost:.3f} ({total_cost * 100:.2f}%)"
+            )
+
+        # Phase 1で収集した詳細ログを出力
+        self.sys_logs_this_turn.extend(sanction_detail_logs)

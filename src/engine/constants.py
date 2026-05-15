@@ -109,3 +109,13 @@ COUP_BUDGET_RATIO_MAX = 0.30
 # 分裂後のGDP/C低下は累計-20%～-24%で収束する。ソ連崩壊時でも年-10%程度が上限。
 GDP_GROWTH_FLOOR_EARLY = -10.0   # 分裂直後(2ターン以内)のGDP/C成長率下限（四半期あたり）
 GDP_GROWTH_FLOOR_NORMAL = -5.0   # 通常時のGDP/C成長率下限（四半期あたり）
+
+# --- 制裁モデル定数（2フェーズ累積キャップ制）---
+# [学術的根拠] Hufbauer et al. (2007) "Economic Sanctions Reconsidered" の実証分析では、
+# 制裁による年間GDP損失は対象国で平均-3.3%、最大でも-8%程度。
+# 累積キャップ2.0%/ターン（年-8%）でこの学術的上限に準拠する。
+SANCTION_TARGET_DAMAGE_PER_CASE = 0.5    # GDP比率あたりのダメージ係数（1件ごと）
+SANCTION_TARGET_MAX_PER_CASE = 1.5       # 1件あたりの最大ダメージ率（%）
+SANCTION_TARGET_MAX_CUMULATIVE = 2.0     # 1ターンあたりの累積ダメージ上限（%）= 年-8%
+SANCTION_SENDER_COST_PER_CASE = 0.001    # 発動国の1件あたりコスト（0.1%）
+SANCTION_SENDER_MAX_COST = 0.005         # 発動国の1ターンあたりコスト上限（0.5%）
