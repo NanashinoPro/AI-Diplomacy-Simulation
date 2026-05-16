@@ -192,10 +192,10 @@ $$MYS_t = MYS_{t-1} \times (1 - 0.001) + \ln(1 + \frac{G_{edu}}{Y_{t-1}} \times 
 
 #### 動的な軍事維持費 (リチャードソン・モデルの疲弊係数)
 *   `BASE_MILITARY_GROWTH_RATE = 0.015`
-*   `BASE_MILITARY_MAINTENANCE_ALPHA = 0.03`
-*   `MAX_MILITARY_FATIGUE_ALPHA = 0.20`
-軍事保有ストック ($M$) の維持コストとなる疲弊係数 $\alpha_{mil}$ は、軍事負担率（$Military / GDP$）の二乗に比例して動的に跳ね上がる。**なお、計算に用いるGDPは当ターンの経済更新前の値（前期GDP: $Y_{t-1}$）である。**
-$$ \alpha_{mil} = \min\left(0.20,\ 0.03 + \left(\frac{Military}{\max(1, Y_{t-1})} \times 2.0\right)^2\right) $$
+*   `BASE_MILITARY_MAINTENANCE_ALPHA = 0.03` (年率。四半期ベースでは $0.03 / \text{TURNS\_PER\_YEAR} = 0.0075$)
+*   `MAX_MILITARY_FATIGUE_ALPHA = 0.20` (年率。四半期ベースでは $0.20 / \text{TURNS\_PER\_YEAR} = 0.05$)
+軍事保有ストック ($M$) の維持コストとなる疲弊係数 $\alpha_{mil}$ は、軍事負担率（$Military / GDP$）の二乗に比例して動的に跳ね上がる。**なお、計算に用いるGDPは当ターンの経済更新前の値（前期GDP: $Y_{t-1}$）である。** 年率定数は利払いモデル等と同様に `TURNS_PER_YEAR` で除算して四半期化される。
+$$ \alpha_{mil} = \min\left(\frac{0.20}{\text{TURNS\_PER\_YEAR}},\ \frac{0.03}{\text{TURNS\_PER\_YEAR}} + \left(\frac{Military}{\max(1, Y_{t-1})} \times 2.0\right)^2\right) $$
 次ターンの軍事力は以下のように算出され、$G_{mil}$ は §2.1 で定義した政策実行力 $\epsilon$ 適用後の軍事予算である。過剰な軍拡は維持費の増大により自壊する。
 $$ M_{t} = (M_{t-1} \times (1 - \alpha_{mil})) + (G_{mil} \times 0.015) $$
 

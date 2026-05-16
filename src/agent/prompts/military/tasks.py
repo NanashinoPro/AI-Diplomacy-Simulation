@@ -25,6 +25,11 @@ def build_military_invest_prompt(
 
     budget = country_state.government_budget
     debt_ratio = country_state.national_debt / max(1.0, country_state.economy) * 100
+    military_burden = country_state.military / max(1.0, country_state.economy)
+    # 四半期ベースの維持費α（年率0.03を四半期化 + 軍事負担率の二乗加速）
+    base_alpha_q = 0.03 / 4.0
+    dynamic_alpha_q = min(0.20 / 4.0, base_alpha_q + (military_burden * 2.0) ** 2)
+    maintenance_cost = country_state.military * dynamic_alpha_q
 
     return ctx + build_policy_section(policy) + ar + f"""
 現在の軍事力={country_state.military:.1f} / 経済力={country_state.economy:.1f}
@@ -33,10 +38,17 @@ def build_military_invest_prompt(
 国家債務: {country_state.national_debt:.1f} B$（対GDP比: {debt_ratio:.0f}%）
 歳入を超える要求も可能ですが、超過分は赤字国債となり将来の利払い負担が増加します。
 
+【⚠️ 軍事維持費の警告】
+軍事力は毎四半期、維持費（疲弊係数α）により自然減衰します。投資しなくても維持コストが発生します。
+- 現在の四半期維持費: 約 {maintenance_cost:.1f} B$相当（軍事力の {dynamic_alpha_q*100:.2f}%/四半期が減衰）
+- 軍事負担率（軍事力/GDP）: {military_burden*100:.1f}% — 高いほど維持費が二次関数的に急騰
+- 維持費は「既存の軍事力を保持するだけ」で発生するコストです。軍事力を現状維持するには最低でも維持費分の投資が必要です。
+
 【リチャードソン・モデルに基づく算出プロセス】
 1. 相手側の脅威: 自国より強い敵がいるか？
 2. 経済的疲弊: 軍事投資は経済を圧迫するか？
 3. 動員限界(10%の壁): 軍事力が人口×10%を超えていないか？
+4. 維持費と投資のバランス: 既存の軍事力を維持するためのコストを考慮しているか？
 
 施政方針（{policy.stance}）に従い、reasoning_for_military_investmentで算出プロセスを説明した上で投資額を決定してください。
 

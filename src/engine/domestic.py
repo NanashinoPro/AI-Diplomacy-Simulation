@@ -418,8 +418,11 @@ class DomesticMixin:
         # 持続不可能な軍拡がシステム的に自壊するメカニズムを提供し、現実の「帝国の過度な拡大」
         # (Paul Kennedy 1987) を模倣する。計算にはSNA更新前の前期GDPを使用。
         military_burden = country.military / max(1.0, old_gdp)
-        dynamic_alpha = BASE_MILITARY_MAINTENANCE_ALPHA + (military_burden * 2.0) ** 2
-        alpha = min(MAX_MILITARY_FATIGUE_ALPHA, dynamic_alpha)
+        # 年率定数を四半期ベースに変換（他のモデルと整合: /TURNS_PER_YEAR）
+        base_alpha_q = BASE_MILITARY_MAINTENANCE_ALPHA / TURNS_PER_YEAR
+        max_alpha_q = MAX_MILITARY_FATIGUE_ALPHA / TURNS_PER_YEAR
+        dynamic_alpha = base_alpha_q + (military_burden * 2.0) ** 2
+        alpha = min(max_alpha_q, dynamic_alpha)
         
         # 軍事投資による増加分（政策実行力ε適用済みの政府軍事支出に成長率を乗算）
         military_growth = g_mil * BASE_MILITARY_GROWTH_RATE
