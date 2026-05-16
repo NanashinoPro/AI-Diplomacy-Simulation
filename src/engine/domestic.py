@@ -191,10 +191,11 @@ class DomesticMixin:
         freedom_diff = target_freedom - country.press_freedom
         
         if freedom_diff < -0.05:
-            # 自由度を下げた場合: 0.1の制限につき、支持率-5%程度のペナルティ
-            freedom_penalty = abs(freedom_diff) * 50.0
+            # 自由度を下げた場合: 現在の報道の自由度が高いほどペナルティが大きい
+            # （自由な報道に慣れた国民ほど統制に強く反発し、既に統制下にある国民は追加制限への反応が鈍い）
+            freedom_penalty = abs(freedom_diff) * 50.0 * country.press_freedom
             country.approval_rating = max(0.0, country.approval_rating - freedom_penalty)
-            self.sys_logs_this_turn.append(f"[{country.name} 報道統制] 自由度低下({freedom_diff:+.2f})により支持率急落 -{freedom_penalty:.1f}%")
+            self.sys_logs_this_turn.append(f"[{country.name} 報道統制] 自由度低下({freedom_diff:+.2f}, 現自由度:{country.press_freedom:.3f})により支持率急落 -{freedom_penalty:.1f}%")
         elif freedom_diff > 0.05:
             # 自由度を上げた場合: 0.1の緩和につき、支持率+2%程度のボーナス（統制解除による限定的な支持回復）
             freedom_bonus = freedom_diff * 20.0
