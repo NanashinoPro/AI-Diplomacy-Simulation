@@ -389,8 +389,10 @@ class DomesticMixin:
         death_rate = base_death_rate + poverty_death_increase + disaster_death_increase
         
         # ロジスティック方程式に基づく人口増加率の計算 (環境収容力に近づくほど増加率が0になる)
-        # N(t+1) = N(t) + r * N(t) * (1 - N(t) / K)
-        intrinsic_growth_rate = birth_rate - death_rate
+        # N(t+1) = N(t) + r_q * N(t) * (1 - N(t) / K)
+        # 出生率・死亡率は年率で定義されているため、四半期ベースに変換（他モデルと整合）
+        intrinsic_growth_rate_annual = birth_rate - death_rate
+        intrinsic_growth_rate = intrinsic_growth_rate_annual / TURNS_PER_YEAR
         pop_growth_rate = intrinsic_growth_rate * (1.0 - (old_pop / carrying_capacity))
         country.population = max(0.1, old_pop * (1.0 + pop_growth_rate))
         
