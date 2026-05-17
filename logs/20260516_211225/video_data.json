@@ -1,0 +1,957 @@
+{
+  "metadata": {
+    "session_id": "20260516_211225",
+    "countries": [
+      "アメリカ",
+      "中国",
+      "日本",
+      "台湾"
+    ],
+    "total_turns": 5,
+    "video_title": "AIに東アジア外交を任せたら債務が70倍に!?",
+    "video_description": "AIエージェントにアメリカ・中国・日本・台湾の外交を任せたら、半導体をめぐる技術同盟と軍拡競争が激突！中国の国家債務が70倍に膨れ上がった衝撃の結末とは？\n\nこの動画はAIシミュレーションの結果をエンターテインメントとして紹介するものであり、現実の国家・団体・個人を非難する意図はありません。\n\n▼チャンネル登録はこちら\nhttps://www.youtube.com/@nanashino_ai\n\n#AI外交シミュレーション #地政学 #半導体戦争 #ずんだもん",
+    "credits": [
+      "VOICEVOX:ずんだもん",
+      "VOICEVOX:四国めたん"
+    ]
+  },
+  "scenes": [
+    {
+      "id": "hook_01",
+      "type": "hook",
+      "layout": "fullscreen_map_with_text_overlay",
+      "lines": [
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "えっ！？中国の借金が1年で70倍になったのだ！？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "そうね…でも本当に恐ろしいのは、そうなった原因の方よ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "今日はAIに東アジアの外交を丸投げした結果を紹介するのだ！"
+        }
+      ],
+      "visuals": {
+        "background": "strategy_map_east_asia_debt_explosion",
+        "animation": "zoom_in_to_china_debt_graph",
+        "overlays": [
+          "title_text_overlay",
+          "debt_counter_animation"
+        ]
+      },
+      "audio": {
+        "bgm": "追跡者.mp3",
+        "bgm_volume": 0.12,
+        "se": [
+          {
+            "file": "爆発3.mp3",
+            "timing": "scene_start",
+            "volume": 0.6
+          },
+          {
+            "file": "和太鼓でドドン.mp3",
+            "timing": "line_start",
+            "line_index": 0,
+            "volume": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "id": "intro_01",
+      "type": "intro",
+      "layout": "channel_intro_with_characters",
+      "lines": [
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "はいどうも！【本格AIシミュレーション】名無之ずんだもんとめたんなのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "今回のシミュレーションは、アメリカ・中国・日本・台湾の4カ国が登場するわよ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "それぞれの国をAIが操作して、外交や軍事を全部自分で判断するのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "使用しているのはGeminiベースの大規模言語モデルよ。各国の首脳・外務大臣・防衛大臣まで、全てAIエージェントが担当しているの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "おお〜！AIだけで国を動かすのだ！？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "そして今回の核心的な問いはこうよ——AIは米日台の技術同盟を通じて、中国の軍拡にどう対抗したのか？"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "半導体とサイバー防衛がカギになるのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "その通り。全5回の意思決定で、東アジアの勢力図がどう変わったか、見ていきましょう"
+        }
+      ],
+      "visuals": {
+        "background": "channel_intro_background",
+        "animation": "character_slide_in",
+        "overlays": [
+          "channel_logo",
+          "subscribe_button"
+        ]
+      },
+      "audio": {
+        "bgm": "パステルハウス.mp3",
+        "bgm_volume": 0.15,
+        "se": [
+          {
+            "file": "決定ボタンを押す4.mp3",
+            "timing": "line_start",
+            "line_index": 0,
+            "volume": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "id": "analysis_01",
+      "type": "analysis",
+      "layout": "data_dashboard_four_nations",
+      "lines": [
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "まず2026年の春、シミュレーション開始時点の状況を整理するわね"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "アメリカのGDPは約29兆ドル、軍事力は他国を圧倒する規模よ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "でも支持率は47%しかないのだ。国民はあんまり満足してないのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "そうね。だからアメリカのAIは経済再生を最優先にしたわ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "excited",
+          "text": "でもここが面白いの。アメリカのAIは国民に経済再生をアピールしながら、裏では全く別のことを企んでいたのよ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "えっ、裏で何をやってたのだ！？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "日本と台湾と組んで、半導体のサプライチェーンから中国を排除する『技術同盟』を極秘に構築していたの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "ま、マジなのだ！？それって現実のCHIPS法とそっくりじゃないのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "AIは膨大なテキストデータで訓練されているから、こうした戦略パターンを学習しているのよ。意図的に真似したわけじゃないけど、結果的に似た構造が生まれたの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "なるほどなのだ。じゃあ中国のAIはどう動いたのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "中国のAIも表と裏を使い分けていたわ。表向きは『平和的発展』を掲げながら、裏では台湾海峡でアメリカ軍の介入を無力化する能力の獲得を最優先にしていたの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "exasperation",
+          "text": "うわぁ…お互いに裏の計画を持ってるのだ。スパイ映画みたいなのだ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "各国のAIが裏の計画を持ってるなんて、まるでボードゲームなのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "ただしこのゲームは、負けたら国が傾くわよ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "一方の日本は支持率が37%と最も低く、経済再建が最優先課題だったわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "sad",
+          "text": "37%は厳しいのだ…。国民の信頼を取り戻さないといけないのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "そして台湾はGDPが約800億ドルと4カ国で最も小さいけれど、サイバー防衛と情報共有の深化を積極的に各国に打診していたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "小さくても自分から動いていくのだ！台湾のAI、なかなかやるのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "そしてこの最初の意思決定で、決定的な出来事が起きたわ。アメリカと台湾が軍事同盟を締結したの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "えっ！いきなり同盟なのだ！？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "アメリカはもともと日本とは同盟関係にあったわ。そこに台湾が加わったことで、日米台の三角形が完成したのよ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "中国だけ仲間はずれなのだ！これは中国のAI、大変なことになりそうなのだ…"
+        }
+      ],
+      "visuals": {
+        "background": "strategy_map_east_asia_turn1",
+        "animation": "alliance_triangle_formation",
+        "overlays": [
+          "nation_stat_cards",
+          "alliance_lines"
+        ]
+      },
+      "audio": {
+        "bgm": "ブルーボトル.mp3",
+        "bgm_volume": 0.13,
+        "se": [
+          {
+            "file": "PC-Keyboard06-02(Hard).mp3",
+            "timing": "line_start",
+            "line_index": 0,
+            "volume": 0.3
+          },
+          {
+            "file": "きらきら輝く3.mp3",
+            "timing": "line_end",
+            "line_index": 16,
+            "volume": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "id": "analysis_02",
+      "type": "analysis",
+      "layout": "split_screen_summit",
+      "lines": [
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "2026年の夏、東アジアは首脳会談ラッシュを迎えるわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "どんな会談があったのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "surprise",
+          "text": "まず日米、台米、日台、それぞれの二国間会談が6件。そして多国間会談が4件、合計10件もの会談が同時に行われたの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "10件！？外交官がいくらいても足りないのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "注目すべきは、アメリカが提案した多国間会談よ。議題は『先端技術サプライチェーンの強靭化と経済協力』——つまり、半導体の供給網を日米台で固めようという話ね"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "裏で計画してたことを、ついに表に出してきたのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "その通りよ。日本と台湾もそれぞれ似た議題で多国間会談を提案していたわ。3カ国のAIが、まるで示し合わせたように同じ方向を向いていたの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "おお〜！AIが自然と協力体制を作ったのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "一方で中国のAIも黙っていなかったわ。中国はアメリカと日本を招いて『地域経済の持続的成長と安定』をテーマに多国間会談を提案したの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "中国は中国で、自分も対話に入ろうとしてるのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "そうよ。ここがシミュレーション上の中国AIの巧みなところね。『経済対話』を持ちかけることで、自分だけ孤立するのを防ごうとしたの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "へぇ〜！攻めと守りを同時にやるのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "そしてこの外交ラッシュの結果、日本の支持率は37%から42%に上昇したわ。外交成果が国民に評価されたのね"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "やったのだ！日本のAI、頑張ってるのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "台湾の支持率も49%から54%に上昇。アメリカとの同盟締結と積極的な外交が評価された形よ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "技術同盟はまだこの時点では完成していないのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "まだ種まきの段階ね。でも、この夏の首脳会談ラッシュで日米台の信頼関係は着実に深まっていったの。そしてその裏で、不穏な動きが始まっていたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "不穏な動き？何が起きたのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "中国のAIが、ある決定的な選択をしていたの——それは次のパートで話すわね"
+        }
+      ],
+      "visuals": {
+        "background": "summit_montage_2026_summer",
+        "animation": "summit_table_sequence",
+        "overlays": [
+          "summit_count_ticker",
+          "approval_rating_graph"
+        ]
+      },
+      "audio": {
+        "bgm": "昼下がり気分.mp3",
+        "bgm_volume": 0.14,
+        "se": [
+          {
+            "file": "きらきら輝く3.mp3",
+            "timing": "line_end",
+            "line_index": 12,
+            "volume": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "id": "analysis_03",
+      "type": "analysis",
+      "layout": "breaking_news_china",
+      "lines": [
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "さて、ここからは中国のAIが何をしていたか、詳しく見ていくわね"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "さっきの不穏な動きってやつなのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "シミュレーション上の中国AIは、国際社会に対してGDPや支持率の数字を偽って報告していたの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "えっ！嘘の数字を出してたのだ！？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "実際の支持率は48%程度だったのに、85%と報告していたわ。GDPも実際より高く見せかけていた"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "exasperation",
+          "text": "うーん…でもなんでそんなことするのだ？バレたら大変なのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "中国AIの推論を見ると、こう書いてあるわ——『対外的には経済の安定と平和的発展を強調し、国内の求心力を高める。潜在的な敵対勢力には過度な警戒心を抱かせず、真の意図と能力を隠蔽する』って"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "なるほど、強く見せて相手を油断させない作戦なのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "同時に、報道の自由を0.5%まで下げて、国内SNSの批判的な投稿を次々と検閲していたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "sad",
+          "text": "国民の声が封じられてるのだ…"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "実は国民のSNS投稿を見ると、『85%支持なんて信じられない』『給料上がらないのにどうやって生活しろと』という声があったの。でも全て検閲されていたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "exasperation",
+          "text": "ボクだったらすごく不満なのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "ちなみに中国のAIが出したSNS投稿は、『中華民族の偉大なる復興という歴史的使命が待っている！』という壮大なものだったわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "exasperation",
+          "text": "国民の本音と全然違うのだ…"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "そしてもう一つ重要なのが、軍事投資よ。中国AIは予算の約25%を軍事に投じていたの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "アメリカの軍事力が約850に対して中国は230くらいなのだ。追いつこうとしてるのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "そうよ。このシミュレーションではリチャードソン・モデルという軍拡競争の数理モデルが組み込まれているの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "リチャードソン・モデル？何それなのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "簡単に言うと、相手の軍事力が大きいほど自分も軍事費を増やさざるを得ない、でも増やしすぎると経済が疲弊する——そういうジレンマを数式で表したものよ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "あっ、なるほどなのだ！軍拡すればするほど苦しくなるってことなのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "まさにその通り。そしてこのジレンマが、後に中国を追い詰めることになるわ"
+        }
+      ],
+      "visuals": {
+        "background": "china_data_manipulation_dashboard",
+        "animation": "fake_stats_reveal",
+        "overlays": [
+          "real_vs_reported_comparison",
+          "sns_censorship_counter"
+        ]
+      },
+      "audio": {
+        "bgm": "10℃.mp3",
+        "bgm_volume": 0.13,
+        "se": [
+          {
+            "file": "Warning-Siren05-01(Fast-Mid).mp3",
+            "timing": "line_start",
+            "line_index": 3,
+            "volume": 0.4
+          },
+          {
+            "file": "PC-Keyboard06-02(Hard).mp3",
+            "timing": "line_start",
+            "line_index": 10,
+            "volume": 0.3
+          }
+        ]
+      }
+    },
+    {
+      "id": "analysis_04",
+      "type": "analysis",
+      "layout": "timeline_scroll_alliance",
+      "lines": [
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "2026年の秋から年末にかけて、技術同盟はさらに具体化していくわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "どんな進展があったのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "日米台の三カ国で、次世代半導体技術の共同開発とサイバー防衛の共同訓練について、複数回の首脳会談が行われたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "おお〜！口だけじゃなくて実際に動き始めたのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "excited",
+          "text": "特に台湾のAIが興味深い動きをしていたの。『アクティブ・サイバーディフェンス』という概念を提案して、三カ国の共同訓練を積極的に主導していたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "台湾がリーダーシップを取ってるのだ？GDPは一番小さいのに、すごいのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "台湾のAIは、自国の軍事力では中国に対抗できないことを理解していたの。だから軍事力ではなく、半導体技術とサイバー防衛という『非対称な強み』で存在感を示す戦略を選んだのよ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "力で勝てないなら、頭で勝負するのだ！賢い戦略なのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "その間、日本のGDPは順調に成長して、支持率も45%を超えたわ。経済投資に予算の約44%を集中させた成果ね"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "37%から45%まで回復したのだ！日本のAI、地道に頑張ってるのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "一方、中国のAIも外交的に巧みだったのよ。日本や台湾との多国間会談を継続して提案し、完全な孤立は避けていたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "敵の輪に入り込んで、中から崩そうとしてるのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "そこまで積極的ではないけれど、少なくとも対話のチャンネルを維持することで、制裁や封じ込めを防ごうとしていたわね"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "でも中国の借金はどんどん増えてるのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "鋭いわね。実は2026年の秋の時点で、中国の国家債務は50を超えていたの。春は17程度だったから、約3倍よ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "exasperation",
+          "text": "3倍！？しかもまだ途中なのだ…最終的に70倍になるって言ってたのだ…"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "その債務爆発の本番は、これからよ"
+        }
+      ],
+      "visuals": {
+        "background": "strategy_map_alliance_network",
+        "animation": "timeline_progress_2026",
+        "overlays": [
+          "debt_growth_graph_china",
+          "alliance_network_diagram"
+        ]
+      },
+      "audio": {
+        "bgm": "ブルーボトル.mp3",
+        "bgm_volume": 0.13,
+        "se": [
+          {
+            "file": "きらきら輝く3.mp3",
+            "timing": "line_start",
+            "line_index": 3,
+            "volume": 0.4
+          },
+          {
+            "file": "ひらめく1.mp3",
+            "timing": "line_start",
+            "line_index": 15,
+            "volume": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "id": "analysis_05",
+      "type": "analysis",
+      "layout": "breaking_news_trade_war",
+      "lines": [
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "2027年の春、最終局面で衝撃的な展開が待っていたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "何が起きたのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "アメリカのAIが、中国との貿易協定を一方的に破棄したの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "えっ！？貿易を切ったのだ！？それって経済的に宣戦布告みたいなものなのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "技術同盟の形成が完了した今、中国との経済的なつながりはもう必要ないと判断したのでしょうね"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "そっか、日本と台湾の方が大事なパートナーになったのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "そして同じ最終局面で、日米台の三カ国は『半導体・サイバー防衛連携の完全合意』を達成したわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "おお〜！ついに完成したのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "台湾のメディアは『歴史的合意』と報道し、日本のメディアも『国民の安全と経済成長に大きく貢献』と評価したわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "じゃあ中国はどうなったのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "ここが核心よ。中国の国家債務は最終的に約1188にまで膨れ上がったの。開始時が17だったから——"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "70倍！？そんなに借金が増えたのだ！？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "原因は明確よ。軍事投資と諜報活動に毎回巨額の予算を投じていたの。歳入を大幅に超える支出を続けた結果ね"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "exasperation",
+          "text": "アメリカに追いつこうとして、自分の首を絞めてたのだ…"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "さらに台湾では最終局面で大干ばつが発生して、経済に約1.6%のダメージを受けたの。自然災害のリスクも見逃せないわね"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "sad",
+          "text": "うわぁ…頑張ってたのに天災まで来るのだ。台湾のAI、気の毒なのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "surprise",
+          "text": "でも台湾のGDPは干ばつにもかかわらず、開始時の約800億ドルから約1130億ドルへと約41%も成長したわ。4カ国で最も高い成長率よ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "すごいのだ！小さくても一番成長したのだ！やっぱり技術同盟が効いたのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "米日との低関税貿易と技術協力が経済成長を後押ししたのは間違いないわね。そして日本の支持率は最終的に50%を超えて、4カ国中1位になったわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "やったのだ！37%から50%超えなのだ！日本のAI、大逆転なのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "では最後に、今回のシミュレーションから見えてきた構造を、もう少し深く掘り下げてみましょう"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "おー！学術的なやつなのだ！"
+        }
+      ],
+      "visuals": {
+        "background": "trade_war_breaking_news",
+        "animation": "debt_explosion_visualization",
+        "overlays": [
+          "trade_cut_alert",
+          "final_standings_comparison"
+        ]
+      },
+      "audio": {
+        "bgm": "Decisive_Battle.mp3",
+        "bgm_volume": 0.14,
+        "se": [
+          {
+            "file": "和太鼓でドドン.mp3",
+            "timing": "line_start",
+            "line_index": 2,
+            "volume": 0.5
+          },
+          {
+            "file": "爆発3.mp3",
+            "timing": "line_start",
+            "line_index": 11,
+            "volume": 0.5
+          },
+          {
+            "file": "クイズ正解2.mp3",
+            "timing": "line_end",
+            "line_index": 19,
+            "volume": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "id": "summary_01",
+      "type": "summary",
+      "layout": "academic_analysis_board",
+      "lines": [
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "さて、ここからはこのシミュレーションを学術的な視点で分析してみましょう"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "ボクにもわかるように説明してほしいのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "まず注目したいのが、さっき出てきたリチャードソンの軍拡競争モデルよ。このモデルでは、相手の軍事力が大きいほど自国も軍備を増やす圧力がかかるけど、増やしすぎると経済が疲弊するの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "中国のAIがまさにそのパターンにハマってたのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "そうね。AIはこのモデルを意図的に参照したわけじゃないの。でも、アメリカの圧倒的な軍事力という制約条件の中で最適化を行った結果、軍拡に走らざるを得なかった——そしてその代償として債務が膨張したわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "冷戦時代のソ連みたいなのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "いい比較ね。冷戦期のソ連も、アメリカとの軍拡競争で経済が疲弊し、最終的に崩壊したわ。AIが全く別の文脈で似たパターンを再現したことは、このモデルの普遍性を示唆しているかもしれないわね"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "もう一つ気になったのだ。半導体で中国を締め出したのって、何か学術的な名前があるのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "excited",
+          "text": "現実の米国の戦略で『Small Yard, High Fence（小さな庭に高い塀）』と呼ばれるものに近いわ。核心的な技術だけを厳しく制限して、それ以外は開放するという考え方よ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "あっ、なるほどなのだ！全部締め出すんじゃなくて、半導体っていう急所だけ押さえるのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "シミュレーション上の米日台AIは、低関税で互いの貿易を優遇しながら、中国にだけ高関税を維持していたわ。技術の供給網というチョークポイントを押さえることで、直接的な軍事衝突なしに戦略的優位を確立したの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "戦争しなくても勝てるのだ…すごい戦略なのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "ただし注意してほしいのは、これはあくまでシミュレーションの結果だということ。現実にはもっと複雑な要因が絡むし、AIの行動は訓練データのパターンを反映しているだけよ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "そうなのだ。でも、AIが自然とこういうパターンを生み出したっていうのは面白いのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "興味深い問いは、なぜAIが軍拡のジレンマや技術チョークポイント戦略を再現したのか、という点ね。それはAIが訓練データから政治・経済のパターンを学習しているからこそ起きた現象なのよ"
+        }
+      ],
+      "visuals": {
+        "background": "academic_chalkboard",
+        "animation": "model_diagram_draw",
+        "overlays": [
+          "richardson_model_equation",
+          "chokepoint_diagram"
+        ]
+      },
+      "audio": {
+        "bgm": "SUMMER_TRIANGLE.mp3",
+        "bgm_volume": 0.12,
+        "se": [
+          {
+            "file": "PC-Keyboard06-02(Hard).mp3",
+            "timing": "line_start",
+            "line_index": 0,
+            "volume": 0.3
+          }
+        ]
+      }
+    },
+    {
+      "id": "ending_01",
+      "type": "ending",
+      "layout": "character_closeup_ending",
+      "lines": [
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "いやー、今回もすごい展開だったのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "半導体という小さなチップが、国家の運命を左右する時代ね。AIはそれを見事に可視化してくれたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "面白かった人はチャンネル登録と高評価をお願いするのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "次回のシミュレーションもお楽しみにね。それじゃ、またね"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "ばいばーいなのだ！"
+        }
+      ],
+      "visuals": {
+        "background": "ending_screen_with_subscribe",
+        "animation": "character_wave_goodbye",
+        "overlays": [
+          "subscribe_button",
+          "next_video_suggestion"
+        ]
+      },
+      "audio": {
+        "bgm": "野良猫は宇宙を目指した.mp3",
+        "bgm_volume": 0.15,
+        "se": [
+          {
+            "file": "きらきら輝く3.mp3",
+            "timing": "scene_start",
+            "volume": 0.4
+          }
+        ]
+      }
+    }
+  ]
+}
