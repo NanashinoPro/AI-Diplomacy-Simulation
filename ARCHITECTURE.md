@@ -494,6 +494,30 @@ energy_reserve = max(0, energy_reserve - 1.0 + gain)
 | `launch_strategic_nuclear` | attacker, target, warheads | 戦略核使用 |
 | `declare_war` | attacker, target | 宣戦布告+WarState作成 |
 | `cyber_attack` | attacker, target, description(任意) | 経済×0.95, 支持率-3% |
+| `global_announcement` | message | 全国家にニュースとして配信。AIが初手コンテキストとして認識 |
+| `reset_debt` | target | 対象国の国債残高をゼロにリセット |
+
+### 4-10. シナリオデータ: 米中G2密約「日本が捨てられる日」
+
+**セッション**: `20260517_230645`（masterブランチ、20ターン、4カ国）
+
+2026年5月14日の米中首脳会談で合意された「建設的戦略安定関係」を起点に、CSVデータの差し替え＋シナリオJSON注入で実行。コード変更なし。
+
+**実行コマンド**:
+```bash
+python src/main.py --turns 20 --scenario scenarios/g2_betrayal/scenario.json
+```
+
+**シナリオJSON** (`scenarios/g2_betrayal/scenario.json`):
+- 3件の `global_announcement` を注入（米中関税引下げ・台湾棚上げ・日本安保環境変動）
+- AIが初ターンから米中デタントの文脈を認識し、それに基づいて行動するための設計
+
+**初期関係の主な変更点**:
+- 米中: 相互制裁解除、関税 0.45/0.15 → 0.10/0.10
+- 日米: alliance維持（AIが自主的に解消するかがシナリオの注目点）
+- Alien関連: 全削除（masterブランチにはAlien機能なし）
+
+**詳細**: `scenarios/g2_betrayal/README.md` 参照
 
 ### 4-8. 制裁ダメージモデル（v1-3.2, src/engine/economy.py）
 
