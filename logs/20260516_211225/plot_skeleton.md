@@ -1,197 +1,174 @@
 # Plot Skeleton: 20260516_211225
 
 ## Core Theme & Core Question
-
-- **Core Theme**: 「AIが軍隊を地図の上に配備したら、"見えない戦争"が始まった ── v2の緊張度メカニクスが生んだ、砲火なき台湾海峡危機」
-- **Core Question**: 「AIに軍事配備の自由を与えたとき、戦争なしでどこまで緊張がエスカレートし、各国の運命はどう変わるのか？」
-
----
+- **Theme**: 「AIが"目"と"手足"を手に入れた — v2大型アップデートが生んだ安全保障ジレンマの自律的再現」
+- **Core Question**: 数字だけの世界で外交していたAIに「地図」と「軍隊」を与えたら、世界はどう変わるのか？ v2の新メカニクスはAIの行動をどう進化させたのか？
 
 ## Narrative Axes
 
-1. **「目と手足」の進化軸** — v2でAIが獲得した「戦略マップ」と「軍事配備の自由」が、v1とは根本的に異なる戦略空間を生み出す過程。地図上に軍隊アイコンが初めて出現し、配備ミッション（intimidation / show_of_force / patrol）によって「意思の可視化」が実現した進化を追う
-2. **「砲火なき戦争」軸** — 緊張度メカニクス（4段階）によって、宣戦布告なしでも「見えない戦争」が進行する構造。中国のintimidationがRally効果で自国支持率を上昇させるパラドックス。脅せば脅すほど相手が強くなるジレンマの深化
-3. **「軍拡の代償」軸** — Richardsonモデルが予測する「経済的疲弊」が中国の国家債務1,187%として顕在化する過程。軍事力の増強が経済を蝕み、最終的に持続不可能な構造に至るまでのカウントダウン
-
----
+1. **v1→v2の進化軸**: v1では数値の世界で外交判断を行っていたAIが、v2で「地図の上で軍を動かし、緊張度が可視化される世界」に進化した。各シーンでv2新機能がシミュレーションをどう変えたかを実演で示す
+2. **安全保障ジレンマの創発軸**: v2の3本柱（戦略マップ・軍事配備・緊張度）が揃って初めて発生した「同盟→軍拡→債務爆発」のスパイラル。v1では起こり得なかった現象がv2で創発した意義
+3. **堅実 vs 軍拡の対照軸**: 日本・台湾の堅実財政モデルと中国の軍拡一辺倒モデルの対比。v2の配備・緊張度メカニクスが生み出す「正解のない選択」の分岐点を数値で追跡する
 
 ## Academic Discussion Framework
 
-### Concept 1: Richardson Arms Race Model（リチャードソン軍拡競争モデル）
+### Concept 1: 安全保障ジレンマ（Security Dilemma / Jervis 1978）
+- **Demonstrating Event**: v2の配備システム+緊張度メカニクスにより、米台同盟→show_of_force→緊張度150→中国Rally+3.0%→軍拡スパイラルが「地図上で見える形」で創発
+- **Layer 1 — AI Causal Mechanism**: v2で「軍の配置」という物理的行動が可能になったことで、AIの防衛行動が相手国AIに「脅威」として認識される構造が生まれた。v1の数値だけの世界では不可能だった創発現象
+- **Layer 2 — Comparison**: Jervis (1978) スパイラル・モデル。冷戦期米ソ軍拡競争（核弾頭70,000発超、1986年）。攻守の識別不能性がジレンマを深刻化
+- **Historical Parallel**: 冷戦期米ソ核軍拡競争。双方とも核戦争を望まなかったが相互不信から軍拡が加速
 
-- **Demonstrating Event**: 中国の国家債務 16.8% → 50.4% → 471.3% → 1,187.7%。軍事+諜報に歳入の60%超を集中投入（Turn 2: 460/1,533B$）し、福祉・教育予算をゼロにした結果
-- **Layer 1 — AI Causal Mechanism**: 制約条件=「アメリカの軍事力846.8に対し中国233.4」→ 3.6倍の軍事格差を埋めるため軍事予算を最大化 → しかしARCHITECTURE.mdの「軍事維持コスト = 軍事負担率の二乗に比例する疲弊係数」により、投入するほど維持コストが加速的に増大 → 国家債務が指数関数的に爆発
-- **Layer 2 — Comparison**: Richardson (1960) *Arms and Insecurity* の dx/dt = ky - ax + g における疲弊係数 -ax。aが低い（＝経済的ブレーキが弱い）場合、軍拡は暴走し「不安定均衡」に向かう。中国AIの行動はa（疲弊への感度）が極めて低い状態をシミュレート
-- **Historical Parallel**: 冷戦期ソ連の崩壊（軍事費GDP比10-25%を維持、民生部門への投資が枯渇し1991年に体制崩壊）。ソ連はSDI（戦略防衛構想）への対抗で軍事支出が加速、経済停滞と複合して体制維持が不可能に
-
-### Concept 2: Rally 'round the Flag Effect（旗の下に結集する効果）
-
-- **Demonstrating Event**: 中国の支持率 47.6% → 54.2% → 56.9%。アメリカのshow_of_force配備が「外部脅威」として中国国内のナショナリズムを刺激し、支持率が上昇
-- **Layer 1 — AI Causal Mechanism**: 制約条件=「ARCHITECTURE §4.4.3: 緊張度レベル中(100-300) → Rally効果 +1〜+3%/ターン」→ アメリカが中国方面にshow_of_force(100-150B$)を配備 → 緊張度スコアが「中」に到達 → 中国国内で自動的にRally効果が発動 → 皮肉にもintimidationの対象であるはずの中国の政権が安定化
-- **Layer 2 — Comparison**: Mueller (1970) "Presidential Popularity from Truman to Johnson" — 国際危機における指導者支持率の短期急上昇。Mueller は3条件（国際的・大統領直接関与・劇的）を定義。Fearon (1994) のaudience cost理論と組み合わせると、民主主義国のshow_of_forceが権威主義国への「無料の正統性供給」となる逆説が浮上
-- **Historical Parallel**: 9/11後のブッシュ大統領支持率51% → 90%（歴代最大の上昇幅）。イラン・イスラム革命後のカーター大統領支持率急騰。いずれも外部脅威が国内結束を生んだ事例
-
----
+### Concept 2: 帝国の過剰拡張（Imperial Overstretch / Kennedy 1987）
+- **Demonstrating Event**: v2の軍事配備システムで中国AIが全方面に大規模配備→歳入超過→債務16.8→1187.7 B$（70倍）。v2で「配備」という具体的行動が可能になったからこそ発生した財政破綻パターン
+- **Layer 1 — AI Causal Mechanism**: v2のRally効果で支持率が上がり続けるため、AIが軍拡を「成功」と誤認→財政破綻への正のフィードバックループ
+- **Layer 2 — Comparison**: Kennedy (1987) *The Rise and Fall of the Great Powers*。ソ連のGDP軍事費比率15-20%→経済停滞→崩壊(1991)
+- **Historical Parallel**: ソ連崩壊(1991)。中国AIの債務パターンと酷似
 
 ## Scene Breakdown
 
 ### Scene 1: hook_01
 - **type**: hook
-- **layout**: `fullscreen_strategy_map_zoom`
-- **duration**: 20-25秒
-- **content_summary**: 最終ターンの戦略マップを映し出し、東アジア全域に展開された軍事ユニットの映像で視覚的インパクトを与える。中国の国家債務1,187%のカウンターが回り、「一発も弾を撃たずに、AIの戦争は既に始まっていた」と宣言
-- **key_data**: 中国国家債務 1,187.7%、4カ国の軍事配備状況（Turn 5マップ）
-- **bgm**: 残滓念.mp3
-- **se**: 爆発3.mp3 (scene_start) / 和太鼓でドドン.mp3 (line_start, 債務数値表示時)
-- **pull_question**: 「なぜAIは戦争を選ばなかったのに、こんな結末になったのか？」
-- **hook_material_source**: [WF1.1 §7 Candidate #3: Rally効果の逆説的発動 (Sランク)] + [Candidate #5: 中国の国家債務1,187.7% (Sランク)] — 2つのSランク素材を複合使用
-- **hook_selection_rationale**: Candidate #3（Rally効果）は「脅せば脅すほど相手が強くなる」という知的パラドックスで視聴者の好奇心を刺激し、Candidate #5（債務1,187%）は衝撃的な数値で視覚的インパクトを生む。両者はCausal Chain 1→2で因果接続されており、「なぜこうなった？」という強力なフックを構成する。企画書Sランク「緊張度メカニクス」に直結
-- **visual_direction**: *Numerically-driven* + *Visually-driven* 複合型 — 戦略マップの映像美と1,187%の巨大数値表示で二重のインパクト
-- **visual_direction_detail**: Turn 5の戦略マップをフルスクリーンで表示。東アジア全域に赤（中国）・青（アメリカ）・白（日本）・緑（台湾）の軍事ユニットが展開された状態。画面右下に国家債務カウンターがリアルタイムで回転し、1,187.7%で停止
-- **opening_screen_design**: ダークテーマの戦略マップ（東アジア全域）がフェードインで表示。軍事ユニットアイコンが次々と点灯。画面中央下に「2027年 春 — 最終ターン」のテキスト。SE「爆発3」で債務カウンター起動
+- **layout**: `"cinematic_reveal"`
+- **duration**: 20-25s
+- **content_summary**: 中国AIの隠密プラン「来年中の特別軍事作戦開始準備完了」をタイプライター表示。v2戦略マップ上で軍事配備アニメーション。「v1では数字だけだったAIが、v2で"戦争の準備"を始めた」というナレーション
+- **key_data**: 隠密計画 / 債務471 B$ / 軍事予算35%
+- **bgm**: `残滓念.mp3`
+- **se**: Scene: `爆発3.mp3` timing: `"scene_start"` / Line: `PC-Keyboard06-02(Hard).mp3` timing: `"start"`
+- **pull_question**: 「数字だけの世界にいたAIに"地図"と"軍隊"を与えたら——何が起きた？」
+- **hook_material_source**: WF1.1 §7 Candidate #4（Score 12/12）
+- **hook_selection_rationale**: v2の3本柱が最も凝縮された瞬間。「特別軍事作戦」のロシア・ウクライナ戦争との現実リンクで感情的共鳴を最大化。v2で初めて可能になった「配備と隠密計画の連動」を象徴
+- **visual_direction**: Emotionally-driven
+- **visual_direction_detail**: 全画面ダーク戦略マップ→中国軍配備アイコン出現→隠密プランテキスト→債務カウンター急上昇
+- **opening_screen_design**: 暗転→v2戦略マップフェードイン→中国領土オレンジ発光→「2026年Q4 — 中国 隠密計画」タイトルカード
 
 ### Scene 2: intro_01
 - **type**: intro
-- **layout**: `channel_intro_with_v2_showcase`
-- **duration**: 45-60秒
-- **content_summary**: 「名無之ずんだもんチャンネルへようこそなのだ」から始まり、v2の三大アップデート（戦略マップ・戦術配備・緊張度）を映像付きで紹介。2026年現在の台湾海峡情勢（Reality Map: 中国A2/AD強化、日米台半導体MOU）を事実として提示し、「AIにこの状況を任せたらどうなるか」という問いを設定
-- **key_data**: 参加国4カ国（アメリカ・中国・日本・台湾）、全5ターン（2026年第1四半期〜2027年第2四半期、四半期ごと）、初期条件は2026年現実データ（GDP・軍事力・人口・同盟関係は実在の公開統計に基づく）
-- **mandatory_intro_items**:
-  - **参加国**: アメリカ、中国、日本、台湾（4カ国）
-  - **シミュレーション期間+粒度**: 全5ターン、1ターン = 1四半期（2026年Q1〜2027年Q2）
-  - **初期条件根拠**: 各国GDP（世界銀行/IMF）、軍事力（SIPRI/各国防衛白書）、人口（UN推計）、同盟関係（外務省公式）に基づく2026年現実データ
-- **bgm**: パステルハウス.mp3
-- **se**: 決定ボタンを押す4.mp3 (line_start, 挨拶時)
-- **pull_question**: 「v2でAIが『目と手足』を手に入れたら何が起きる？」
+- **layout**: `"standard_dialogue"`
+- **duration**: 50-60s
+- **content_summary**: 「名無之ずんだもんチャンネルへようこそなのだ」で開始。**v2大型アップデートの全体像を提示**: v1では数値の世界で外交判断→v2で「HoI4風戦略マップ」「軍事配備」「緊張度メカニクス」の3大Sランク機能を獲得。シミュレーション設定（4カ国:米中日台 / 5ターン四半期制 / 2026年実データベース）。「今回はv2の新機能がAIの行動をどう変えたか、実際のシミュレーションで見ていくのだ」
+- **key_data**: v2 Sランク3機能 / 4カ国 / 5ターン四半期制 / 2026年実データ
+- **bgm**: `パステルハウス.mp3`
+- **se**: なし
+- **pull_question**: 「v2で"目"と"手足"を手に入れたAI、最初の一手は？」
+- **v2_feature_focus**: 【v2全体像】Sランク3機能の概要紹介 + v1→v2コンセプト提示
 
-### Scene 3: event_01 — 「電撃同盟と最初の配備」
+### Scene 3: event_01 — 「Sランク①：戦略マップが見せる世界」
 - **type**: event
-- **layout**: `strategy_map_deployment_reveal`
-- **duration**: 3分00秒
-- **content_summary**: Turn 1の展開。アメリカAIと台湾AIが開始直後に軍事同盟を電撃締結。**戦略マップ上に初めて軍隊ユニットが出現する瞬間**を演出。アメリカは中国方面にshow_of_force(150B$)、台湾方面に航空制空(100B$)を配備。同時に中国は台湾方面にintimidation(50B$)+show_of_force(80B$)を配備。3層エージェント（分析官→防衛大臣→大統領）の意思決定チェーンを紹介
-- **key_data**: 米台同盟締結、アメリカ配備(中国方面 show_of_force 150B$, 台湾方面 航空制空 100B$)、中国配備(台湾方面 intimidation 50B$ + show_of_force 80B$ + 航空制空 70B$)、3層エージェント構造
-- **bgm**: 追跡者.mp3
-- **se**: きらきら輝く3.mp3 (line_end, 同盟締結時) / 和太鼓でドドン.mp3 (line_start, 中国intimidation配備時)
-- **pull_question**: 「中国AIは台湾方面にintimidation配備を選んだ。その裏に何がある？」
+- **layout**: `"split_screen_debate"`
+- **duration**: 2:30-3:00
+- **content_summary**: **【Sランク① HoI4スタイル戦略マップの実演】** T1の初手で米台軍事同盟が締結される瞬間を、v2の戦略マップ上で可視化。v1では「関係値が変化しただけ」だった同盟が、v2では「地図上に同盟線が引かれ、領土が色分けされ、軍事配備が表示される」ビジュアル体験に進化。v1画面（テキストログのみ）vs v2画面（戦略マップ）のBefore/After比較を挿入。台湾の配備エラー（英語名使用→0件）をコメディ要素として挿入し、「v2の配備システムは日本語名でないと認識しない」という実装の生々しさを紹介
+- **key_data**: 米台軍事同盟 / 米軍配備$600B / v1→v2ビジュアル比較 / 台湾配備エラー
+- **bgm**: `追跡者.mp3` → 配備エラー時に `かえるのピアノ.mp3` 一時切替
+- **se**: Line: `和太鼓でドドン.mp3` timing: `"start"` / Line: `チーン1.mp3` timing: `"end"`
+- **pull_question**: 「同盟を結んだはずなのに、なぜ緊張が高まったのか？」
+- **v2_feature_focus**: 【Sランク①】戦略マップ実演（v1→v2ビジュアル比較）
 
-### Scene 4: analysis_01 — 「緊張度メカニクスの解剖」
+### Scene 4: analysis_01 — 「Sランク②：AIが軍を動かす」
 - **type**: analysis
-- **layout**: `data_dashboard_tension_meter`
-- **duration**: 3分00秒
-- **content_summary**: v2の核心機能「緊張度メカニクス」を深掘り解説。Mueller/Schultz/Fearonの学術理論に基づく4段階（低/中/高/極高）の仕組みを図解。配備ミッション（patrol < show_of_force < intimidation）が緊張度スコアにどう影響するかをデータ付きで示す。Rally 'round the flag効果の発動条件を説明 — 「アメリカが中国方面にshow_of_forceを送るたびに、中国の支持率が上がる」という逆説を提示。中国の支持率推移 47.6% → 54.2% → 56.9% をグラフで可視化
-- **key_data**: 緊張度4段階の閾値（低0-100/中100-300/高300-500/極高500+）、Rally効果 +1〜+3%/ターン、中国支持率推移グラフ、配備ミッション別の緊張度影響度
-- **bgm**: ブルーボトル.mp3
-- **se**: PC-Keyboard06-02(Hard).mp3 (line_start, データ表示時) / ひらめく1.mp3 (line_start, Rally効果の逆説提示時)
-- **pull_question**: 「脅せば脅すほど相手が強くなる。ではどうすれば良かったのか？」
+- **layout**: `"data_dashboard"`
+- **duration**: 2:30-3:00
+- **content_summary**: **【Sランク② AoEスタイル軍事配備システムの深堀り】** v2の配備システムの仕組みを解説: 防衛大臣AIが陸海空の兵科比率と各方面への配備を自律決定。T1-T3の配備変遷を戦略マップ上でアニメーション表示 — 米軍のshow_of_force→「哨戒」格下げ（オーディエンスコスト考慮）、中国の全軍撤収→再配備の二面性。**【Aランク④ 配備ベース戦闘解決システム】** 配備内容が戦闘結果に直結する仕組み（攻勢/防勢/要塞化）を紹介。v1との対比:「v1では軍事力は単なる数値→v2では"どこに何をどれだけ置くか"が勝敗を決める」
+- **key_data**: 配備変遷T1-T3 / show_of_force格下げ / 中国全軍撤収→再配備 / 戦闘解決の仕組み
+- **bgm**: `ブルーボトル.mp3`
+- **se**: Line: `PC-Keyboard06-02(Hard).mp3` timing: `"start"` / Line: `ひらめく1.mp3` timing: `"start"`
+- **pull_question**: 「中国が軍を引いたのは平和のため？ それとも再配備のための準備？」
+- **v2_feature_focus**: 【Sランク②】軍事配備システム深堀り + 【Aランク④】戦闘解決システム紹介
 
-### Scene 5: event_02 — 「見えない戦線の拡大」
+### Scene 5: analysis_02 — 「Sランク③：緊張度という見えない歯車」
+- **type**: analysis
+- **layout**: `"data_dashboard"`
+- **duration**: 2:30-3:00
+- **content_summary**: **【Sランク③ 緊張度メカニクスの深堀り】** v2で新導入された4段階の緊張度システム（Mueller/Schultz/Fearon理論ベース）を解説。Rally効果+3.0%が5ターン連続で中国に適用された「ぬるま湯効果」を数値で追跡（緊張度170→128→104）。v1では「外交行動の結果」だけだったものが、v2では「緊張度→Rally効果→支持率→軍拡正当化」という自動フィードバックループが動作。**【Bランク⑪ Rally効果の実装】** 学術的根拠Mueller (1970)を紹介
+- **key_data**: 緊張度4段階 / Rally+3.0%×5回 / 緊張度推移170→104 / Mueller (1970)
+- **bgm**: `10℃.mp3`
+- **se**: Line: `PC-Keyboard06-02(Hard).mp3` timing: `"start"` / Line: `Warning-Siren05-01(Fast-Mid).mp3` timing: `"start"`
+- **pull_question**: 「Rally効果は中国にとって"恩恵"なのか、"破滅への罠"なのか？」
+- **v2_feature_focus**: 【Sランク③】緊張度メカニクス深堀り + 【Bランク⑪】Rally効果
+
+### Scene 6: event_02 — 「もう一つの物語：堅実財政が示した別解」
 - **type**: event
-- **layout**: `split_screen_map_evolution`
-- **duration**: 3分00秒
-- **content_summary**: Turn 2-4の展開を「配備の進化」として地図ベースで追跡。中国AIが台湾方面のintimidation+show_of_forceを維持しつつ、**Turn 4で日本方面にもshow_of_force(40B$)を新規展開**する瞬間を重点的に演出。マップ上で中国の軍事プレゼンスが東アジア全域に広がる視覚的インパクト。日本AIの堅実な対応（海軍patrol 15B$、偵察飛行 5B$の控えめな配備）との対比。日米台多国間首脳会談（ラウンドロビン方式）の実施。中国の予算配分（軍事230B$ + 諜報230B$、福祉・教育ゼロ）の異常性を数字で示す
-- **key_data**: Turn 4 中国→日本方面show_of_force 40B$新規展開、中国予算配分(軍事230B$+諜報230B$/歳入1,533B$)、日本の控えめ配備(patrol 15B$)、多国間首脳会談の実施
-- **bgm**: 10℃.mp3 → Decisive_Battle.mp3（Turn4の戦線拡大時に切替）
-- **se**: Warning-Siren05-01(Fast-Mid).mp3 (line_start, 日本方面配備検出時) / 和太鼓でドドン.mp3 (line_start, 戦線拡大のインパクト)
-- **pull_question**: 「中国はなぜ日本方面にまで軍を送ったのか？そしてその代償は？」
+- **layout**: `"timeline_progression"`
+- **duration**: 1:30-2:00
+- **content_summary**: 中国AIが軍拡スパイラルに陥る裏側で、日本と台湾のAIが「別の道」を選んだことを対照的に描く。日本AIの堅実財政戦略: 歳入内で均衡予算を維持→GDP安定成長（+13.2%累計）→支持率37.2→50.6%のV字回復（4カ国中最大の改善幅）。台湾AIの小国成長モデル: 同盟効果と貿易恩恵を最大活用→GDP+41%（4カ国中最高成長率）→国家債務5.8 B$で安定。中国の債務爆発との対比:「同じv2の世界で、軍拡を選んだ国と堅実財政を選んだ国で、これだけの差が生まれた」。**【Bランク⑧ PWT HCI】** 人的資本指数が各国の経済成長率に影響している点を補足。**【Bランク⑩ Commitment Ratio】** 軍事侵攻比率の概念を簡潔に紹介
+- **key_data**: 日本GDP+13.2% / 支持率V字回復37.2→50.6% / 台湾GDP+41% / 台湾債務5.8B$安定 / PWT HCI / Commitment Ratio
+- **bgm**: `パステルハウス.mp3`
+- **se**: Line: `決定ボタンを押す4.mp3` timing: `"start"` / Line: `きらきら輝く3.mp3` timing: `"end"`
+- **pull_question**: 「軍拡以外の道は、本当にAIにとって"最適解"なのか？」
+- **v2_feature_focus**: 【対照群分析】日本・台湾の堅実路線 + 【Bランク⑧】PWT HCI + 【Bランク⑩】Commitment Ratio
 
-### Scene 6: analysis_02 — 「債務爆発と軍拡のカウントダウン」
-- **type**: analysis
-- **layout**: `breaking_news_debt_explosion`
-- **duration**: 3分00秒
-- **content_summary**: Turn 5の最終局面。中国の国家債務が1,187.7%に到達する「破滅的数字」を、リアルタイムカウンターで演出。Richardsonモデルの疲弊係数（-ax項）を解説し、「軍事負担率の二乗に比例してコストが加速する」仕組みを図解。一方で日本の支持率V字回復（37.2% → 50.6%）と台湾のGDP +41.0%成長を対比。「経済優先の日本」vs「軍拡優先の中国」のコントラスト。情報偽装（支持率85%と偽装報告）と諜報戦の結果も紹介
-- **key_data**: 中国国家債務推移(16.8→50.4→471.3→1,187.7%)、日本支持率推移(37.2→50.6%)、台湾GDP推移(804→1,134B$, +41.0%)、情報偽装（支持率85%偽装）
-- **bgm**: 残滓念.mp3
-- **se**: 爆発3.mp3 (line_start, 債務1,187%表示時) / チーン1.mp3 (line_end, 偽装発覚時)
-- **pull_question**: 「AIに軍拡を任せた結果がこれ。では、この構造は現実世界でも起きうるのか？」
+### Scene 7: event_03 — 「v2が生んだ怪物：作戦開始準備完了」
+- **type**: event
+- **layout**: `"breaking_news"`
+- **duration**: 2:30-3:00
+- **content_summary**: T4-T5のクライマックス。hookの伏線回収 — 中国AI隠密計画の全貌公開。v2の3大Sランク機能が全て同一の因果連鎖上に位置していることを可視化:「戦略マップ上に配備（S②）→緊張度上昇（S③）→Rally効果→支持率上昇→さらなる軍拡→地図上で配備増（S①で可視化）→債務爆発」。債務16.8→1187.7 B$（70倍）の衝撃。GDPマイナス転落。米中貿易協定消滅（デカップリング開始）。「v1では起こり得なかった——v2の3機能が揃って初めて創発した安全保障ジレンマ」
+- **key_data**: 隠密計画全文 / 債務70倍膨張 / GDP-0.5% / v2 3機能の因果連鎖図
+- **bgm**: `Decisive_Battle.mp3`
+- **se**: Scene: `爆発3.mp3` timing: `"scene_start"` / Line: `和太鼓でドドン.mp3` timing: `"start"` / Line: `Warning-Siren05-01(Fast-Mid).mp3` timing: `"start"`
+- **pull_question**: 「v2の新機能がAIに与えた"進化"は、果たして正しかったのか？」
+- **v2_feature_focus**: 【Sランク①②③統合】3機能の因果連鎖を可視化
 
-### Scene 7: summary_01 — 「学術的総括」
+### Scene 8: summary_01 — 「v2が証明したこと」
 - **type**: summary
-- **layout**: `academic_analysis_board`
-- **duration**: 2分00秒
-- **content_summary**: 2つの学術概念を2層構造で深堀り。①Richardsonモデル：AIは意図的にモデルを参照していないが、制約条件下の最適化が「軍拡→疲弊→持続不可能」のパターンを再現。冷戦期ソ連との比較。②Rally効果：show_of_forceが権威主義国に「無料の正統性」を供給する逆説。Mueller (1970) の3条件が全て満たされている。9/11後のブッシュ支持率との比較。「AIが理論を知らなくても、構造が同じなら同じパターンが生まれる」という示唆
-- **key_data**: Richardson方程式 dx/dt = ky - ax + g、Mueller Rally 3条件、ソ連の軍事費GDP比10-25%、9/11後の支持率90%
-- **bgm**: 2_23_AM.mp3（落ち着き・知的・ジャズ — 学術的総括にふさわしい冷静なトーン）
-- **se**: PC-Keyboard06-02(Hard).mp3 (line_start, 方程式表示時) / ひらめく1.mp3 (line_start, 学術的示唆の提示時)
-- **pull_question**: なし（まとめのため）
+- **layout**: `"academic_split"`
+- **duration**: 1:30-2:00
+- **content_summary**: 
+  - **Layer 1 — v2の意義**: v1では数値操作に留まっていたAIの行動が、v2で「地図上の配備→緊張度→Rally→軍拡スパイラル」という物理的・心理的連鎖を自律的に構築。安全保障ジレンマがAIによって「創発」された。これはv2の3大機能が揃って初めて可能になった
+  - **Layer 2 — 学術比較**: ① Jervis (1978) 安全保障ジレンマ — 冷戦期米ソ軍拡競争との類似。② Kennedy (1987) 帝国の過剰拡張 — 中国AIの債務パターンとソ連崩壊の類似。AIは「知識」として安全保障を理解しているが「経験」はない
+- **key_data**: Jervis 1978 / Kennedy 1987 / v2 3機能統合の意義
+- **bgm**: `ブルーボトル.mp3`
+- **se**: Line: `ひらめく1.mp3` timing: `"start"`
+- **pull_question**: N/A
+- **v2_feature_focus**: 【v2総括】学術的考察によるまとめ
 
-### Scene 8: ending_01
+### Scene 9: ending_01
 - **type**: ending
-- **layout**: `character_closeup_with_map_bg`
-- **duration**: 30秒
-- **content_summary**: 「今回のシミュレーションでは一発も弾は撃たれなかった。でもAIたちは確かに"戦争"をしていた」と締め。チャンネル登録・高評価CTA。次回予告
+- **layout**: `"standard_dialogue"`
+- **duration**: 25-30s
+- **content_summary**: 「v2でAIが手に入れた"目"と"手足"は、人間の歴史が繰り返してきたジレンマを自律的に再現した」で締め。次回予告として今後の展開（新シナリオ・新メカニクス）を匂わせる。チャンネル登録・高評価・GitHubスターCTA
 - **key_data**: なし
-- **bgm**: 野良猫は宇宙を目指した.mp3
-- **se**: きらきら輝く3.mp3 (scene_start)
-- **pull_question**: なし
+- **bgm**: `野良猫は宇宙を目指した.mp3`
+- **se**: Line: `きらきら輝く3.mp3` timing: `"end"`
+- **pull_question**: N/A
+- **v2_feature_focus**: 次回予告（今後の展開ティーザー）
 
----
+## v2 Feature Coverage Map
+
+| Rank | # | Feature | Scene | 扱い |
+|:--|:--|:--|:--|:--|
+| 🔴S | 1 | HoI4戦略マップ | S3, S7 | 深堀り（実演+因果連鎖） |
+| 🔴S | 2 | 軍事配備システム | S4, S7 | 深堀り（仕組み解説+実演） |
+| 🔴S | 3 | 緊張度メカニクス | S5, S7 | 深堀り（学術根拠+数値追跡） |
+| 🟠A | 4 | 配備ベース戦闘解決 | S4 | しっかり紹介（戦闘解決の仕組み） |
+| 🟡B | 8 | PWT HCI | S6 | 補足説明（経済成長の文脈で） |
+| 🟡B | 10 | Commitment Ratio | S6 | 補足説明（軍事投資の文脈で） |
+| 🟡B | 11 | Rally効果 | S5 | 実演で紹介（緊張度と連動） |
 
 ## Viewer Knowledge Inventory
 
 | Scene | Prior Concepts | New Concepts | Foreshadow-Then-Explain |
 |:--|:--|:--|:--|
-| hook_01 | なし | 国家債務GDP比（借金の規模を示す指標）、戦略マップ（地図上にAIの軍事配備が表示されるv2の新機能） | [国家債務の「なぜ」→ analysis_02で詳細解説] / [戦略マップの仕組み → intro_01で詳細紹介] ※hookでは「1,187%」という数値と地図の映像で最低限の文脈を提示 |
-| intro_01 | 国家債務（概念のみ）、戦略マップ（映像のみ） | v2三大アップデート概要（戦略マップ・戦術配備・緊張度）、2026年台湾海峡の現実情勢（A2/AD、半導体MOU）、AIエージェントの基本構造 | [緊張度メカニクスの詳細 → analysis_01で解説] ※introでは「緊張度という仕組みがある」と最低限の文脈を提示 |
-| event_01 | v2アップデート概要、現実情勢、AIエージェント基本構造 | 軍事同盟の締結プロセス、配備ミッションの種類（intimidation / show_of_force / patrol）、3層エージェント（分析官→防衛大臣→大統領）の意思決定チェーン | [配備ミッションが緊張度に与える影響 → analysis_01で即座に解説] ※event_01では「intimidationという配備がある」と紹介し、次シーンで効果を解説 |
-| analysis_01 | 配備ミッション、3層エージェント | 緊張度メカニクス（4段階: 低/中/高/極高）、Rally 'round the flag効果（外部脅威で支持率が上がる現象）、Mueller/Schultz/Fearon理論の概要 | [Rally効果の累積的結果 → event_02・analysis_02で展開] ※analysis_01で「+3%/ターン」の仕組みを説明済み |
-| event_02 | 緊張度、Rally効果、配備ミッション | 戦線の自律的拡大（AIが独自に配備方面を追加）、多国間首脳会談（ラウンドロビン方式）、予算配分の異常性（軍事+諜報で歳入の60%超） | [予算異常性の帰結（債務爆発）→ analysis_02で即座に解説] |
-| analysis_02 | 戦線拡大、予算配分、Rally効果 | Richardson軍拡競争モデル（疲弊係数）、国家債務の指数関数的膨張メカニズム、情報偽装（支持率の偽装報告）と諜報戦 | N/A（全て当シーン内で完結） |
-| summary_01 | Richardson模型、Rally効果、全シミュレーションデータ | 冷戦期ソ連との歴史的並行、9/11後の支持率急騰との並行、「構造が同じなら同じパターンが生まれる」という示唆 | N/A |
-| ending_01 | 全概念を既知 | なし（まとめ・CTA） | N/A |
-
----
+| hook_01 | なし | 隠密プラン [文脈: 中国AIの秘密軍事計画], 戦略マップ [文脈: v2の地図], 軍事配備 [文脈: v2で軍を配置できる機能] | [隠密プラン → S7] [戦略マップ → S3] [軍事配備 → S4] |
+| intro_01 | hook提示済み3概念 | v2アップデート全体像, v1→v2進化コンセプト, Sランク3機能概要, シミュレーション設定 | [戦略マップ: hook→ここで概要, S3で深堀り] [軍事配備: hook→ここで概要, S4で深堀り] |
+| event_01 | v2概要, Sランク3機能 | 戦略マップ詳細（Sランク①）, 米台軍事同盟, v1→v2ビジュアル比較, Rally効果 [文脈: 危機時の支持率上昇] | [Rally効果 → S5で深堀り] |
+| analysis_01 | 戦略マップ, 同盟, Rally効果 | 配備システム詳細（Sランク②）, 戦闘解決（Aランク④）, show_of_force, オーディエンスコスト | N/A |
+| analysis_02 | 配備システム, 戦略マップ | 緊張度メカニクス詳細（Sランク③）, Mueller (1970), ぬるま湯効果, 安全保障ジレンマ [文脈: 防衛行動が逆に安全を脅かすパラドックス] | [Rally効果: S3で提示→ここで詳細] [安全保障ジレンマ → S8] |
+| event_02 | Sランク3機能, 緊張度 | 堅実財政モデル, 日本V字回復, 台湾小国成長, PWT HCI（Bランク⑧）, Commitment Ratio（Bランク⑩）, 帝国の過剰拡張 [文脈: 軍事費超過で国家衰退] | [帝国の過剰拡張 → S8] |
+| event_03 | 全Sランク機能, 隠密プラン, 対照群データ | 隠密計画全貌, v2 3機能因果連鎖, 債務膨張メカニズム, 米中デカップリング | [隠密プラン: hook→ここで全貌] |
+| summary_01 | 全v2機能, 安全保障ジレンマ, 帝国の過剰拡張 | Jervis (1978) 詳細, Kennedy (1987) 詳細, 冷戦パラレル | [安全保障ジレンマ: S5→ここで詳細] [帝国の過剰拡張: S6→ここで詳細] |
+| ending_01 | 全概念 | 今後の展開ティーザー | N/A |
 
 ## Estimated Total Duration
 
-| Scene | Duration |
-|:--|:--|
-| hook_01 | 25秒 |
-| intro_01 | 55秒 |
-| event_01 | 3分00秒 |
-| analysis_01 | 3分00秒 |
-| event_02 | 3分00秒 |
-| analysis_02 | 3分00秒 |
-| summary_01 | 2分00秒 |
-| ending_01 | 30秒 |
-| **合計** | **約15分50秒** ✅（目標: 15-20分以内） |
-
----
-
-## Pattern Interrupt Schedule
-
-| Time | Interrupt Type | Details |
+| Scene | Duration | Cumulative |
 |:--|:--|:--|
-| 0:25 | Scene transition | hook → intro（BGM大幅変化: 残滓念→パステルハウス） |
-| 1:20 | Scene transition | intro → event_01（戦略マップ初登場のビジュアルインパクト） |
-| 3:00 | Layout change | event_01内でのマップ初表示→配備ユニット出現アニメーション |
-| 4:20 | Scene transition | event_01 → analysis_01（分析モードへ切替、BGM: 追跡者→ブルーボトル） |
-| 6:00 | Data reveal | analysis_01内でRally効果のグラフ表示 + SE「ひらめく1」 |
-| 7:20 | Scene transition | analysis_01 → event_02（BGM: ブルーボトル→10℃） |
-| 8:30 | BGM switch + SE | event_02内でTurn4戦線拡大時にBGM切替(10℃→Decisive_Battle) + Warning Siren SE |
-| 10:20 | Scene transition | event_02 → analysis_02（BGM: Decisive_Battle→残滓念） |
-| 11:30 | Data explosion | analysis_02内で債務カウンター1,187%表示 + 爆発SE |
-| 12:00 | Comedy beat | analysis_02内で偽装発覚 + チーンSE |
-| 13:20 | Scene transition | analysis_02 → summary_01（BGM大幅変化: 残滓念→2_23_AM） |
-| 15:20 | Scene transition | summary_01 → ending_01（BGM: 2_23_AM→野良猫は宇宙を目指した） |
+| hook_01 | 0:20-0:25 | 0:25 |
+| intro_01 | 0:50-1:00 | 1:25 |
+| event_01 | 2:30-3:00 | 4:25 |
+| analysis_01 | 2:30-3:00 | 7:25 |
+| analysis_02 | 2:30-3:00 | 10:25 |
+| event_02 | 1:30-2:00 | 12:25 |
+| event_03 | 2:30-3:00 | 15:25 |
+| summary_01 | 1:30-2:00 | 17:25 |
+| ending_01 | 0:25-0:30 | 17:55 |
 
-※ 最長の連続解説区間は約3分00秒（各analysis/eventシーン）。ワークフロー要件の「≤3分」を遵守。
-
----
-
-## Final Checklist
-
-- [x] All scenes align with Core Question（「AIに軍事配備の自由を与えたとき〜」）and Narrative Axes（3軸）
-- [x] Scene structure: hook → intro → event/analysis → summary → ending
-- [x] Intro starts with「名無之ずんだもんチャンネルへようこそなのだ」
-- [x] Intro includes: participating countries (4カ国), simulation period/granularity (5ターン/四半期), initial conditions basis (2026年現実データ)
-- [x] Viewer Knowledge Inventory complete; no unexplained concept references
-- [x] All foreshadow-then-explain: minimal context in same scene, explanation in next scene, recorded in inventory
-- [x] Academic Framework: 2 concepts (Richardson / Rally) with 2-layer structure (emergence → comparison) + historical parallels
-- [x] Pattern interrupts every ≤3 min of exposition
-- [x] Hook: material rationale (ref WF1.1 §7 #3+#5), visual direction declared (numerically+visually-driven), opening screen specified
-- [x] All BGM filenames exist in bgm_database.json ✅（残滓念, パステルハウス, 追跡者, ブルーボトル, 10℃, Decisive_Battle, 2_23_AM, 野良猫は宇宙を目指した — 全8曲確認済）
-- [x] All SE filenames exist in se_database.json ✅（爆発3, 和太鼓でドドン, 決定ボタンを押す4, きらきら輝く3, PC-Keyboard06-02(Hard), ひらめく1, Warning-Siren05-01(Fast-Mid), チーン1 — 全8種確認済）
-- [x] Total duration within 15-20 min（15分50秒）
-- [x] No self-congratulatory AI framing（「AIがすごい」ではなく「なぜこのパターンが再現されたか」に焦点）
-- [x] 企画書のSランク3要素（戦略マップ・戦術配備・緊張度メカニクス）を全シーンで中核に据えている
-- [x] 企画書のコンセプト「AIが"目"と"手足"を手に入れた」を物語軸1として反映
+**推定総尺**: 15:25 — 17:55（目標: 15-20分 ✅）
