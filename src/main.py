@@ -321,6 +321,48 @@ def _inject_scenario_events(engine, world_state, scenario_path: str, logger):
     print(f"   ✅ {len(events)} 件の初期イベントを注入しました\n")
 
 
+def _print_api_cost_report(agent_system, logger):
+    """APIトークン使用量と推定コストを出力する。強制終了時にも呼ばれる。"""
+    if not hasattr(agent_system, 'token_usage') or not agent_system.token_usage:
+        print("\n⚠️ APIコストデータがありません（API呼び出しが行われていない可能性があります）")
+        return
+    print("\n" + "="*50)
+    print("💰 APIトークン使用量と推定コスト")
+    print("="*50)
+    total_cost = 0.0
+    cost_log_lines = ["\n💰 API Cost Report:"]
+    for category, usage in agent_system.token_usage.items():
+        model = usage["model"]
+        p_tokens = usage["prompt_tokens"]
+        c_tokens = usage["candidates_token_count"]
+        t_tokens = usage.get("thoughts_token_count", 0)
+        if "gemini-3.1-pro" in model.lower():
+            p_price, c_price, t_price = 2.00, 12.00, 2.00
+        elif "gemini-2.5-pro" in model.lower():
+            p_price, c_price, t_price = 1.25, 10.00, 1.25
+        elif "gemini-2.5-flash-lite" in model.lower():
+            p_price, c_price, t_price = 0.10, 0.40, 0.10
+        elif "gemini-2.5-flash" in model.lower():
+            p_price, c_price, t_price = 0.30, 2.50, 0.30
+        else:
+            p_price, c_price, t_price = 0.30, 2.50, 0.30
+        cat_cost = (p_tokens / 1_000_000 * p_price) + (c_tokens / 1_000_000 * c_price) + (t_tokens / 1_000_000 * t_price)
+        total_cost += cat_cost
+        if t_tokens > 0:
+            report_line = f"- [{category}] {model}: Prompt {p_tokens} ({p_price}$/M), Output {c_tokens} ({c_price}$/M), Thinking {t_tokens} ({t_price}$/M) -> ${cat_cost:.4f}"
+        else:
+            report_line = f"- [{category}] {model}: Prompt {p_tokens} ({p_price}$/M), Output {c_tokens} ({c_price}$/M) -> ${cat_cost:.4f}"
+        print(report_line)
+        cost_log_lines.append(report_line)
+    total_line = f"▶ Total Estimated Cost: ${total_cost:.4f}"
+    print("-" * 50)
+    print(total_line)
+    print("=" * 50 + "\n")
+    cost_log_lines.append(total_line)
+    for line in cost_log_lines:
+        logger.sys_log(line)
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="AI Diplomacy Simulation")
@@ -459,6 +501,7 @@ def main():
 
     # シミュレーションループ
     MAX_TURNS = args.turns
+    interrupted = False
     # past_news_queue の初期化（resume時に復元されている場合はそれを使用）
     past_news_queue = past_news_queue_restored if past_news_queue_restored is not None else []
 
@@ -490,7 +533,8 @@ def main():
                 print(f"  ⚠️ {country_name}: フォールバック使用 ({fallback})")
         print()
     
-    for _ in range(MAX_TURNS):
+    try:
+      for _ in range(MAX_TURNS):
         # 1. ターン開始時のシステム内政判定（選挙・クーデター）
         engine.process_pre_turn()
         
@@ -785,77 +829,36 @@ def main():
         logger.console.print("\n" + "═" * 70 + "\n")
         time.sleep(3)
 
-    print("🏁 指定ターン数のシミュレーションが終了しました。")
-    # 最後にシミュレーションの要約を自動生成 (コスト計算に含めるため先に実行)　-> サマリーは別途作成するためスキップ
-    # try:
-    #     if hasattr(logger, 'sim_log_file'):
-    #         summary_info = summarizer.generate_summary(logger.sim_log_file, force=True)
-    #         if summary_info and "usage" in summary_info:
-    #             agent_system.token_usage["サマリー生成"] = {
-    #                 "model": "gemini-2.5-flash",
-    #                 "prompt_tokens": summary_info["usage"]["prompt_tokens"],
-    #                 "candidates_token_count": summary_info["usage"]["candidates_token_count"],
-    #                 "thoughts_token_count": summary_info["usage"].get("thoughts_token_count", 0)
-    #             }
-    # except Exception as e:
-    #     print(f"Failed to auto-generate summary: {e}")
+      print("🏁 指定ターン数のシミュレーションが終了しました。")
+      # シミュレーション完了通知
+      notifier.send_notification(
+          "🌍 AI外交シミュレーション完了",
+          f"全 {MAX_TURNS} ターンのシミュレーションが正常に終了しました。"
+      )
 
-    # コスト計算と出力
-    print("\n" + "="*50)
-    print("💰 APIトークン使用量と推定コスト")
-    print("="*50)
-    total_cost = 0.0
-    cost_log_lines = ["\n💰 API Cost Report:"]
-    for category, usage in agent_system.token_usage.items():
-        model = usage["model"]
-        p_tokens = usage["prompt_tokens"]
-        c_tokens = usage["candidates_token_count"]
-        t_tokens = usage.get("thoughts_token_count", 0)
-        
-        # 単価 (100万トークンあたり)
-        # 思考トークン単価 (Gemini 2.5系: Promptと同額)
-        if "gemini-3.1-pro" in model.lower():
-            p_price, c_price, t_price = 2.00, 12.00, 2.00
-        elif "gemini-2.5-pro" in model.lower():
-            p_price, c_price, t_price = 1.25, 10.00, 1.25
-        elif "gemini-2.5-flash-lite" in model.lower():
-            p_price, c_price, t_price = 0.10, 0.40, 0.10
-        elif "gemini-2.5-flash" in model.lower():
-            p_price, c_price, t_price = 0.30, 2.50, 0.30
-        else: # 分からないモデルのフォールバック (flash扱い)
-            p_price, c_price, t_price = 0.30, 2.50, 0.30
-            
-        cat_cost = (p_tokens / 1_000_000 * p_price) + (c_tokens / 1_000_000 * c_price) + (t_tokens / 1_000_000 * t_price)
-        total_cost += cat_cost
-        
-        if t_tokens > 0:
-            report_line = f"- [{category}] {model}: Prompt {p_tokens} ({p_price}$/M), Output {c_tokens} ({c_price}$/M), Thinking {t_tokens} ({t_price}$/M) -> ${cat_cost:.4f}"
-        else:
-            report_line = f"- [{category}] {model}: Prompt {p_tokens} ({p_price}$/M), Output {c_tokens} ({c_price}$/M) -> ${cat_cost:.4f}"
-        print(report_line)
-        cost_log_lines.append(report_line)
-        
-    total_line = f"▶ Total Estimated Cost: ${total_cost:.4f}"
-    print("-" * 50)
-    print(total_line)
-    print("=" * 50 + "\n")
-    cost_log_lines.append(total_line)
-    
-    # システムログに追記
-    for line in cost_log_lines:
-        logger.sys_log(line)
+    except KeyboardInterrupt:
+      interrupted = True
+      print("\n\n🛑 シミュレーションが強制終了されました（Ctrl+C）")
+      logger.sys_log("[INTERRUPT] シミュレーションがユーザーにより強制終了されました", "WARNING")
 
-    # シミュレーション完了通知
-    notifier.send_notification(
-        "🌍 AI外交シミュレーション完了",
-        f"全 {MAX_TURNS} ターンのシミュレーションが正常に終了しました。"
-    )
+    except Exception as e:
+      interrupted = True
+      print(f"\n\n❌ 予期しないエラーが発生しました: {e}")
+      logger.sys_log(f"[FATAL] 予期しないエラー: {e}", "ERROR")
 
-    # QdrantClientの明示的クローズ（Pythonシャットダウン時のImportError防止）
-    try:
-        db_manager.close()
-    except Exception:
-        pass
+    finally:
+      # 強制終了時にも必ずAPIコストを出力する
+      _print_api_cost_report(agent_system, logger)
+
+      # QdrantClientの明示的クローズ（Pythonシャットダウン時のImportError防止）
+      try:
+          db_manager.close()
+      except Exception:
+          pass
+
+      if interrupted:
+          print("⚠️ シミュレーションは途中で終了しましたが、APIコストレポートは上記に出力済みです。")
+
 
 if __name__ == "__main__":
     main()
