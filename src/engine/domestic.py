@@ -442,13 +442,25 @@ class DomesticMixin:
         mobilization_penalty_text = ""
         if mobilization_rate > 0.10: # 10%超過で過剰動員ペナルティ
             excess_mobilization = mobilization_rate - 0.10
-            # 産業空洞化によるGDP蒸発と、支持率の大幅低下
-            mobilization_penalty = min(0.5, excess_mobilization * 2.0)
+            # GDP蒸発（産業空洞化・労働力不足）
+            # [Müller 1970 / Dunne et al.] 最大-10%/四半期（年換算で概ね-35〜40%に相当）
+            mobilization_penalty = min(0.10, excess_mobilization * 0.75)
             country.economy = max(1.0, country.economy * (1.0 - mobilization_penalty))
-            rebel_penalty = min(50.0, excess_mobilization * 200.0)
-            country.approval_rating = max(0.0, country.approval_rating - rebel_penalty)
-            mobilization_penalty_text = f" | [過剰動員ペナルティ] 動員限界突破({mobilization_rate:.1%}) GDP-{mobilization_penalty*100:.1f}%, 支持率急落"
-            self.sys_logs_this_turn.append(f"[{country.name} 極限動員] 動員率{mobilization_rate:.1%}。労働力不足で経済力-{mobilization_penalty*100:.1f}%, 支持-{rebel_penalty:.1f}%")
+
+            # 支持率への影響: 直接ペナルティは生活悪化の認識分のみ（最大-5pt）
+            # [Müller 1970] ラリー効果により動員直後の即時大幅低下は非現実的
+            direct_approval_drop = min(5.0, excess_mobilization * 50.0)
+            country.approval_rating = max(0.0, country.approval_rating - direct_approval_drop)
+
+            mobilization_penalty_text = (
+                f" | [過剰動員ペナルティ] 動員限界突破({mobilization_rate:.1%}) "
+                f"GDP-{mobilization_penalty*100:.1f}%, 支持率-{direct_approval_drop:.1f}pt"
+            )
+            self.sys_logs_this_turn.append(
+                f"[{country.name} 極限動員] 動員率{mobilization_rate:.1%}。"
+                f"労働力不足→経済力-{mobilization_penalty*100:.1f}% | "
+                f"支持率-{direct_approval_drop:.1f}pt (即時)"
+            )
 
         # 成長率ボーナスの計算 (総GDPではなく1人当たりGDPの成長率を使用し、人口増による豊かさの希釈と過剰動員ペナルティを反映)
         new_gdp_per_capita = country.economy / max(0.1, country.population)

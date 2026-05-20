@@ -93,14 +93,28 @@ class WorldEngine(
             country.private_messages = []
         
         # 0. 基礎予算の算出と属国化による外交権のオーバーライド
-        from .constants import DEBT_INTEREST_RATE_ANNUAL, TURNS_PER_YEAR
+        from .constants import (
+            TURNS_PER_YEAR, DEBT_INTEREST_RATE_ANNUAL,
+            DEBT_SPREAD_THRESHOLD, DEBT_SPREAD_SENSITIVITY, DEBT_SPREAD_CAP_ANNUAL
+        )
         for country_name, country in self.state.countries.items():
             old_gdp = country.economy
             # 税収: 年間GDPに税率を掛け、ターン数で割って四半期化
             tax_revenue = (old_gdp * country.tax_rate) / TURNS_PER_YEAR
             
+            # 動的金利モデル（Harvard研究: 債務GDP比連動の信用スプレッド）
             # 全て年率で計算してから /TURNS_PER_YEAR でターン単位に変換
-            effective_rate_per_turn = DEBT_INTEREST_RATE_ANNUAL / TURNS_PER_YEAR
+            debt_ratio = country.national_debt / max(1.0, old_gdp)
+            if debt_ratio > DEBT_SPREAD_THRESHOLD:
+                # 閾値超過分に感度を乗じてスプレッド算出（年率）
+                credit_spread = (debt_ratio - DEBT_SPREAD_THRESHOLD) * DEBT_SPREAD_SENSITIVITY
+                credit_spread = min(credit_spread, DEBT_SPREAD_CAP_ANNUAL)  # ギリシャ危機級でキャップ
+                effective_rate_annual = DEBT_INTEREST_RATE_ANNUAL + credit_spread
+            else:
+                effective_rate_annual = DEBT_INTEREST_RATE_ANNUAL
+            
+            # 年率をターン単位に変換
+            effective_rate_per_turn = effective_rate_annual / TURNS_PER_YEAR
             interest_payment = country.national_debt * effective_rate_per_turn
             
             # 予算が利払いを下回る場合はデフォルト（未払い分は借金に上乗せ）
@@ -113,6 +127,13 @@ class WorldEngine(
                 default_amount = interest_payment - total_revenue
                 country.national_debt += default_amount  # 払えなかった利息が元本組み込み（複利）
                 self.sys_logs_this_turn.append(f"[{country_name} デフォルト] 利払い不能。未払利息 {default_amount:.1f} を債務に追加。")
+            
+            if effective_rate_annual > DEBT_INTEREST_RATE_ANNUAL + 0.001:
+                self.sys_logs_this_turn.append(
+                    f"[{country_name} 信用スプレッド] 債務GDP比{debt_ratio:.0%} → "
+                    f"実効金利{effective_rate_annual:.2%}/年 ({effective_rate_per_turn:.3%}/Q) "
+                    f"(基本{DEBT_INTEREST_RATE_ANNUAL:.2%} + スプレッド{effective_rate_annual - DEBT_INTEREST_RATE_ANNUAL:.2%})"
+                )
             
             if country.tariff_revenue > 0:
                 self.sys_logs_this_turn.append(f"[{country_name} 関税収入] {country.tariff_revenue:.1f} を歳入に計上 (税収:{tax_revenue:.1f} + 関税:{country.tariff_revenue:.1f} = {total_revenue:.1f})")

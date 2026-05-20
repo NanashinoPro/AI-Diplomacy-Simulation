@@ -27,6 +27,10 @@ DEBT_TO_GDP_PENALTY_THRESHOLD = 1.0  # 債務対GDP比が100%を超えるとペ�
 # 国家債務の利払いモデル（全て年率で定義。ターン実行時に /TURNS_PER_YEAR で四半期化）
 DEBT_INTEREST_RATE_ANNUAL = 0.04     # 国家債務の利払い金利（年率4%）
 INTEREST_REINVESTMENT_RATE = 0.70    # 利払いのうち国内民間投資に還流する割合（債権者=国内銀行・年金基金等の再投資）
+# 動的信用スプレッドモデル（Harvard研究: 債務GDP比連動）
+DEBT_SPREAD_THRESHOLD = 0.90         # 信用スプレッド発生閾値（債務GDP比90%）
+DEBT_SPREAD_SENSITIVITY = 0.006      # スプレッド感度（10%pt超過につき+60bp/年 = 先進国実証値の10倍。シミュレーション加速用）
+DEBT_SPREAD_CAP_ANNUAL = 0.15        # 信用スプレッド上限（年率15%。ギリシャ危機級でキャップ）
 
 # 貿易・マクロ経済モデルの定数
 MACRO_TAX_RATE = 0.30 # (旧定数。今後各国の可変 tax_rate で上書き)
@@ -95,7 +99,9 @@ NATIONAL_DISASTERS = [
 # --- 反乱・分裂モデル定数 ---
 FRAGMENTATION_BASE_INSTABILITY_MULTIPLIER = 0.2
 FRAGMENTATION_SIZE_FACTOR_MULTIPLIER = 0.05
-FRAGMENTATION_TRADE_FACTOR_MULTIPLIER = 5.0
+FRAGMENTATION_TRADE_FACTOR_MULTIPLIER = 1.0  # 旧: 5.0 → 1.0 に引き下げ (Alesina-Spolaore: 貿易網1件あたりの分裂圧力を適正化)
+FRAGMENTATION_INSTABILITY_THRESHOLD = 40.0   # 分裂判定の最低不安定性しきい値 (Goldstone et al. 2010: 複合危機時のみ分裂)
+FRAGMENTATION_COOLDOWN_TURNS = 4             # 分裂/クーデター後のクールダウン期間（ターン数。Polity IV regime durability coding準拠）
 
 # クーデター後の緊急予算リセット比率（対GDP比）
 # [学術的根拠] AfDB研究によりクーデター後の税収低下は段階的であり、
