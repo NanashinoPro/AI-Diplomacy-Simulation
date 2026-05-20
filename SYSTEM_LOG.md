@@ -2146,3 +2146,23 @@ Resolved the hyper-exponential growth issue in the simulation engine. The previo
 2. 民間投資計算におけるハードコードされた `0.85` を `0.95` へ変更（案A適用）。
 3. `BASE_INVESTMENT_RATE (0.14)` をインポートし、`base_investment` = `old_gdp` * `BASE_INVESTMENT_RATE` として追加。
 4. `I = max(0.0, max(base_investment, induced_investment))` を使い、セーフティネット式の底下げ限界（案B適用）を追加。
+
+---
+
+## v1.19 — 強制終了時APIコストレポート保証 (2026-05-21)
+
+**[課題]**: Ctrl+C (KeyboardInterrupt) でシミュレーションを強制終了した場合、APIコストレポートが出力されずに終了していた。
+
+**[解決策]**:
+1. コスト計算ロジックをインライン実装から `_print_api_cost_report()` 関数に抽出
+2. シミュレーションループ全体を `try/except/finally` で保護
+3. `finally` ブロックで `_print_api_cost_report()` と `db_manager.close()` を実行
+
+**[変更内容]**:
+- `src/main.py`: コスト計算関数の抽出 + try/except(KeyboardInterrupt, Exception)/finally ブロック追加
+- `ARCHITECTURE.md`: セクション6を更新（6-1. ループ構造、6-2. APIコストレポート）
+
+**[動作]**:
+- 正常終了時: 従来通りコスト出力 + 完了通知
+- Ctrl+C時: `🛑 シミュレーションが強制終了されました（Ctrl+C）` → コスト出力 → DB close
+- 予期しないエラー時: エラーログ → コスト出力 → DB close

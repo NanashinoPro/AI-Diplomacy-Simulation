@@ -1,6 +1,6 @@
 # AI外交シミュレーション — アーキテクチャ仕様書
 
-> **最終更新**: 2026-05-07  
+> **最終更新**: 2026-05-21  
 > **対象ブランチ**: master / v1-2 / v1-3 / v2  
 > **このドキュメントだけで本システムを再実装できることを目標とする。**
 
@@ -648,41 +648,42 @@ SANCTION_SENDER_MAX_COST = 0.005        # 合計上限0.5%
 
 ## 6. メインループ（src/main.py）
 
+### 6-1. ループ構造
 ```python
-for _ in range(MAX_TURNS):
-    # スナップショット保存（ターンサマリー用）
+try:
+  for _ in range(MAX_TURNS):
     _country_snapshot = {name: {...} for name, c in world_state.countries.items()}
-    
     engine.process_pre_turn()          # 選挙・クーデター先行判定
     logger.display_turn_header()
     logger.display_country_status()
     logger.display_world_events()      # 前ターン結果
-    
-    # AI行動決定（全タスク実行）
     actions, analyst_reports, task_logs = agent_system.generate_actions(world_state)
-    
-    # 首脳の意思決定表示
     for country, action in actions.items():
         logger.display_agent_thoughts(country, action)
-    
-    world_state = engine.process_turn(actions)   # 世界更新
-    engine._process_strait_blockade_actions(actions)  # 封鎖処理(v1-2)
-    
+    world_state = engine.process_turn(actions)
     # セクション4〜10の表示...
-    
     media_reports, media_modifiers = agent_system.generate_media_reports(...)
     engine.evaluate_public_opinion(sns_timelines, media_modifiers)
-    
     logger.save_turn_log(world_state, actions, analyst_reports, task_logs)
-    
-    # ターンサマリー
     logger.display_turn_summary(_country_snapshot, world_state)
-    
-    engine.advance_time()   # quarter/year進行
+    engine.advance_time()
     time.sleep(3)
+except KeyboardInterrupt:
+    # Ctrl+C で中断された場合
+    logger.sys_log("[INTERRUPT] 強制終了", "WARNING")
+except Exception as e:
+    logger.sys_log(f"[FATAL] {e}", "ERROR")
+finally:
+    _print_api_cost_report(agent_system, logger)  # 必ずAPIコストを出力
+    db_manager.close()
 ```
 
----
+### 6-2. APIコストレポート（`_print_api_cost_report()`）
+- `agent_system.token_usage` を走査し、モデル別のトークン数と推定コストを計算・出力
+- `finally` ブロックから呼ばれるため、**Ctrl+C による強制終了時にも必ず実行される**
+- コスト計算はGemini公式価格表に基づく（$/Mトークン: Pro 2.00/12.00, Flash 0.30/2.50, Flash-lite 0.10/0.40）
+- 結果はコンソール表示とシステムログの両方に出力
+
 
 ## 7. 起動コマンド
 
