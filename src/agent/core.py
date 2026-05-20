@@ -110,17 +110,7 @@ class AgentSystem:
         self.model_name = model_name
         self.token_usage = {}
 
-        sub_api_key = os.environ.get("GEMINI_API_KEY_SUB")
-        if sub_api_key:
-            self.client_sub = genai.Client(api_key=sub_api_key, http_options={'timeout': 60000})
-            if self.logger:
-                self.logger.sys_log("[System] サブAPIキー検出 → フォールバック用クライアント初期化完了")
-        else:
-            self.client_sub = None
-            if self.logger:
-                self.logger.sys_log("[System] サブAPIキー未設定 → フォールバック無効")
-
-        self.sentiment_analyzer = GeminiSentimentAnalyzer(self.client, client_sub=self.client_sub, token_usage=self.token_usage)
+        self.sentiment_analyzer = GeminiSentimentAnalyzer(self.client, token_usage=self.token_usage)
 
         try:
             self.ollama_client = OllamaClient()
@@ -131,7 +121,7 @@ class AgentSystem:
                 self.logger.sys_log(f"[System] Ollamaクライアント初期化エラー: {e}", "ERROR")
             self.ollama_client = None
 
-    @retry(stop=stop_after_attempt(4), wait=wait_exponential(multiplier=2, min=4, max=30))
+    @retry(stop=stop_after_attempt(8), wait=wait_exponential(multiplier=2, min=4, max=30))
     def _generate_with_retry_internal(self, client, model: str, contents: str, config: types.GenerateContentConfig = None, category: str = "default") -> Any:
         if model.startswith("mistral-small") and self.ollama_client:
             json_mode = config and hasattr(config, 'response_mime_type') and getattr(config, 'response_mime_type', None) == "application/json"
@@ -158,22 +148,7 @@ class AgentSystem:
         return response
 
     def _generate_with_retry(self, model: str, contents: str, config: types.GenerateContentConfig = None, category: str = "default") -> Any:
-        try:
-            return self._generate_with_retry_internal(self.client, model, contents, config, category)
-        except Exception as main_error:
-            if self.client_sub is None:
-                raise
-            if self.logger:
-                self.logger.sys_log(f"[API Fallback] メインキーで全リトライ失敗 ({type(main_error).__name__}: {main_error})。サブAPIキーで再試行します...", "WARNING")
-            try:
-                response = self._generate_with_retry_internal(self.client_sub, model, contents, config, category)
-                if self.logger:
-                    self.logger.sys_log("[API Fallback] サブAPIキーでの呼び出しに成功しました。")
-                return response
-            except Exception as sub_error:
-                if self.logger:
-                    self.logger.sys_log(f"[API Fallback] サブAPIキーでも失敗しました ({type(sub_error).__name__}: {sub_error})。", "ERROR")
-                raise
+        return self._generate_with_retry_internal(self.client, model, contents, config, category)
 
     def _create_search_tool(self, country_name: str, role: str = ""):
         db_manager = getattr(self, "db_manager", None)
@@ -202,12 +177,20 @@ class AgentSystem:
                 return f"検索中にエラーが発生しました: {e}"
         return search_historical_events if db_manager else None
 
+    # ツール呼び出し上限（1回のエージェント実行あたり）
+    MAX_TOOL_CALLS = 3
+
     def _execute_agent(self, country_name: str, role: str, prompt: str, category: str, override_model: Optional[str] = None) -> str:
         """エージェントの推論を実行し、必要に応じて検索ツールを呼び出す"""
         start_time = time.time()
         self.logger.sys_log(f"[{country_name}:{role}] API推論開始...")
 
-        search_tool = self._create_search_tool(country_name, role)
+        # 1ターン目はDBにデータが蓄積されていないため検索ツールを無効化
+        current_turn = getattr(self, 'current_turn', 1)
+        if current_turn <= 1:
+            search_tool = None
+        else:
+            search_tool = self._create_search_tool(country_name, role)
         tools = [search_tool] if search_tool else None
 
         target_model = override_model if override_model else self.model_name
@@ -220,7 +203,11 @@ class AgentSystem:
                 category=category
             )
 
-            if getattr(response, 'function_calls', None):
+            # ツール呼び出しループ（上限 MAX_TOOL_CALLS 回）
+            tool_call_count = 0
+            while search_tool and getattr(response, 'function_calls', None) and tool_call_count < self.MAX_TOOL_CALLS:
+                tool_call_count += 1
+                handled = False
                 for function_call in response.function_calls:
                     if function_call.name == "search_historical_events":
                         args = function_call.args if isinstance(function_call.args, dict) else dict(function_call.args)
@@ -230,10 +217,15 @@ class AgentSystem:
                         response = self._generate_with_retry(
                             model=target_model,
                             contents=follow_up_prompt,
-                            config=types.GenerateContentConfig(temperature=0.4),
+                            config=types.GenerateContentConfig(tools=tools, temperature=0.4),
                             category=category
                         )
+                        handled = True
                         break
+                if not handled:
+                    break
+            if tool_call_count >= self.MAX_TOOL_CALLS:
+                self.logger.sys_log(f"[{country_name}:{role}] ⚠️ ツール呼び出し上限({self.MAX_TOOL_CALLS}回)に到達。ループを終了します。", "WARNING")
 
             response_text = response.text.strip() if response and hasattr(response, 'text') else "{}"
             if response_text.startswith("```json"):
@@ -244,6 +236,9 @@ class AgentSystem:
             elapsed = time.time() - start_time
             self.logger.sys_log(f"[{country_name}:{role}] レスポンス受信完了 (所要時間: {elapsed:.2f}秒)")
             response_text = response_text.strip()
+
+            # APIレスポンスを全てsystem.logに出力
+            self.logger.sys_log_detail(f"{country_name} {role}", response_text)
 
             # --- タスクログバッファに自動収集 ---
             if not hasattr(self, '_task_log_buffer'):

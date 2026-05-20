@@ -851,5 +851,11 @@ def main():
         f"全 {MAX_TURNS} ターンのシミュレーションが正常に終了しました。"
     )
 
+    # QdrantClientの明示的クローズ（Pythonシャットダウン時のImportError防止）
+    try:
+        db_manager.close()
+    except Exception:
+        pass
+
 if __name__ == "__main__":
     main()

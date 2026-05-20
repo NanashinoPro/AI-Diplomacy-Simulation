@@ -234,14 +234,14 @@ class EventsMixin:
         # （ここではGDP自体を底上げするのではなく、経済成長ペナルティをリセットする意味合いで、
         #   政府予算の強制補充や税率の一時的適正化を行う）
         country.economy = max(10.0, country.economy * 0.9) # 内戦による経済ダメージ（10%減）
-        country.military = max(0.5, country.economy * 0.1)  # 軍事力をGDPの10%にリセット
+        country.military = max(0.5, country.military * 0.9)  # 軍事力は前政権を引き継ぎ、内戦損耗として10%減
         coup_budget_ratio = random.uniform(COUP_BUDGET_RATIO_MIN, COUP_BUDGET_RATIO_MAX)
         country.government_budget = country.economy * coup_budget_ratio # 緊急予算の確保（クーデター後の税収低下を反映）
         country.tax_rate = 0.3 # 標準税率へ一旦リセット
         
-        # 政府支持率の反転 (100% - 旧支持率) 
-        # 低い支持率で倒れた政府の交代劇であるほど、初期の熱狂（ハネムーン期間）が高くなる
-        country.approval_rating = max(50.0, 100.0 - country.approval_rating)
+        # 政府支持率: 50%を平均とする正規分布で決定（クーデター後の不確実性を反映）
+        new_approval = random.gauss(50.0, 15.0)
+        country.approval_rating = max(0.0, min(100.0, new_approval))
         country.rebellion_risk = 0.0
         country.regime_duration = 0 # クーデター成立によりリセット
         

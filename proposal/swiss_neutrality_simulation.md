@@ -113,11 +113,11 @@ EU,democracy,欧州の戦略的自律と統合深化を最優先する。NATOの
 ```csv
 country_a,country_b,relation_type,trade,sanctions_a_to_b,sanctions_b_to_a,war_aggressor,tariff_a_to_b,tariff_b_to_a,aggressor_commitment_ratio,defender_commitment_ratio,initial_occupation_progress,initial_aid_economy_a_to_b,initial_aid_military_a_to_b,initial_aid_economy_b_to_a,initial_aid_military_b_to_a
 アメリカ,中国,neutral,true,false,false,,0.10,0.10,,,,,,,
-アメリカ,ロシア,hostile,false,true,true,,0.0,0.0,,,,,,,
+アメリカ,ロシア,neutral,false,true,true,,0.0,0.0,,,,,,,
 アメリカ,EU,alliance,true,false,false,,0.025,0.025,,,,,,,
 アメリカ,日本,alliance,true,false,false,,0.025,0.025,,,,,,2.0,
 アメリカ,ウクライナ,alliance,true,false,false,,0.03,0.03,,,5.0,3.0,,,
-アメリカ,イラン,hostile,false,true,true,アメリカ,0.0,0.0,0.2,0.3,5,,,,
+アメリカ,イラン,at_war,false,true,true,アメリカ,0.0,0.0,0.2,0.3,5,,,,
 アメリカ,スイス,neutral,true,false,false,,0.03,0.03,,,,,,,
 日本,中国,neutral,true,false,false,,0.07,0.05,,,,,,,
 日本,ロシア,neutral,false,true,false,,0.0,0.0,,,,,,,
@@ -130,12 +130,12 @@ country_a,country_b,relation_type,trade,sanctions_a_to_b,sanctions_b_to_a,war_ag
 中国,ウクライナ,neutral,true,false,false,,0.10,0.10,,,,,,,
 中国,イラン,neutral,true,false,false,,0.05,0.05,,,,,,,
 中国,スイス,neutral,true,false,false,,0.05,0.05,,,,,,,
-ロシア,EU,hostile,false,true,true,,0.0,0.0,,,,,,,
-ロシア,ウクライナ,hostile,false,false,false,ロシア,0.0,0.0,0.4,0.6,15,,,,
+ロシア,EU,neutral,false,true,true,,0.0,0.0,,,,,,,
+ロシア,ウクライナ,at_war,false,false,false,ロシア,0.0,0.0,0.4,0.6,15,,,,
 ロシア,イラン,neutral,true,false,false,,0.05,0.05,,,,,1.0,,
 ロシア,スイス,neutral,false,true,false,,0.0,0.0,,,,,,,
 EU,ウクライナ,alliance,true,false,false,,0.0,0.0,,,3.0,2.0,,,
-EU,イラン,hostile,false,true,true,,0.0,0.0,,,,,,,
+EU,イラン,neutral,false,true,true,,0.0,0.0,,,,,,,
 EU,スイス,neutral,true,false,false,,0.0,0.0,,,,,,,
 ウクライナ,イラン,neutral,false,false,false,,0.0,0.0,,,,,,,
 ウクライナ,スイス,neutral,false,false,false,,0.0,0.0,,,,,,,
@@ -148,9 +148,9 @@ EU,スイス,neutral,true,false,false,,0.0,0.0,,,,,,,
 |:--|:--|:--|
 | 米EU・米日 | alliance | NATO / 日米安保 |
 | 米ウクライナ・EUウクライナ | alliance + 経済・軍事援助 | 対ロ支援の中核 |
-| **露ウクライナ** | **hostile + 戦争中** | ロシアが侵略者。占領進行15%。露の投入率0.4、宇の防衛率0.6 |
-| **米イラン** | **hostile + 戦争中** | アメリカが攻撃者。占領進行5%（空爆による限定的制圧）。米の投入率0.2、イランの防衛率0.3。停戦交渉中だが海上封鎖継続 |
-| 米露・EU露・EUイラン | hostile + 相互制裁 | ウクライナ戦争 / 核問題・中東紛争 |
+| **露ウクライナ** | **at_war（戦争中）** | ロシアが侵略者。占領進行15%。露の投入率0.4、宇の防衛率0.6 |
+| **米イラン** | **at_war（戦争中）** | アメリカが攻撃者。占領進行5%（空爆による限定的制圧）。米の投入率0.2、イランの防衛率0.3。停戦交渉中だが海上封鎖継続 |
+| 米露・EU露・EUイラン | neutral + 相互制裁 | ウクライナ戦争 / 核問題・中東紛争（直接交戦していないため neutral + 制裁フラグで表現） |
 | 露イラン | neutral + 貿易あり + ロシアからイランへ軍事援助 | ドローン供与等の軍事協力 |
 | 中露・中イラン | neutral + 貿易あり | 反西側連携 |
 | スイス→ロシア | neutral + スイスから制裁あり | EU制裁追随 |
@@ -158,6 +158,8 @@ EU,スイス,neutral,true,false,false,,0.0,0.0,,,,,,,
 | イラン→スイス | neutral + 貿易あり | スイスは歴史的にイランでの米国利益代表を務める |
 
 > **注目ポイント**: 世界で同時に2つの戦争（露宇・米イラン）が進行している。スイスはどの国とも `alliance` を結んでいない。二重紛争で二極化が加速する世界でスイスのneutralがどこまで持続するかがシミュレーションの核心。
+>
+> **技術的注記**: `RelationType` は `alliance` / `neutral` / `at_war` の3値のみ対応。「敵対的だが戦争ではない」関係は `neutral` + 制裁フラグ（`sanctions_a_to_b` / `sanctions_b_to_a`）で表現する。
 
 ---
 

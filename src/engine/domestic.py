@@ -196,10 +196,11 @@ class DomesticMixin:
         freedom_diff = target_freedom - country.press_freedom
         
         if freedom_diff < -0.05:
-            # 自由度を下げた場合: 0.1の制限につき、支持率-2.5%程度のペナルティ（戦時を考慮し緩和）
-            freedom_penalty = abs(freedom_diff) * 25.0
+            # 自由度を下げた場合: 現在の報道の自由度が高いほどペナルティが大きい
+            # （自由な報道に慣れた国民ほど統制に強く反発し、既に統制下にある国民は追加制限への反応が鈍い）
+            freedom_penalty = abs(freedom_diff) * 25.0 * country.press_freedom
             country.approval_rating = max(0.0, country.approval_rating - freedom_penalty)
-            self.sys_logs_this_turn.append(f"[{country.name} 報道統制] 自由度低下({freedom_diff:+.2f})により支持率急落 -{freedom_penalty:.1f}%")
+            self.sys_logs_this_turn.append(f"[{country.name} 報道統制] 自由度低下({freedom_diff:+.2f}, 現自由度:{country.press_freedom:.3f})により支持率急落 -{freedom_penalty:.1f}%")
         elif freedom_diff > 0.05:
             # 自由度を上げた場合: 0.1の緩和につき、支持率+2%程度のボーナス（統制解除による限定的な支持回復）
             freedom_bonus = freedom_diff * 20.0
@@ -352,9 +353,9 @@ class DomesticMixin:
             f"[{country.name} SNA詳細] "
             f"旧GDP(年):{old_gdp:.1f} → 新GDP(年):{new_gdp_provisional:.1f} (生成長率:{sna_growth_raw:+.1f}%)\n"
             f"  四半期GDP:{quarterly_gdp:.1f} | 税収_q:{tax_revenue_q:.1f} | 貯蓄率:{saving_rate:.2f}\n"
-            f"  C_q:{C:.1f} ({C/quarterly_gdp*100:.1f}%GDP) | "
-            f"I_q:{I:.1f} ({I/quarterly_gdp*100:.1f}%GDP) [base:{base_investment:.1f}, induced:{induced_investment:.1f}] | "
-            f"G_q:{G:.1f} ({G/quarterly_gdp*100:.1f}%GDP)\n"
+            f"  C_q:{C:.1f} ({C/max(0.1,quarterly_gdp)*100:.1f}%GDP) | "
+            f"I_q:{I:.1f} ({I/max(0.1,quarterly_gdp)*100:.1f}%GDP) [base:{base_investment:.1f}, induced:{induced_investment:.1f}] | "
+            f"G_q:{G:.1f} ({G/max(0.1,quarterly_gdp)*100:.1f}%GDP)\n"
             f"  利払い漏出:{interest_leakage:.1f} → 還流(70%):{interest_reinvested:.1f} | "
             f"NX:{country.last_turn_nx:+.1f} | HCI乗数:{h_ratio_capped:.3f} | "
             f"内生成長:{endogenous_growth_bonus:.4f} | "
@@ -399,8 +400,10 @@ class DomesticMixin:
         death_rate = base_death_rate + poverty_death_increase + disaster_death_increase
         
         # ロジスティック方程式に基づく人口増加率の計算 (環境収容力に近づくほど増加率が0になる)
-        # N(t+1) = N(t) + r * N(t) * (1 - N(t) / K)
-        intrinsic_growth_rate = birth_rate - death_rate
+        # N(t+1) = N(t) + r_q * N(t) * (1 - N(t) / K)
+        # 出生率・死亡率は年率で定義されているため、四半期ベースに変換（他モデルと整合）
+        intrinsic_growth_rate_annual = birth_rate - death_rate
+        intrinsic_growth_rate = intrinsic_growth_rate_annual / TURNS_PER_YEAR
         pop_growth_rate = intrinsic_growth_rate * (1.0 - (old_pop / carrying_capacity))
         country.population = max(0.1, old_pop * (1.0 + pop_growth_rate))
         
@@ -429,8 +432,11 @@ class DomesticMixin:
         # 持続不可能な軍拡がシステム的に自壊するメカニズムを提供し、現実の「帝国の過度な拡大」
         # (Paul Kennedy 1987) を模倣する。計算にはSNA更新前の前期GDPを使用。
         military_burden = country.military / max(1.0, old_gdp)
-        dynamic_alpha = BASE_MILITARY_MAINTENANCE_ALPHA + (military_burden * 2.0) ** 2
-        alpha = min(MAX_MILITARY_FATIGUE_ALPHA, dynamic_alpha)
+        # 年率定数を四半期ベースに変換（他のモデルと整合: /TURNS_PER_YEAR）
+        base_alpha_q = BASE_MILITARY_MAINTENANCE_ALPHA / TURNS_PER_YEAR
+        max_alpha_q = MAX_MILITARY_FATIGUE_ALPHA / TURNS_PER_YEAR
+        dynamic_alpha = base_alpha_q + (military_burden * 2.0) ** 2
+        alpha = min(max_alpha_q, dynamic_alpha)
         
         # 軍事投資による増加分（政策実行力ε適用済みの政府軍事支出に成長率を乗算）
         military_growth = g_mil * BASE_MILITARY_GROWTH_RATE
