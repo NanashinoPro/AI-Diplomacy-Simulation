@@ -281,7 +281,7 @@ class EventsMixin:
         country.trade_deficit_counter = 0
         country.last_turn_nx = 0.0
         country.rebellion_risk = 0.0
-        country.intelligence_level = 0.0  # 諜報組織も崩壊・リセット
+        country.intelligence_level = max(0.0, country.intelligence_level * 0.9)  # 諜報組織の指揮系統混乱（軍事力と同等の10%減）
         
         # 【新設】影響力介入オークションの登録
         # [学術的根拠] Morgenthau (1948): 政変によるパワー・バキュームは周辺大国の介入を誘発する。
