@@ -511,9 +511,11 @@ class DomesticMixin:
         welfare_bonus = welfare_trend * execution_power
 
         # --- 諜報レベルの蓄積・減衰（リチャードソンモデルと同様のパターン）---
+        # 年率定数を四半期ベースに変換（軍事力モデルと整合: /TURNS_PER_YEAR）
         old_intel = country.intelligence_level
+        intel_alpha_q = INTEL_MAINTENANCE_ALPHA / TURNS_PER_YEAR
         intel_growth = g_intel * INTEL_GROWTH_RATE
-        country.intelligence_level = (country.intelligence_level * (1.0 - INTEL_MAINTENANCE_ALPHA)) + intel_growth
+        country.intelligence_level = (country.intelligence_level * (1.0 - intel_alpha_q)) + intel_growth
 
         # --- PWT HCI: 教育投資 → 平均就学年数(MYS) → 人的資本指数(HCI) の更新 ---
         # [学術的根拠] Jackson et al. (2016, QJE): 教育支出10%増 → 完了就学年数+0.27~0.43年
