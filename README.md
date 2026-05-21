@@ -232,3 +232,10 @@ python src/main.py --resume logs/simulations/sim_YYYYMMDD_HHMMSS.jsonl --turns 1
 - **修正**: 利払い額の70%を民間投資(I)に還流（債権者の再投資を反映）
 - **定数**: INTEREST_REINVESTMENT_RATE = 0.70
 - **検証**: 韓国 -6.7% → -4.1% に改善（戦時下の自然減として妥当）
+
+### 2026-05-21: スイス動向分析レポートの作成
+- **問題**: `sim_20260521_064436.jsonl` (Turn 1〜8) におけるスイスの外交・内政・諜報活動を検証し、現実のスイスとの類似点・相違点をマクロ数理モデルとプロンプト設計の観点から考察。
+- **成果物**: [swiss_simulation_analysis.md](./proposal/swiss_simulation_analysis.md) を配置。
+- **改善点**: 報道の自由の下限値設定、中立国の防諜重視プロンプト、情報偽装への発覚ペナルティなどのマクロエンジンおよびプロンプト改善案を提示。
+
+
