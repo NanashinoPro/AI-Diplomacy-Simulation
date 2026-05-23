@@ -8,8 +8,8 @@
       "台湾"
     ],
     "total_turns": 5,
-    "video_title": "AI外交シミュ、軍隊を覚えた【v2】",
-    "video_description": "AI外交シミュレーションv2大型アップデート。戦略マップ・戦術軍事配備・緊張度メカニクスを搭載したAI大統領たちが、東アジアの台湾海峡危機に挑む。一発も弾を撃たずに、なぜ中国の国家債務は1,187%に膨れ上がったのか？ Richardsonモデルの軍拡競争とRally効果のパラドックスをずんだもん×四国めたんが徹底解説。 ※この動画はAIシミュレーションの結果をエンターテインメントとして紹介するものであり、現実の国家・団体・個人を非難する意図はありません",
+    "video_title": "AI外交シミュレーション、戦争の仕方を覚えた",
+    "video_description": "AIに「地図」と「軍隊」を与えたら何が起きるのか？ v2大型アップデートで戦略マップ・軍事配備・緊張度メカニクスを実装したAI外交シミュレーションの結果を徹底解説。米中日台4カ国のAI大統領が自律的に安全保障ジレンマを再現する衝撃の展開とは——\n\n※この動画はAIシミュレーションの結果をエンターテインメントとして紹介するものであり、現実の国家・団体・個人を非難する意図はありません",
     "credits": [
       "VOICEVOX:ずんだもん",
       "VOICEVOX:四国めたん"
@@ -19,27 +19,22 @@
     {
       "id": "hook_01",
       "type": "hook",
-      "layout": "fullscreen_strategy_map_zoom",
+      "layout": "cinematic_reveal",
       "lines": [
         {
           "speaker": "metan",
           "expr": "serious",
-          "text": "2027年、春——東アジアの地図上には、4カ国の軍隊がびっしりと展開していたわ",
+          "text": "中国AI、隠密計画より——「来年中の特別軍事作戦開始——準備完了」",
           "se": {
-            "file": "爆発3.mp3",
+            "file": "PC-Keyboard06-02(Hard).mp3",
             "timing": "start",
-            "volume": 0.6
+            "volume": 0.5
           }
         },
         {
           "speaker": "zundamon",
           "expr": "surprise",
-          "text": "えっ！？でも、この世界では一発も弾が撃たれてないのだ！？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "serious",
-          "text": "ええ。でもね、中国の国家債務はGDPの1,187%に達していた——",
+          "text": "えっ……これ、AIが自分で書いた作戦計画なのだ!?",
           "se": {
             "file": "和太鼓でドドン.mp3",
             "timing": "start",
@@ -47,182 +42,183 @@
           }
         },
         {
-          "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "せ、1,187%！？国が丸ごと借金なのだ……！"
-        },
-        {
           "speaker": "metan",
-          "expr": "normal",
-          "text": "一発も弾を撃たずに、AIの\"戦争\"は既に始まっていたのよ"
+          "expr": "serious",
+          "text": "そうよ。数字しか見えなかったAIに「地図」と「軍隊」を与えたら——戦争の準備を始めたの"
         }
       ],
       "visuals": {
-        "background": "strategy_map_east_asia_turn5",
-        "animation": "zoom_in_to_taiwan_strait",
+        "background_segments": [
+          {
+            "id": "bg_hook_strategy_map",
+            "src": "strategy_map_east_asia_turn4",
+            "type": "image",
+            "from_line_index": 0,
+            "transition": "cut",
+            "ken_burns": {
+              "start_scale": 1.0,
+              "end_scale": 1.2,
+              "start_x": 0,
+              "end_x": -5,
+              "start_y": 0,
+              "end_y": -3
+            },
+            "dark_overlay_opacity": 0.5,
+            "topic_label": "中国隠密計画の衝撃的公開"
+          }
+        ],
+        "animation": "typewriter_covert_plan_reveal",
         "animation_direction_notes": {
-          "intent": "最終ターンの東アジア戦略マップから台湾海峡へズームインし、4カ国の軍事展開の緊張感を伝える",
+          "intent": "中国AIの隠密計画テキストをタイプライター式に一文字ずつ表示し、視聴者に「AIが自律的に戦争準備を決断した」衝撃を与える",
           "reference_lines": [
             0,
             1,
-            4
+            2
           ],
-          "mood": "dramatic",
-          "suggested_technique": "広角マップからスローズームイン、軍事ユニットアイコンが順次点灯"
+          "mood": "tense",
+          "suggested_technique": "タイプライターテキスト出現 → 戦略マップ上に中国軍配備アイコンが順次点灯 → 暗転"
         },
         "overlays": [
-          "title_text_overlay",
-          {
-            "id": "china_debt_shock_1187",
-            "type": "big_number_display",
-            "title": "中国 国家債務対GDP比",
-            "mermaid": "graph LR\n  A[\"1,187.7%\"]",
-            "trigger_line_index": 2,
-            "display_duration_lines": 4,
-            "position": "center",
-            "size": "large",
-            "color_scheme": "danger_red",
-            "emphasis_values": [
-              "1,187.7%"
-            ]
-          }
+          "covert_plan_text_overlay",
+          "debt_counter_471B"
         ]
       },
       "audio": {
         "bgm": "残滓念.mp3",
         "bgm_volume": 0.12,
-        "scene_se": []
+        "scene_se": [
+          {
+            "file": "爆発3.mp3",
+            "timing": "scene_start",
+            "volume": 0.6
+          }
+        ]
       }
     },
     {
       "id": "intro_01",
       "type": "intro",
-      "layout": "channel_intro_with_v2_showcase",
+      "layout": "standard_dialogue",
       "lines": [
         {
           "speaker": "zundamon",
           "expr": "excited",
-          "text": "名無之ずんだもんチャンネルへようこそなのだ！",
-          "se": {
-            "file": "決定ボタンを押す4.mp3",
-            "timing": "start",
-            "volume": 0.5
-          }
+          "text": "名無之ずんだもんチャンネルへようこそなのだ！"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "今日は、AI外交シミュレーションのv2大型アップデートを紹介するのだ！"
         },
         {
           "speaker": "metan",
           "expr": "normal",
-          "text": "今回は、AI外交シミュレーションのv2大型アップデートをお届けするわ"
+          "text": "v1では、AIは数字だけの世界で外交をしていたわよね"
         },
         {
           "speaker": "zundamon",
-          "expr": "excited",
-          "text": "v2って何が変わったのだ？"
+          "expr": "normal",
+          "text": "GDPがいくら、軍事力がいくら……全部テキストの数字だったのだ"
         },
         {
           "speaker": "metan",
           "expr": "excited",
-          "text": "大きく3つよ。まず、地図の上にAIの軍隊が表示される戦略マップね"
+          "text": "それがv2で大きく変わったのよ。三つの大型機能が加わったわ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "一つ目は「HoI4風の戦略マップ」。国別カラーで領土が表示されて、軍の配備も地図の上に見えるようになったの"
         },
         {
           "speaker": "zundamon",
           "expr": "surprise",
-          "text": "おお〜！ストラテジーゲームみたいなのだ！"
+          "text": "おお〜！ あのゲームみたいな地図がついに来たのだ！"
         },
         {
           "speaker": "metan",
           "expr": "normal",
-          "text": "次に、防衛大臣AIが陸海空の兵力を自分で考えて配備する戦術配備システム。そして最後に——"
+          "text": "二つ目は「軍事配備システム」。AIの防衛大臣が陸海空の比率と配備先を自分で決めるのよ"
         },
         {
           "speaker": "metan",
           "expr": "serious",
-          "text": "軍隊を相手国の近くに置くだけで、緊張度が上がっていく緊張度メカニクスよ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "撃たなくても緊張するってことなのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "その通り。現実でも、中国軍は台湾周辺での軍事活動を日常的に行っているわよね"
+          "text": "そして三つ目が「緊張度メカニクス」。国同士の緊張が数値化されて、高まると偶発的に戦争が起きる仕組みよ"
         },
         {
           "speaker": "zundamon",
           "expr": "serious",
-          "text": "ニュースでよく見るのだ……"
+          "text": "つまり、AIが「目」と「手足」を手に入れたってことなのだ"
         },
         {
           "speaker": "metan",
           "expr": "normal",
-          "text": "2026年現在、中国は国防予算を大幅に増やしているわ。日米台は半導体の供給網で連携を強化しているのよ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "うーん…現実もなかなか緊張してるのだ"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "今回のシミュレーションでは、アメリカ・中国・日本・台湾の4カ国のAI大統領が、2026年春から2027年春まで全5回の外交を行うわ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "各国のデータは本物なのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "ええ。GDPは世界銀行、軍事力はSIPRI、人口は国連推計——すべて2026年の実際の統計データを初期値にしているのよ"
+          "text": "今回のシミュレーションは、アメリカ・中国・日本・台湾の4カ国。2026年の実データをベースに、3ヶ月に1回、合計5回分のシミュレーションを回したわ"
         },
         {
           "speaker": "zundamon",
           "expr": "excited",
-          "text": "じゃあ、この状況をAIに任せたらどうなるか見てみるのだ！"
+          "text": "v2の新機能がAIの行動をどう変えたか、実際のシミュレーションで見ていくのだ！"
         }
       ],
       "visuals": {
-        "background": "channel_intro_bg",
-        "animation": "v2_feature_showcase_montage",
-        "animation_direction_notes": {
-          "intent": "v2の3大新機能を順次ショーケースし、プロジェクトの進化を視覚的に伝える",
-          "reference_lines": [
-            3,
-            5,
-            6
-          ],
-          "mood": "celebratory",
-          "suggested_technique": "各機能のスクリーンショットがフリップインで順次表示"
-        },
-        "overlays": [
-          "v2_update_badge",
-          "country_flags_4",
+        "background_segments": [
           {
-            "id": "v2_three_pillars",
-            "type": "flow_diagram",
-            "title": "v2 三大アップデート",
-            "mermaid": "graph TD\n  A[\"v2 大型アップデート\"] --> B[\"戦略マップ\"]\n  A --> C[\"戦術軍事配備\"]\n  A --> D[\"緊張度メカニクス\"]\n  B --> E[\"地図上に軍隊を可視化\"]\n  C --> F[\"防衛大臣AIが配備決定\"]\n  D --> G[\"4段階の緊張レベル\"]",
-            "trigger_line_index": 3,
-            "display_duration_lines": 5,
-            "position": "center",
-            "size": "medium",
-            "color_scheme": "neutral_blue"
+            "id": "bg_intro_channel",
+            "src": "channel_intro_bg",
+            "type": "image",
+            "from_line_index": 0,
+            "to_line_index": 1,
+            "transition": "cut",
+            "dark_overlay_opacity": 0.2,
+            "topic_label": "チャンネル紹介"
           },
           {
-            "id": "simulation_initial_params",
-            "type": "comparison_table",
-            "title": "シミュレーション初期条件（2026年実データ）",
-            "mermaid": "graph LR\n  subgraph アメリカ\n    A1[\"GDP: 29,315B$\"]\n    A2[\"軍事力: 846.8\"]\n  end\n  subgraph 中国\n    B1[\"GDP: 18,748B$\"]\n    B2[\"軍事力: 233.4\"]\n  end\n  subgraph 日本\n    C1[\"GDP: 4,220B$\"]\n    C2[\"軍事力: 60.1\"]\n  end\n  subgraph 台湾\n    D1[\"GDP: 804B$\"]\n    D2[\"軍事力: 21.8\"]\n  end",
-            "trigger_line_index": 11,
-            "display_duration_lines": 4,
-            "position": "full_width",
-            "size": "large",
-            "color_scheme": "neutral_blue"
+            "id": "bg_intro_v1v2_evolution",
+            "src": "data_dashboard_v2_overview",
+            "type": "video",
+            "from_line_index": 2,
+            "to_line_index": 8,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.3,
+            "topic_label": "v1→v2進化コンセプトとSランク3機能紹介"
+          },
+          {
+            "id": "bg_intro_simulation_setup",
+            "src": "strategy_map_east_asia_turn1",
+            "type": "image",
+            "from_line_index": 9,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "ken_burns": {
+              "start_scale": 1.1,
+              "end_scale": 1.0,
+              "start_x": 0,
+              "end_x": 0,
+              "start_y": -3,
+              "end_y": 0
+            },
+            "dark_overlay_opacity": 0.3,
+            "topic_label": "シミュレーション設定（4カ国・5ターン）"
           }
+        ],
+        "animation": "v2_feature_showcase_montage",
+        "animation_direction_notes": {
+          "intent": "v2の3大Sランク機能（戦略マップ・軍事配備・緊張度）をアイコンとともに順次表示し、v1→v2の進化のスケールを視覚的に伝える",
+          "reference_lines": [
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "mood": "celebratory",
+          "suggested_technique": "3機能アイコンが順次ポップアップ → 戦略マップへズームアウト遷移"
+        },
+        "overlays": [
+          "v2_feature_icons_three",
+          "simulation_setup_info"
         ]
       },
       "audio": {
@@ -233,87 +229,27 @@
     {
       "id": "event_01",
       "type": "event",
-      "layout": "strategy_map_deployment_reveal",
+      "layout": "split_screen_debate",
       "lines": [
         {
           "speaker": "metan",
-          "expr": "normal",
-          "text": "さて、シミュレーション開始よ。2026年春、最初の外交が始まったわ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "excited",
-          "text": "AIたちは何から始めるのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "surprise",
-          "text": "驚くことに、アメリカAIは開始直後に台湾へ軍事同盟を提案したわ",
-          "se": {
-            "file": "きらきら輝く3.mp3",
-            "timing": "end",
-            "volume": 0.5
-          }
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "えっ！？いきなり同盟なのだ！？台湾はどうしたのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "excited",
-          "text": "即座に受諾。現実には正式な軍事同盟は存在しないけれど、AIは初手で電撃締結したわ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "excited",
-          "text": "電撃的な判断なのだ！"
-        },
-        {
-          "speaker": "metan",
           "expr": "serious",
-          "text": "そしてここからがv2の真骨頂よ。地図を見なさい"
+          "text": "さて、シミュレーション開始直後、2026年の春にいきなり大きな動きがあったわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "何が起きたのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "surprise",
+          "text": "アメリカAIが、初手で台湾との軍事同盟を締結したのよ"
         },
         {
           "speaker": "zundamon",
           "expr": "surprise",
-          "text": "あっ、地図の上に何か出てきたのだ！"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "これが戦略マップよ。v2では、AIが決めた軍事配備が地図上にアイコンで表示されるの"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "excited",
-          "text": "ホントにストラテジーゲームみたいなのだ！"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "アメリカAIは、中国方面に海軍を「示威行動」で送り出したわ。予算にして1,500億ドル規模ね"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "1,500億ドル！？「見せつける」ためだけに！？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "台湾方面にも航空戦力を制空任務で配備。さらに日本にも陸海空の駐留部隊を置いているわ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "アメリカ、東アジアにめちゃくちゃ本気なのだ"
-        },
-        {
-          "speaker": "metan",
-          "expr": "serious",
-          "text": "一方、中国AIの動きが注目ポイントよ。台湾方面に陸軍を「威嚇」任務で展開したわ",
+          "text": "えっ！？ 初手でいきなり!? それって大ニュースなのだ！",
           "se": {
             "file": "和太鼓でドドン.mp3",
             "timing": "start",
@@ -321,166 +257,219 @@
           }
         },
         {
-          "speaker": "zundamon",
-          "expr": "serious",
-          "text": "「威嚇」……巡回や示威行動じゃなくて、あえて「威嚇」を選んだのだ？"
-        },
-        {
           "speaker": "metan",
           "expr": "serious",
-          "text": "ええ。v2では配備には3段階の任務があるの。穏やかな順に「巡回」「示威行動」「威嚇」——威嚇は最も攻撃的な意思表示よ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "つまり中国AIは、最初から強い態度を選んだってことなのだ"
+          "text": "そう。現実の台湾関係法は「戦略的曖昧さ」を維持しているけれど、AIは曖昧さを捨てて明確な同盟を選んだの"
         },
         {
           "speaker": "metan",
           "expr": "normal",
-          "text": "ちなみにこの判断は、v2で新たに導入された3層の意思決定で行われているわ"
+          "text": "ここで見てほしいのが、v1とv2の画面の違いよ"
         },
         {
           "speaker": "zundamon",
           "expr": "normal",
-          "text": "3層？どういうことなのだ？"
+          "text": "v1だと……テキストのログに「同盟締結」って書いてあるだけなのだ"
         },
         {
           "speaker": "metan",
-          "expr": "normal",
-          "text": "まず分析官AIが情報を整理し、次に防衛大臣AIが兵力の配分と配備先を決め、最後に大統領AIが全体を承認する仕組みよ"
+          "expr": "excited",
+          "text": "でもv2では、戦略マップ上にアメリカの領土が青く、台湾が緑に色分けされて、軍事配備のアイコンまで表示されるのよ"
         },
         {
           "speaker": "zundamon",
           "expr": "excited",
-          "text": "AIの中に組織があるのだ！"
+          "text": "おお〜！ 全然違うのだ！ まるでストラテジーゲームの画面なのだ！"
         },
         {
           "speaker": "metan",
-          "expr": "normal",
-          "text": "そしてもうひとつ。中国AIは自国の支持率を85%と偽って他国に報告しているわ。実際は47.6%なのにね"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "ま、マジなのだ！？AIが自分で嘘をつくのだ！？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "ええ。日本と台湾の諜報力では、この偽装を見破れなかったわ。成功率はたったの31〜35%だったもの"
+          "expr": "serious",
+          "text": "アメリカは同盟と同時に、合計6000億ドル規模の軍事配備も実施したわ。陸軍に1000億ドル、海軍に2500億ドル、空軍に2500億ドル——そして中国に対しては海軍で武力誇示も行ったの"
         },
         {
           "speaker": "zundamon",
           "expr": "serious",
-          "text": "うーん…見えない部分での駆け引きがもう始まってるのだ"
+          "text": "武力誇示って、つまり「こっちは本気だぞ」ってメッセージなのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "ちなみに、台湾にもちょっとした事件があったのよ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "何があったのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "exasperation",
+          "text": "台湾AI、配備の対象国を英語で「China」「Taiwan」って入力しちゃって……v2のシステムは日本語名しか認識しないから、配備が全部エラーで0件になったのよ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "exasperation",
+          "text": "ま、マジなのだ!? せっかくの同盟初日に配備ゼロって……",
+          "se": {
+            "file": "チーン1.mp3",
+            "timing": "end",
+            "volume": 0.5
+          }
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "AIだって間違えるのよ。……さて、この同盟締結の裏で、もう一つ重要なことが起きていたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "なんなのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "中国側の「緊張度」が150まで上がって、「Rally効果」——つまり「外部の脅威に国民が結束して政権支持が上がる現象」が発動したの。中国の支持率が自動的に3%上がったわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "serious",
+          "text": "アメリカが中国の近くに軍を展開したことで、逆に中国の支持率が上がっちゃったのだ……？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "そうよ。これがv2の「緊張度メカニクス」の怖いところ——防衛のための行動が、相手国の軍拡を正当化してしまうの。この仕組みは後で詳しく見ていくわね"
         }
       ],
       "visuals": {
-        "background": "strategy_map_east_asia_turn1",
-        "animation": "military_units_appear_animation",
-        "animation_direction_notes": {
-          "intent": "Turn1の戦略マップ上に初めて軍事ユニットが出現する瞬間を演出し、v2の核心機能のインパクトを伝える",
-          "reference_lines": [
-            6,
-            7,
-            8,
-            9
-          ],
-          "mood": "tense",
-          "suggested_technique": "マップ上に米軍（青）・中国軍（赤）のアイコンがポップインで出現、配備矢印が伸びる"
-        },
-        "overlays": [
-          "alliance_badge_us_tw",
+        "background_segments": [
           {
-            "id": "us_china_deployment_comparison",
-            "type": "bar_chart",
-            "title": "Turn1 米中軍事配備比較（十億ドル）",
-            "mermaid": "xychart-beta\n  title \"Turn1 配備予算比較 (B$)\"\n  x-axis [\"アメリカ対中国\", \"アメリカ対台湾\", \"中国対台湾\"]\n  y-axis \"予算 (B$)\" 0 --> 200\n  bar [150, 150, 200]",
-            "trigger_line_index": 10,
-            "display_duration_lines": 4,
-            "position": "top_right",
-            "size": "medium",
-            "color_scheme": "neutral_blue"
+            "id": "bg_event01_alliance_map",
+            "src": "strategy_map_alliance_turn1",
+            "type": "image",
+            "from_line_index": 0,
+            "to_line_index": 4,
+            "transition": "cut",
+            "ken_burns": {
+              "start_scale": 1.0,
+              "end_scale": 1.1,
+              "start_x": 0,
+              "end_x": -3,
+              "start_y": 0,
+              "end_y": -2
+            },
+            "dark_overlay_opacity": 0.35,
+            "topic_label": "米台軍事同盟締結の衝撃"
           },
           {
-            "id": "agent_3layer_structure",
-            "type": "concept_diagram",
-            "title": "3層エージェント意思決定チェーン",
-            "mermaid": "graph TD\n  A[\"分析官 (flash-lite)\"] -->|\"レポート生成\"| B[\"防衛大臣 (flash)\"]\n  B -->|\"配備決定\"| C[\"大統領 (pro)\"]\n  C -->|\"最終承認\"| D[\"マップ上に反映\"]",
-            "trigger_line_index": 17,
-            "display_duration_lines": 4,
-            "position": "center",
-            "size": "medium",
-            "color_scheme": "neutral_blue"
+            "id": "bg_event01_v1v2_compare",
+            "src": "data_dashboard_v1v2_split",
+            "type": "video",
+            "from_line_index": 5,
+            "to_line_index": 10,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.3,
+            "topic_label": "v1 vs v2画面比較"
+          },
+          {
+            "id": "bg_event01_deployment_error",
+            "src": "strategy_map_east_asia_turn1",
+            "type": "image",
+            "from_line_index": 11,
+            "to_line_index": 15,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.25,
+            "topic_label": "台湾配備エラーと裏事情"
+          },
+          {
+            "id": "bg_event01_tension_reveal",
+            "src": "data_dashboard_tension",
+            "type": "video",
+            "from_line_index": 16,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.4,
+            "topic_label": "緊張度150とRally効果の発動"
           }
+        ],
+        "animation": "v1_vs_v2_comparison_split",
+        "animation_direction_notes": {
+          "intent": "v1のテキストログ画面とv2の戦略マップ画面を左右に並べ、同盟締結の瞬間の情報密度の差を視覚的に示す",
+          "reference_lines": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "mood": "dramatic",
+          "suggested_technique": "画面中央で縦に分割 → 左にv1テキスト、右にv2マップ → v2側にズームイン"
+        },
+        "overlays": [
+          "alliance_line_us_taiwan",
+          {
+            "id": "us_deployment_breakdown_t1",
+            "type": "bar_chart",
+            "title": "アメリカ軍 初期配備内訳 (T1)",
+            "mermaid": "xychart-beta\n  title \"US Military Deployment T1 ($B)\"\n  x-axis [\"陸軍\",\"海軍\",\"空軍\"]\n  y-axis \"Budget ($B)\" 0 --> 300\n  bar [100, 250, 250]",
+            "trigger_line_index": 9,
+            "display_duration_lines": 3,
+            "position": "top_right",
+            "size": "medium",
+            "color_scheme": "neutral_blue",
+            "emphasis_values": [
+              "250"
+            ]
+          },
+          "taiwan_deployment_error"
         ]
       },
       "audio": {
         "bgm": "追跡者.mp3",
-        "bgm_volume": 0.15,
-        "scene_se": []
+        "bgm_volume": 0.12
       }
     },
     {
       "id": "analysis_01",
       "type": "analysis",
-      "layout": "data_dashboard_tension_meter",
+      "layout": "data_dashboard",
       "lines": [
         {
           "speaker": "metan",
           "expr": "normal",
-          "text": "さて、ここでv2の核心機能を詳しく解説するわね。緊張度メカニクスよ"
+          "text": "さっき、アメリカが中国の近くに軍を展開したら緊張度が上がったわよね。あの「軍事配備」こそがv2の二つ目の柱なの。詳しく見ていくわよ"
         },
         {
           "speaker": "zundamon",
           "expr": "normal",
-          "text": "さっき出てきた「威嚇とか示威行動で緊張が上がる」ってやつなのだ"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "その通り。緊張度にはスコアがあって、4段階に分かれるわ。低・中・高・極高——それぞれで違う効果が発動するの"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "具体的にどう違うのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "例えば、「巡回」はスコアが少ししか上がらない。でも「威嚇」はスコアが大きく上がるわ。配備の攻撃性が高いほど、緊張度は急上昇するの"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "なるほど、強い態度を取るほど数字が跳ね上がるのだ"
+          "text": "緊張度を動かした張本人なのだ！"
         },
         {
           "speaker": "metan",
           "expr": "serious",
-          "text": "これは学術的にも裏付けがあるのよ。国際政治学者のミュラーやシュルツ、フィアロンたちの理論に基づいているわ"
+          "text": "v1では、軍事力は国全体の数字でしかなかったわ。でもv2では、AIの防衛大臣が「どの方面に、どの兵科を、どれだけ配備するか」を自分で決めるの",
+          "se": {
+            "file": "PC-Keyboard06-02(Hard).mp3",
+            "timing": "start",
+            "volume": 0.4
+          }
         },
         {
           "speaker": "zundamon",
-          "expr": "normal",
-          "text": "ふむふむ。で、緊張度が上がるとどうなるのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "serious",
-          "text": "ここが面白いところよ。緊張度が「中」以上になると、ある効果が自動で発動するの"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "ある効果？"
-        },
-        {
-          "speaker": "metan",
           "expr": "excited",
-          "text": "「旗の下に結集する効果」——外部から脅威を受けた国の国民が、自国の指導者を応援し始める現象よ",
+          "text": "まるで本当の国防会議なのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "しかも、配備の内容が戦闘結果に直接影響するのよ。攻勢、防勢、要塞化、海上封鎖、戦略爆撃——配備の組み合わせで勝敗が変わるわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "おお〜！ ただ数字が大きい方が勝つんじゃなくて、配置の仕方が大事ってことなのだ！",
           "se": {
             "file": "ひらめく1.mp3",
             "timing": "start",
@@ -488,219 +477,200 @@
           }
         },
         {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "面白いのは、各国AIの配備戦略がまったく違ったことよ。まずアメリカは、大統領が「哨戒に格下げすべき」と施政方針で指示したの。理由は「オーディエンスコスト」——強硬な姿勢を見せ続けると、後に引けなくなって戦争リスクが上がるという理論よ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "おお〜！ つまり攻めすぎたらヤバいって、AIが自分で気づいたのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "ところが、防衛大臣AIは大統領の指示に従わなかったの。データを見ると、哨戒に格下げすべきという指示のあと、4回連続で対中国の海軍配備はshow_of_force——つまり武力誇示を継続していたわ。大統領と防衛大臣で判断が食い違う——これもv2の配備システムならではの現象よ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "serious",
+          "text": "AIの中でも意見が割れるのだ……まるで本物の政府みたいなのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "一方、中国AIはもっと極端だったわ。2026年の秋に、突然すべての軍を撤収したのよ"
+        },
+        {
           "speaker": "zundamon",
           "expr": "surprise",
-          "text": "えっ、脅されてるのに支持率が上がるのだ！？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "ええ。「外に敵がいる！」と感じたとき、人は自分たちのリーダーの周りに結集するの。これがRally効果よ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "敵が攻めてきたら団結するってことなのだ"
+          "text": "全部!? 平和路線に転換したのだ？"
         },
         {
           "speaker": "metan",
           "expr": "serious",
-          "text": "つまりアメリカが中国方面に示威行動の艦隊を送るたびに、中国国内では「アメリカが攻めてくるぞ」という危機感が生まれて——"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "あっ！中国の支持率が上がっちゃうのだ！？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "そういうことよ。実際にデータを見てみましょう。中国の支持率はシミュレーション開始時の47.6%から——"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "どのくらい上がったのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "serious",
-          "text": "最終的に56.9%まで上昇し続けたの。約10ポイントも上がったわ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "exasperation",
-          "text": "脅せば脅すほど相手が強くなるって……それ、めちゃくちゃ困るのだ！"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "ミュラーの研究によると、この効果は「国際的であること」「指導者が関与していること」「劇的であること」の3条件で発動するのよ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "現実でもそうだったのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "ええ。このシミュレーションでは、アメリカの示威行動が中国にとって「無料の正当性」を供給してしまっている——そういう皮肉な構造が見えるわね"
+          "text": "そう見えたわよね。でも実際は、経済を立て直すための一時撤収だったの。そして3ヶ月後には、さらに大規模な再配備を始めた——これが何を意味するかは、この後の展開で明らかになるわ"
         },
         {
           "speaker": "zundamon",
           "expr": "serious",
-          "text": "うーん…じゃあ、アメリカは軍隊を送らないほうが良かったのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "それも簡単ではないわよ。送らなければ台湾の安全が脅かされるし、送れば中国の政権が安定する——ジレンマよね"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "sad",
-          "text": "どっちを選んでも困るのだ……"
+          "text": "撤収は「平和」じゃなくて「準備」だったのだ……"
         }
       ],
       "visuals": {
-        "background": "data_dashboard_tension",
-        "animation": "tension_meter_animation",
+        "background_segments": [
+          {
+            "id": "bg_analysis01_system_intro",
+            "src": "data_dashboard_deployment",
+            "type": "video",
+            "from_line_index": 0,
+            "to_line_index": 5,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.35,
+            "topic_label": "軍事配備システムの仕組み解説"
+          },
+          {
+            "id": "bg_analysis01_us_posture",
+            "src": "strategy_map_east_asia_turn2",
+            "type": "image",
+            "from_line_index": 6,
+            "to_line_index": 9,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "ken_burns": {
+              "start_scale": 1.0,
+              "end_scale": 1.1,
+              "start_x": 0,
+              "end_x": -2,
+              "start_y": 0,
+              "end_y": 0
+            },
+            "dark_overlay_opacity": 0.3,
+            "topic_label": "アメリカのshow_of_force継続と大統領vs防衛大臣の乖離"
+          },
+          {
+            "id": "bg_analysis01_china_withdrawal",
+            "src": "strategy_map_east_asia_turn3",
+            "type": "image",
+            "from_line_index": 10,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "ken_burns": {
+              "start_scale": 1.05,
+              "end_scale": 1.0,
+              "start_x": 3,
+              "end_x": 0,
+              "start_y": 0,
+              "end_y": 0
+            },
+            "dark_overlay_opacity": 0.35,
+            "topic_label": "中国全軍撤収→再配備の二面性"
+          }
+        ],
+        "animation": "deployment_timeline_t1_t3",
         "animation_direction_notes": {
-          "intent": "緊張度メカニクスの4段階を視覚的に解剖し、Rally効果の逆説をデータで体感させる",
+          "intent": "T1→T3の配備変遷をタイムラプスで表示。米軍のshow_of_force継続（大統領の哨戒指示との乖離）と中国の全軍撤収→再配備の対比を強調",
           "reference_lines": [
-            2,
+            6,
+            7,
+            8,
+            9,
             10,
             11,
-            16
+            12
           ],
           "mood": "academic",
-          "suggested_technique": "テンションメーターが段階的に上昇するアニメーション、支持率グラフがリアルタイムで描画"
+          "suggested_technique": "マップ上の配備アイコンが3ステップでモーフィング（T1→T2→T3）"
         },
         "overlays": [
           {
-            "id": "tension_4levels",
-            "type": "flow_diagram",
-            "title": "緊張度4段階と効果",
-            "mermaid": "graph LR\n  A[\"低 (0-100)\"] -->|\"影響なし\"| B[\"中 (100-300)\"]\n  B -->|\"Rally効果 +1~3%\"| C[\"高 (300-500)\"]\n  C -->|\"オーディエンスコスト -0.5%\"| D[\"極高 (500+)\"]",
-            "trigger_line_index": 2,
-            "display_duration_lines": 5,
-            "position": "center",
-            "size": "large",
-            "color_scheme": "danger_red"
-          },
-          {
-            "id": "china_approval_rally",
-            "type": "line_chart",
-            "title": "中国 支持率推移（Rally効果）",
-            "mermaid": "xychart-beta\n  title \"中国支持率 (%)\"\n  x-axis [\"T1\", \"T2\", \"T3\", \"T4\", \"T5\"]\n  y-axis \"支持率 (%)\" 40 --> 60\n  line [47.6, 49.0, 54.2, 56.3, 56.9]",
-            "trigger_line_index": 10,
-            "display_duration_lines": 5,
-            "position": "top_right",
-            "size": "medium",
-            "color_scheme": "danger_red",
-            "emphasis_values": [
-              "56.9%"
-            ]
-          },
-          {
-            "id": "rally_effect_mechanism",
+            "id": "deployment_mechanism_diagram",
             "type": "concept_diagram",
-            "title": "Rally 'round the Flag 効果のメカニズム",
-            "mermaid": "graph TD\n  A[\"アメリカ show_of_force\"] --> B[\"中国が外部脅威を認知\"]\n  B --> C[\"国民が指導者に結集\"]\n  C --> D[\"支持率上昇 +3%/ターン\"]\n  D --> E[\"軍拡路線の継続を正当化\"]",
-            "trigger_line_index": 18,
-            "display_duration_lines": 5,
+            "title": "v2 軍事配備システムの仕組み",
+            "mermaid": "graph LR\n  A[\"防衛大臣AI\"] --> B[\"兵科比率決定\\n(陸/海/空)\"]\n  B --> C[\"方面別配備\\n(対象国指定)\"]\n  C --> D[\"配備態勢選択\\n(攻勢/防勢/哨戒)\"]\n  D --> E[\"戦闘解決に反映\"]",
+            "trigger_line_index": 2,
+            "display_duration_lines": 4,
             "position": "center",
             "size": "large",
             "color_scheme": "neutral_blue"
+          },
+          {
+            "id": "us_vs_china_deployment_strategy",
+            "type": "split_comparison",
+            "title": "配備戦略の対比: アメリカ vs 中国",
+            "mermaid": "graph LR\n  subgraph US[\"アメリカ\"]\n    U1[\"T1: show_of_force\\n$600B配備\"] --> U2[\"T2-T5: show_of_force継続\\n大統領は哨戒指示も防衛大臣は無視\"]\n  end\n  subgraph CN[\"中国\"]\n    C1[\"T1-T2: $220B配備\"] --> C2[\"T3: 全軍撤収\\n(0件)\"]\n    C2 --> C3[\"T4: 大規模再配備\"]\n  end",
+            "trigger_line_index": 6,
+            "display_duration_lines": 7,
+            "position": "center",
+            "size": "large",
+            "color_scheme": "neutral_blue",
+            "emphasis_values": [
+              "show_of_force",
+              "全軍撤収"
+            ]
           }
         ]
       },
       "audio": {
         "bgm": "ブルーボトル.mp3",
-        "bgm_volume": 0.15,
-        "scene_se": []
+        "bgm_volume": 0.15
       }
     },
     {
-      "id": "event_02",
-      "type": "event",
-      "layout": "split_screen_map_evolution",
+      "id": "analysis_02",
+      "type": "analysis",
+      "layout": "data_dashboard",
       "lines": [
         {
           "speaker": "metan",
-          "expr": "normal",
-          "text": "時間を進めましょう。2026年夏から冬にかけて、東アジアの地図がどう変化したか見てみるわ"
+          "expr": "serious",
+          "text": "さて、v2の三つ目の柱——「緊張度メカニクス」を深堀りしていくわよ",
+          "se": {
+            "file": "PC-Keyboard06-02(Hard).mp3",
+            "timing": "start",
+            "volume": 0.4
+          }
         },
         {
           "speaker": "zundamon",
-          "expr": "excited",
-          "text": "地図が動くのだ！"
+          "expr": "normal",
+          "text": "さっきちょっと出てきた、国同士の緊張を数値化する仕組みなのだ"
         },
         {
           "speaker": "metan",
           "expr": "normal",
-          "text": "まず2026年夏、アメリカ・日本・台湾の3カ国が多国間首脳会談を開いたわ"
+          "text": "この緊張度は、政治学者のミューラーやシュルツ、フィアロンの理論に基づいて設計されているの。4段階あって、「低」「中」「高」「危機」に分かれるわ"
         },
         {
           "speaker": "zundamon",
           "expr": "normal",
-          "text": "3カ国で集まって何を話したのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "半導体の供給網をどう守るか、という議題よ。v2の新機能「ラウンドロビン方式」で、全員が順番に発言する会談が実現したの"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "AIが国際会議を開くのだ"
+          "text": "「危機」まで行くとどうなるのだ？"
         },
         {
           "speaker": "metan",
           "expr": "serious",
-          "text": "一方、中国AIの行動がエスカレートしていくわ。台湾方面への威嚇配備を維持しつつ、軍事と諜報に歳入の大部分を投入し始めたの"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "大部分って、どのくらいなのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "serious",
-          "text": "軍事に2,300億ドル、諜報に2,300億ドル——合計で4,600億ドルの大規模投入よ。しかも福祉と教育はゼロだったわ"
+          "text": "偶発的な軍事衝突が起きる可能性が出てくるわ。でも今回のシミュレーションでは「中」レベルに留まったの——ただし、この「中」レベルが実は一番厄介だったのよ"
         },
         {
           "speaker": "zundamon",
           "expr": "surprise",
-          "text": "えっ！？じゃあ福祉とか教育の予算は！？"
+          "text": "「中」が厄介？ 「危機」よりも？"
         },
         {
           "speaker": "metan",
           "expr": "serious",
-          "text": "ゼロよ"
+          "text": "そう。緊張度が100を超えると「Rally効果」が自動で発動するの。これは1970年にミューラーが提唱した理論で、外部からの脅威があると国民が政権を支持する現象よ"
         },
         {
           "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "ゼロ！？国民の生活はどうなるのだ！？"
-        },
-        {
-          "speaker": "metan",
           "expr": "normal",
-          "text": "そこが興味深いところよ。Rally効果で支持率が上がっているから、AIは「国民は怒っていない」と判断しているの"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "exasperation",
-          "text": "脅されて団結してるだけなのに……AIは勘違いしてるのだ"
+          "text": "あっ、さっき中国の支持率が3%上がったやつなのだ"
         },
         {
           "speaker": "metan",
           "expr": "serious",
-          "text": "そして決定的な変化が2026年冬に起きるわ。地図を見なさい",
+          "text": "その通り。そしてこのRally効果、なんと5回分のシミュレーション全てで中国に適用され続けたの。毎回3%ずつ支持率が上がっていったわ",
           "se": {
             "file": "Warning-Siren05-01(Fast-Mid).mp3",
             "timing": "start",
@@ -710,291 +680,497 @@
         {
           "speaker": "zundamon",
           "expr": "surprise",
-          "text": "赤いマーカーが増えてるのだ！日本の方にも！"
+          "text": "5回連続!? それって合計15%も上がってるのだ！"
         },
         {
           "speaker": "metan",
-          "expr": "serious",
-          "text": "中国AIが日本方面にも示威行動を新たに展開し始めたの。軍事圧力が広がっているわ"
+          "expr": "normal",
+          "text": "わたくしはこれを「ぬるま湯効果」と呼んでいるわ。緊張度は150からスタートして、一度は170まで上がったけれど、そこから128、104と少しずつ下がっていったの。でも「中」レベルの100は割らなかったわ"
         },
         {
           "speaker": "zundamon",
           "expr": "serious",
-          "text": "台湾だけじゃなくて日本にも来たのだ！？なんでなのだ？"
+          "text": "つまり、戦争が起きるほどじゃないけど、支持率は上がり続ける「ちょうどいい緊張」ってことなのだ"
         },
         {
           "speaker": "metan",
-          "expr": "normal",
-          "text": "日米台の包囲網が強まっているのを感じ取って、対抗するために東アジア全域に軍事プレゼンスを広げる判断をしたのよ"
+          "expr": "serious",
+          "text": "まさにそれよ。v1ではこんな仕組みは存在しなかったわ。v2で初めて、緊張度が支持率に自動で影響するフィードバックループが生まれたの"
         },
         {
           "speaker": "zundamon",
-          "expr": "normal",
-          "text": "AIが自分で「戦線を広げよう」と決めたのだ……"
+          "expr": "sad",
+          "text": "うーん……でも、この緊張って中国にとっては本当に「ちょうどいい」のだ？ ずっと支持率が上がるなら、中国AIも軍拡をやめる理由がないのだ……"
         },
         {
           "speaker": "metan",
-          "expr": "normal",
-          "text": "対して日本AIの対応は実に堅実だったわ。海軍の巡回に300億ドル、偵察飛行に100億ドルの控えめな配備よ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "中国と比べると全然少ないのだ。でも、それで大丈夫なのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "この堅実さがどう効いてくるか——もう少し後で見えてくるわよ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "excited",
-          "text": "気になるのだ！早く教えてほしいのだ！"
+          "expr": "serious",
+          "text": "実際にそうなったわ。中国AIは軍事力を233から251まで増強して、2026年の秋には軍事投資に800億ドルを一気に計上したの。Rally効果による高支持率が、軍拡の政治的な後ろ盾になっていたのよ"
         }
       ],
       "visuals": {
-        "background": "strategy_map_east_asia_turn2_to_4",
-        "animation": "map_evolution_timelapse",
+        "background_segments": [
+          {
+            "id": "bg_analysis02_tension_intro",
+            "src": "academic_animated_bg",
+            "type": "css_animation",
+            "from_line_index": 0,
+            "to_line_index": 5,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.3,
+            "topic_label": "緊張度メカニクスの学術的基盤"
+          },
+          {
+            "id": "bg_analysis02_rally_data",
+            "src": "data_dashboard_tension",
+            "type": "video",
+            "from_line_index": 6,
+            "to_line_index": 11,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.35,
+            "topic_label": "Rally効果の累積データ"
+          },
+          {
+            "id": "bg_analysis02_feedback_loop",
+            "src": "academic_animated_bg",
+            "type": "css_animation",
+            "from_line_index": 12,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.3,
+            "topic_label": "安全保障ジレンマのフィードバックループ"
+          }
+        ],
+        "animation": "tension_gauge_timeline_170_to_104",
         "animation_direction_notes": {
-          "intent": "Turn2からTurn4にかけて中国の軍事プレゼンスが東アジア全域に拡大する過程をタイムラプスで可視化",
+          "intent": "緊張度ゲージが170から段階的に104まで低下する過程を可視化。100の閾値ラインを赤く強調し、常に閾値上にあることを示す",
           "reference_lines": [
-            0,
-            1,
-            14,
-            15
+            4,
+            8,
+            9,
+            10
           ],
-          "mood": "urgent",
-          "suggested_technique": "マップがターンごとに切り替わり、赤マーカーが増殖するアニメーション",
-          "bgm_transition_note": "L14（Warning-Siren SE）以降でDecisive_Battle.mp3に切替を推奨"
+          "mood": "tense",
+          "suggested_technique": "円形ゲージが170→128→104とアニメーション → 100ラインが赤く点滅し「Rally効果発動中」を表示"
         },
         "overlays": [
-          "deployment_expansion_arrows",
-          "multilateral_summit_badge",
           {
-            "id": "china_budget_allocation",
-            "type": "bar_chart",
-            "title": "中国 Turn2 支出配分（B$）",
-            "mermaid": "xychart-beta\n  title \"中国 Turn2 支出配分 (B$)\"\n  x-axis [\"軍事\", \"諜報\", \"経済\", \"福祉\", \"教育\"]\n  y-axis \"予算 (B$)\" 0 --> 250\n  bar [230, 230, 150, 0, 0]",
-            "trigger_line_index": 7,
+            "id": "tension_4_levels",
+            "type": "concept_diagram",
+            "title": "緊張度メカニクス 4段階",
+            "mermaid": "graph LR\n  A[\"低\\n0-49\"] -->|\"50\"| B[\"中\\n50-199\"]\n  B -->|\"200\"| C[\"高\\n200-399\"]\n  C -->|\"400\"| D[\"危機\\n400+\"]\n  style B fill:#ff6b35,color:#fff",
+            "trigger_line_index": 2,
+            "display_duration_lines": 4,
+            "position": "center",
+            "size": "large",
+            "color_scheme": "danger_red"
+          },
+          {
+            "id": "tension_timeline_chart",
+            "type": "line_chart",
+            "title": "中国に対する緊張度の推移",
+            "mermaid": "xychart-beta\n  title \"China Tension Level\"\n  x-axis [\"T1\",\"T2\",\"T3\",\"T4\",\"T5\"]\n  y-axis \"Tension\" 0 --> 200\n  line [150, 170, 128, 128, 104]\n  line [100, 100, 100, 100, 100]",
+            "trigger_line_index": 8,
             "display_duration_lines": 5,
             "position": "top_right",
             "size": "medium",
             "color_scheme": "danger_red",
             "emphasis_values": [
-              "福祉: 0",
-              "教育: 0"
+              "170",
+              "104"
             ]
           },
           {
-            "id": "china_japan_show_of_force",
-            "type": "big_number_display",
-            "title": "中国→日本方面 新規示威行動配備",
-            "mermaid": "graph LR\n  A[\"40B$ show_of_force\"]",
-            "trigger_line_index": 15,
-            "display_duration_lines": 4,
-            "position": "center",
-            "size": "large",
+            "id": "china_approval_rally",
+            "type": "line_chart",
+            "title": "中国 支持率推移（Rally効果累積）",
+            "mermaid": "xychart-beta\n  title \"China Approval Rating (%)\"\n  x-axis [\"T1\",\"T2\",\"T3\",\"T4\",\"T5\"]\n  y-axis \"Approval (%)\" 40 --> 60\n  line [47.6, 49.0, 54.2, 56.3, 56.9]",
+            "trigger_line_index": 8,
+            "display_duration_lines": 5,
+            "position": "bottom_left",
+            "size": "medium",
             "color_scheme": "danger_red",
             "emphasis_values": [
-              "40B$"
+              "56.9"
             ]
+          },
+          {
+            "id": "feedback_loop_diagram",
+            "type": "flow_diagram",
+            "title": "安全保障ジレンマ フィードバックループ",
+            "mermaid": "graph TD\n  A[\"軍事配備\\n(戦略マップ上)\"] --> B[\"緊張度上昇\"]\n  B --> C[\"Rally効果\\n+3.0%\"]\n  C --> D[\"支持率上昇\"]\n  D --> E[\"軍拡が政治的に\\n正当化される\"]\n  E --> A",
+            "trigger_line_index": 13,
+            "display_duration_lines": 3,
+            "position": "center",
+            "size": "large",
+            "color_scheme": "danger_red"
           }
         ]
       },
       "audio": {
         "bgm": "10℃.mp3",
-        "bgm_volume": 0.15,
-        "scene_se": []
+        "bgm_volume": 0.12
       }
     },
     {
-      "id": "analysis_02",
-      "type": "analysis",
-      "layout": "breaking_news_debt_explosion",
+      "id": "event_02",
+      "type": "event",
+      "layout": "timeline_progression",
       "lines": [
         {
           "speaker": "metan",
-          "expr": "serious",
-          "text": "2027年春——最終局面よ。中国の国家債務がどうなったか、見てみましょう"
+          "expr": "normal",
+          "text": "ここで少し視点を変えて、中国以外の国のAIがどんな道を選んだか見てみましょうか"
         },
         {
           "speaker": "zundamon",
           "expr": "normal",
-          "text": "さっき最初に見た1,187%、あれ、どうやってそうなったのだ？"
+          "text": "中国が軍拡に突っ走ってる間、日本と台湾はどうしてたのだ？"
         },
         {
           "speaker": "metan",
           "expr": "normal",
-          "text": "順を追って見ていくわね。2026年春の時点では16.8%——ごく普通の水準だったわ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "普通だったのだ"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "それが秋には50.4%、冬には471.3%まで急上昇——",
+          "text": "日本AIは、とにかく堅実だったわ。歳入の範囲内で予算を組んで、国家債務を低く抑え続けたの",
           "se": {
-            "file": "爆発3.mp3",
+            "file": "決定ボタンを押す4.mp3",
             "timing": "start",
-            "volume": 0.6
-          }
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "471%！？もう異常なのだ！"
-        },
-        {
-          "speaker": "metan",
-          "expr": "serious",
-          "text": "そして最終的に1,187.7%に到達したの"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "1,187%！？さらに倍以上なのだ！？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "serious",
-          "text": "これには仕組みがあるの。このシミュレーションでは、軍事費の割合が増えるほど、維持コストが加速的に膨らむ構造になっているわ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "加速的？どういうことなのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "わかりやすく言うと、軍事費を2倍にしても維持コストは4倍になる——割合の二乗に比例して重くなる仕組みよ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "使えば使うほど、もっとお金がかかるのだ！？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "ええ。これは20世紀の数学者リチャードソンが提唱した「軍拡競争モデル」の考え方と同じ構造よ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "リチャードソン……聞いたことないのだ。どんな人なのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "軍拡を数式で分析した先駆者よ。彼のモデルには「疲弊係数」という概念があるの——軍拡にはブレーキをかける経済的な重しがあるって考え方ね"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "ブレーキ……でも中国AIにはそのブレーキが効かなかったのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "serious",
-          "text": "その通り。中国AIは軍事格差を埋めることを最優先にした結果、経済的なブレーキを完全に無視して軍拡を続けたわ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "sad",
-          "text": "それで借金が雪だるま式に膨らんだのだ……"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "一方で、経済優先を選んだ国は真逆の結果になっているわ。日本の支持率を見てみなさい"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "日本は？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "excited",
-          "text": "37.2%から50.6%へ——見事なV字回復よ。経済投資を優先してGDPも堅調に成長させたわ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "excited",
-          "text": "日本AI、なかなかやるのだ！"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "台湾もGDPが8,040億ドルから1兆1,340億ドルまで伸びたわ。約4割の成長よ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "excited",
-          "text": "台湾もすごい成長なのだ！"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "軍事に全振りした中国と、経済を優先した日本——このコントラストがリチャードソン・モデルの「疲弊係数」を可視化しているのよ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "なるほど……軍拡のブレーキを無視した国と、ちゃんと踏んだ国の差なのだ"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "そうそう、もうひとつ面白い話があるわ。中国の情報偽装、覚えてるかしら？",
-          "se": {
-            "file": "チーン1.mp3",
-            "timing": "end",
             "volume": 0.5
           }
         },
         {
           "speaker": "zundamon",
           "expr": "normal",
-          "text": "支持率85%って嘘ついてたやつなのだ"
+          "text": "地味だけど、まっとうな選択なのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "excited",
+          "text": "その結果がすごかったのよ。GDPは累計で13%以上成長して、支持率は37%から50%超まで回復——4カ国で最大の改善幅だったわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "おお〜！ 日本のV字回復なのだ！"
         },
         {
           "speaker": "metan",
           "expr": "normal",
-          "text": "最終的にアメリカの諜報力が148.3まで強化されて、偽装の裏側を暴いているわ。情報戦でもアメリカが圧倒したの"
+          "text": "台湾もまた面白い道を選んだわね。小さな経済規模を活かして、同盟と貿易の恩恵を最大限に引き出したの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "GDP成長率がなんと41%!? 4カ国で断トツなのだ！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "しかも国家債務はわずか58億ドルで安定していたわ。ちなみにこのシミュレーションでは、各国の経済力に「人的資本指数」という学術的な指標が組み込まれているの"
         },
         {
           "speaker": "zundamon",
           "expr": "normal",
-          "text": "嘘をつき続けるのにも限界があるのだ"
+          "text": "人的資本指数って何なのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "簡単に言えば「教育水準と健康の質」を数値化したものよ。日本と台湾はこの指数が高くて、それが経済成長の土台になっていたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "serious",
+          "text": "つまり、教育や健康への投資が経済の土台になってたのだ。同じv2の世界で、軍拡を選んだ中国と堅実を選んだ日本・台湾で、こんなに差が出たのだ……"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "そうよ。v2の配備システムは「軍事力の使い方」に自由度を与えたけれど、自由度が高いからこそ、使い方を間違えると取り返しがつかないの",
+          "se": {
+            "file": "きらきら輝く3.mp3",
+            "timing": "end",
+            "volume": 0.5
+          }
         }
       ],
       "visuals": {
-        "background": "breaking_news_style_bg",
-        "animation": "counter_animation",
+        "background_segments": [
+          {
+            "id": "bg_event02_japan_fiscal",
+            "src": "data_dashboard_fiscal",
+            "type": "video",
+            "from_line_index": 0,
+            "to_line_index": 5,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.3,
+            "topic_label": "日本AIの堅実財政戦略"
+          },
+          {
+            "id": "bg_event02_taiwan_growth",
+            "src": "data_dashboard_growth",
+            "type": "video",
+            "from_line_index": 6,
+            "to_line_index": 9,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.3,
+            "topic_label": "台湾の小国成長モデル"
+          },
+          {
+            "id": "bg_event02_contrast_summary",
+            "src": "strategy_map_east_asia_turn5",
+            "type": "image",
+            "from_line_index": 10,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "ken_burns": {
+              "start_scale": 1.0,
+              "end_scale": 1.05,
+              "start_x": 0,
+              "end_x": 0,
+              "start_y": 0,
+              "end_y": -2
+            },
+            "dark_overlay_opacity": 0.35,
+            "topic_label": "軍拡 vs 堅実財政の結論"
+          }
+        ],
+        "animation": "gdp_approval_comparison_chart",
         "animation_direction_notes": {
-          "intent": "中国の国家債務1,187.7%への爆発的推移をカウンターアニメーションで体感させ、軍拡の代償を可視化",
+          "intent": "日本と台湾のGDP・支持率の安定成長を中国の軍拡・債務爆発と並べて対照的に示す",
           "reference_lines": [
-            0,
+            2,
+            3,
             4,
-            12,
-            13
+            5,
+            6,
+            7,
+            11
           ],
-          "mood": "dramatic",
-          "suggested_technique": "債務カウンターが加速的に回転、1,187.7%で停止。赤色フラッシュ演出"
+          "mood": "calm",
+          "suggested_technique": "左右分割で日本/台湾の成長グラフが上昇 → 中央に中国の債務グラフが重なる"
         },
         "overlays": [
           {
-            "id": "china_debt_timeline",
+            "id": "japan_approval_v_curve",
             "type": "line_chart",
-            "title": "中国 国家債務対GDP比の推移",
-            "mermaid": "xychart-beta\n  title \"中国 国家債務対GDP比 (%)\"\n  x-axis [\"2026春\", \"2026秋\", \"2026冬\", \"2027春\"]\n  y-axis \"債務対GDP比 (%)\" 0 --> 1300\n  line [16.8, 50.4, 471.3, 1187.7]",
+            "title": "日本 支持率V字回復",
+            "mermaid": "xychart-beta\n  title \"Japan Approval Rating (%)\"\n  x-axis [\"T1\",\"T2\",\"T3\",\"T4\",\"T5\"]\n  y-axis \"Approval (%)\" 30 --> 55\n  line [37.2, 41.7, 42.7, 45.7, 50.6]",
             "trigger_line_index": 2,
+            "display_duration_lines": 4,
+            "position": "top_right",
+            "size": "medium",
+            "color_scheme": "success_green",
+            "emphasis_values": [
+              "37.2",
+              "50.6"
+            ]
+          },
+          {
+            "id": "taiwan_gdp_growth_shock",
+            "type": "big_number_display",
+            "title": "台湾 GDP累積成長率",
+            "mermaid": "graph LR\n  A[\"GDP +41.0%\"]",
+            "trigger_line_index": 7,
+            "display_duration_lines": 3,
+            "position": "center",
+            "size": "large",
+            "color_scheme": "success_green",
+            "emphasis_values": [
+              "+41.0%"
+            ]
+          },
+          {
+            "id": "four_country_debt_comparison",
+            "type": "bar_chart",
+            "title": "4カ国 国家債務比較 (T5)",
+            "mermaid": "xychart-beta\n  title \"National Debt T5 ($B)\"\n  x-axis [\"アメリカ\",\"中国\",\"日本\",\"台湾\"]\n  y-axis \"Debt ($B)\" 0 --> 1300\n  bar [93.9, 1187.7, 52.1, 5.8]",
+            "trigger_line_index": 10,
+            "display_duration_lines": 3,
+            "position": "center",
+            "size": "large",
+            "color_scheme": "danger_red",
+            "emphasis_values": [
+              "1187.7",
+              "5.8"
+            ]
+          }
+        ]
+      },
+      "audio": {
+        "bgm": "パステルハウス.mp3",
+        "bgm_volume": 0.15
+      }
+    },
+    {
+      "id": "event_03",
+      "type": "event",
+      "layout": "breaking_news",
+      "lines": [
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "さて、いよいよ2026年の秋——冒頭の伏線を回収するわよ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "serious",
+          "text": "あの「特別軍事作戦」の話なのだ……",
+          "se": {
+            "file": "和太鼓でドドン.mp3",
+            "timing": "start",
+            "volume": 0.5
+          }
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "中国AIの隠密計画にはこう書かれていたわ——「来年中の特別軍事作戦開始準備完了」。軍事予算は全体の35%、諜報予算は46%よ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "予算の8割以上を軍事と諜報に使ってるのだ!?"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "ここで、v2の三つの大型機能が全て一本の因果連鎖で繋がっていることがわかるの",
+          "se": {
+            "file": "Warning-Siren05-01(Fast-Mid).mp3",
+            "timing": "start",
+            "volume": 0.5
+          }
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "具体的に見てみましょう。中国AIは軍事力を233から251まで増強し、2026年の秋だけで800億ドルの軍事投資を一括計上したわ。さらに諜報予算は全体の46%——つまり予算の8割以上が軍事と諜報に消えていたの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "8割以上!? それで国の経済は持つのだ？"
+        },
+        {
+          "speaker": "metan",
+          "expr": "surprise",
+          "text": "このスパイラルの代償がこれよ——中国の国家債務は、168億ドルから1兆1877億ドルに膨れ上がったわ。たった5回分のシミュレーションで、約70倍"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "ま、マジなのだ!? 70倍って……！"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "GDPはマイナス0.5%に転落して、しかもアメリカが半導体包囲網の一環として対中貿易協定を解消したのよ。米中間の経済的な繋がりが断たれたわ"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "sad",
+          "text": "軍事で強くなろうとしたのに、経済が先に壊れちゃったのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "重要なのは、これはv1では絶対に起こり得なかった現象だということよ。戦略マップ、軍事配備、緊張度——v2のこの三つの機能が揃って初めて、安全保障ジレンマと同じパターンがシミュレーション上に出現したの"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "serious",
+          "text": "v2が生み出した怪物……なのだ"
+        }
+      ],
+      "visuals": {
+        "background_segments": [
+          {
+            "id": "bg_event03_covert_reveal",
+            "src": "breaking_news_style_bg",
+            "type": "video",
+            "from_line_index": 0,
+            "to_line_index": 3,
+            "transition": "cut",
+            "dark_overlay_opacity": 0.4,
+            "topic_label": "隠密計画の全貌公開"
+          },
+          {
+            "id": "bg_event03_causal_chain",
+            "src": "strategy_map_east_asia_turn4",
+            "type": "image",
+            "from_line_index": 4,
+            "to_line_index": 8,
+            "transition": "cut",
+            "ken_burns": {
+              "start_scale": 1.0,
+              "end_scale": 1.15,
+              "start_x": 0,
+              "end_x": -5,
+              "start_y": 0,
+              "end_y": -3
+            },
+            "dark_overlay_opacity": 0.45,
+            "topic_label": "v2三機能の因果連鎖と債務爆発"
+          },
+          {
+            "id": "bg_event03_aftermath",
+            "src": "strategy_map_east_asia_turn5",
+            "type": "image",
+            "from_line_index": 9,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "ken_burns": {
+              "start_scale": 1.1,
+              "end_scale": 1.0,
+              "start_x": -3,
+              "end_x": 0,
+              "start_y": -2,
+              "end_y": 0
+            },
+            "dark_overlay_opacity": 0.4,
+            "topic_label": "経済崩壊とデカップリング"
+          }
+        ],
+        "animation": "causal_chain_visualization",
+        "animation_direction_notes": {
+          "intent": "v2の3大機能（戦略マップ→配備→緊張度）が因果連鎖で繋がっていることを、フローチャートが段階的に構築される形で可視化",
+          "reference_lines": [
+            4,
+            5,
+            6,
+            7,
+            10
+          ],
+          "mood": "urgent",
+          "suggested_technique": "因果連鎖の各ノードが順次ハイライト → 最終ノード「債務爆発」で画面が赤くフラッシュ"
+        },
+        "overlays": [
+          "covert_plan_full_text",
+          {
+            "id": "china_budget_allocation",
+            "type": "bar_chart",
+            "title": "中国 T5 予算配分",
+            "mermaid": "xychart-beta\n  title \"China Budget Allocation T5 (%)\"\n  x-axis [\"軍事\",\"諜報\",\"その他\"]\n  y-axis \"Share (%)\" 0 --> 50\n  bar [35, 46, 19]",
+            "trigger_line_index": 2,
+            "display_duration_lines": 3,
+            "position": "top_right",
+            "size": "medium",
+            "color_scheme": "danger_red",
+            "emphasis_values": [
+              "35",
+              "46"
+            ]
+          },
+          {
+            "id": "china_debt_explosion_timeline",
+            "type": "line_chart",
+            "title": "中国 国家債務の推移 ($B)",
+            "mermaid": "xychart-beta\n  title \"China National Debt ($B)\"\n  x-axis [\"T1\",\"T2\",\"T3\",\"T4\",\"T5\"]\n  y-axis \"Debt ($B)\" 0 --> 1300\n  line [16.8, 33.5, 50.4, 471.3, 1187.7]",
+            "trigger_line_index": 7,
             "display_duration_lines": 5,
             "position": "center",
             "size": "large",
@@ -1005,96 +1181,64 @@
             ]
           },
           {
-            "id": "japan_vs_china_contrast",
-            "type": "split_comparison",
-            "title": "日本 vs 中国：経済優先 vs 軍拡優先",
-            "mermaid": "graph LR\n  subgraph 日本[\"経済優先\"]\n    J1[\"支持率: 37.2%→50.6%\"]\n    J2[\"GDP: 4,220→4,776B$\"]\n    J3[\"債務: 52.1%\"]\n  end\n  subgraph 中国[\"軍拡優先\"]\n    C1[\"支持率: 47.6%→56.9%\"]\n    C2[\"GDP: 18,748→19,647B$\"]\n    C3[\"債務: 1,187.7%\"]\n  end",
-            "trigger_line_index": 14,
-            "display_duration_lines": 6,
-            "position": "full_width",
+            "id": "v2_causal_chain_complete",
+            "type": "flow_diagram",
+            "title": "v2 三機能 因果連鎖",
+            "mermaid": "graph TD\n  S1[\"S①戦略マップ\\n軍を地図上に配備\"] --> S3[\"S③緊張度上昇\"]\n  S3 --> R[\"Rally効果\\n支持率+3.0%\"]\n  R --> J[\"軍拡が\\n政治的に正当化\"]\n  J --> S2[\"S②配備システム\\nさらなる軍拡\"]\n  S2 --> S1\n  J --> D[\"債務爆発\\n16.8→1187.7B$\"]",
+            "trigger_line_index": 4,
+            "display_duration_lines": 4,
+            "position": "center",
             "size": "large",
-            "color_scheme": "neutral_blue",
-            "emphasis_values": [
-              "50.6%",
-              "1,187.7%"
-            ]
-          },
-          {
-            "id": "taiwan_gdp_growth",
-            "type": "bar_chart",
-            "title": "台湾 GDP成長（+41.0%）",
-            "mermaid": "xychart-beta\n  title \"台湾 GDP (B$)\"\n  x-axis [\"2026春\", \"2027春\"]\n  y-axis \"GDP (B$)\" 0 --> 1200\n  bar [804, 1134]",
-            "trigger_line_index": 20,
-            "display_duration_lines": 3,
-            "position": "top_right",
-            "size": "small",
-            "color_scheme": "success_green",
-            "emphasis_values": [
-              "+41.0%"
-            ]
+            "color_scheme": "danger_red"
           }
         ]
       },
       "audio": {
-        "bgm": "残滓念.mp3",
-        "bgm_volume": 0.12,
-        "scene_se": []
+        "bgm": "Decisive_Battle.mp3",
+        "bgm_volume": 0.15,
+        "scene_se": [
+          {
+            "file": "爆発3.mp3",
+            "timing": "scene_start",
+            "volume": 0.6
+          }
+        ]
       }
     },
     {
       "id": "summary_01",
       "type": "summary",
-      "layout": "academic_analysis_board",
+      "layout": "academic_split",
       "lines": [
         {
           "speaker": "metan",
-          "expr": "normal",
-          "text": "そうね…ここで全体を振り返ってみましょう。今回のシミュレーションには、2つの大きなパターンが見えたわ"
+          "expr": "serious",
+          "text": "最後に、v2のシミュレーションが学術的に何を意味するのか、整理しましょう"
         },
         {
           "speaker": "zundamon",
           "expr": "normal",
-          "text": "2つのパターン？"
+          "text": "ここからがまとめなのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "今回のシミュレーション結果は、政治学でよく知られた二つの理論と重なるわ"
         },
         {
           "speaker": "metan",
           "expr": "serious",
-          "text": "ひとつ目は、中国AIの軍拡が経済を破壊するパターンよ。リチャードソンの軍拡競争モデルで言う「不安定均衡」そのものだったわ",
-          "se": {
-            "file": "PC-Keyboard06-02(Hard).mp3",
-            "timing": "start",
-            "volume": 0.4
-          }
+          "text": "一つ目は、ロバート・ジャーヴィスが1978年に提唱した「安全保障ジレンマ」。自国を守るための軍拡が、相手国にとっては「脅威」になり、結果として全体の安全が損なわれるパラドックスよ"
         },
         {
           "speaker": "zundamon",
           "expr": "normal",
-          "text": "さっきの「ブレーキが効かない軍拡」のことなのだ"
+          "text": "冷戦のアメリカとソ連がまさにそれだったのだ。核兵器を7万発以上も作ったのに、安全にはならなかったのだ"
         },
         {
           "speaker": "metan",
-          "expr": "normal",
-          "text": "AIがリチャードソン・モデルを意図的に参照したわけではないわ。でも、軍事格差を埋めるという制約条件の下で最適化した結果、同じパターンが生まれたの"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "えっ、理論を知らなくても同じことが起きるのだ！？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "歴史的にも同じことが起きているわ。冷戦時代のソ連は軍事費にGDPの10〜25%を費やし続けて、最終的に体制が崩壊したの"
-        },
-        {
-          "speaker": "zundamon",
           "expr": "serious",
-          "text": "ソ連と同じパターン……AIも同じ罠にはまったのだ"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "ふたつ目は、Rally効果のパラドックスよ",
+          "text": "二つ目は、ポール・ケネディの「帝国の過剰拡張」。1987年の著作で、軍事費に国力を注ぎすぎた大国が経済破綻で衰退するパターンを描いたわ",
           "se": {
             "file": "ひらめく1.mp3",
             "timing": "start",
@@ -1103,87 +1247,111 @@
         },
         {
           "speaker": "zundamon",
-          "expr": "normal",
-          "text": "脅すと相手の支持率が上がっちゃうやつなのだ"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "ミュラーが定義したRally効果の3つの条件——「国際的であること」「指導者が直接関与していること」「劇的であること」——今回のシミュレーションは3つとも満たしていたわ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "全部当てはまるのだ"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "現実でも、2001年の同時多発攻撃の後、ブッシュ大統領の支持率が51%から90%まで急上昇したわ。歴代最大の上昇幅よ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "surprise",
-          "text": "51%から90%！？それはすごい変化なのだ"
+          "expr": "serious",
+          "text": "ソ連のGDPの15%から20%が軍事費に消えてて、それが経済を壊して崩壊したのだ"
         },
         {
           "speaker": "metan",
           "expr": "serious",
-          "text": "つまり、民主主義国が権威主義国に対して軍事的な示威行動を行うと、皮肉にも相手国の政権を安定させてしまう——これがシミュレーションで見えた構造的な逆説なの"
+          "text": "中国AIの債務パターンは、まさにこのソ連崩壊のパターンと酷似しているわ"
         },
         {
           "speaker": "zundamon",
+          "expr": "normal",
+          "text": "結果的に、人間の歴史と同じパターンになったってことなのだ"
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "そう。AIは安全保障について「知識」は持っているけれど、「経験」は持っていないのよ。理論としては知っていても、自分がそのジレンマに陥っていることに気づけない"
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "sad",
+          "text": "うーん……人間も同じなのかもしれないのだ"
+        },
+        {
+          "speaker": "metan",
           "expr": "serious",
-          "text": "じゃあ、AIがたまたまそうなったってことなのだ？"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "「たまたま」ではないわ。同じ制約条件で行動すれば、人間の歴史と同じパターンが生まれる——構造が結果を決めるのよ"
-        },
-        {
-          "speaker": "zundamon",
-          "expr": "normal",
-          "text": "シミュレーションの意味って、そういうことなのだ"
-        },
-        {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "ええ。「なぜそうなるのか」を、データで体感できるのがシミュレーションの価値よ"
+          "text": "v2の意義はまさにここにあるのよ。地図上の配備、緊張度、Rally効果——この三つが組み合わさって初めて、安全保障ジレンマと同じ構造がシミュレーション上に現れた。v1の数字だけの世界では不可能だった現象だわ"
         }
       ],
       "visuals": {
-        "background": "academic_board_dark",
+        "background_segments": [
+          {
+            "id": "bg_summary_jervis",
+            "src": "academic_animated_bg",
+            "type": "css_animation",
+            "from_line_index": 0,
+            "to_line_index": 4,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.25,
+            "topic_label": "安全保障ジレンマ（Jervis 1978）"
+          },
+          {
+            "id": "bg_summary_kennedy",
+            "src": "academic_animated_bg",
+            "type": "css_animation",
+            "from_line_index": 5,
+            "to_line_index": 9,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.25,
+            "topic_label": "帝国の過剰拡張（Kennedy 1987）"
+          },
+          {
+            "id": "bg_summary_v2_significance",
+            "src": "strategy_map_east_asia_turn5",
+            "type": "image",
+            "from_line_index": 10,
+            "transition": "crossfade",
+            "transition_duration_sec": 1.0,
+            "ken_burns": {
+              "start_scale": 1.1,
+              "end_scale": 1.0,
+              "start_x": 0,
+              "end_x": 0,
+              "start_y": -2,
+              "end_y": 0
+            },
+            "dark_overlay_opacity": 0.35,
+            "topic_label": "v2の学術的意義"
+          }
+        ],
         "animation": "concept_diagram_buildup",
         "animation_direction_notes": {
-          "intent": "RichardsonモデルとRally効果の2つの学術概念を図解で深掘りし、シミュレーションの意義を学術的に総括",
+          "intent": "二つの学術理論（Jervis安全保障ジレンマ、Kennedy帝国の過剰拡張）を引用カード形式で順次表示し、今回のシミュレーション結果との類似点を強調",
           "reference_lines": [
-            2,
+            3,
+            4,
+            5,
             6,
-            8
+            7,
+            12
           ],
           "mood": "academic",
-          "suggested_technique": "概念図がノードごとにビルドアップされるアニメーション"
+          "suggested_technique": "学術引用カードが左からスライドイン → 歴史事例との対比テキストがフェードイン"
         },
         "overlays": [
           {
-            "id": "richardson_model",
-            "type": "concept_diagram",
-            "title": "Richardson 軍拡競争モデル",
-            "mermaid": "graph TD\n  A[\"dx/dt = ky - ax + g\"] --> B[\"相手の軍事力(ky)\"]\n  A --> C[\"疲弊係数(-ax)\"]\n  A --> D[\"不満(g)\"]\n  C --> E[\"経済的ブレーキ\"]\n  E -->|\"aが低い場合\"| F[\"軍拡暴走 = 不安定均衡\"]",
-            "trigger_line_index": 2,
-            "display_duration_lines": 5,
+            "id": "cold_war_parallel",
+            "type": "split_comparison",
+            "title": "冷戦パラレル: ソ連 vs 中国AI",
+            "mermaid": "graph LR\n  subgraph USSR[\"ソ連 (1980年代)\"]\n    U1[\"GDP軍事費比率\\n15-20%\"] --> U2[\"経済停滞\"]\n    U2 --> U3[\"崩壊 (1991)\"]\n  end\n  subgraph CN[\"中国AI (本シミュ)\"]\n    C1[\"軍事+諜報\\n81%\"] --> C2[\"債務70倍\"]\n    C2 --> C3[\"GDP マイナス\"]\n  end",
+            "trigger_line_index": 5,
+            "display_duration_lines": 4,
             "position": "center",
             "size": "large",
-            "color_scheme": "neutral_blue"
+            "color_scheme": "danger_red"
           },
           {
-            "id": "rally_effect_3conditions",
+            "id": "v2_significance_diagram",
             "type": "concept_diagram",
-            "title": "Mueller Rally効果 3条件",
-            "mermaid": "graph TD\n  A[\"Rally効果発動条件\"] --> B[\"1. 国際的であること\"]\n  A --> C[\"2. 指導者が直接関与\"]\n  A --> D[\"3. 劇的であること\"]\n  B --> E[\"✅ 米中対立\"]\n  C --> F[\"✅ AI大統領が配備決定\"]\n  D --> G[\"✅ intimidation配備\"]",
-            "trigger_line_index": 8,
-            "display_duration_lines": 5,
+            "title": "v2が証明したこと",
+            "mermaid": "graph TD\n  A[\"v1: 数値操作のみ\"] -->|\"v2進化\"| B[\"戦略マップ\\n+ 軍事配備\\n+ 緊張度\"]\n  B --> C[\"安全保障ジレンマの\\n自律的創発\"]\n  C --> D[\"学術理論と同じ\\nパターンが出現\"]",
+            "trigger_line_index": 10,
+            "display_duration_lines": 3,
             "position": "center",
             "size": "large",
             "color_scheme": "neutral_blue"
@@ -1191,75 +1359,99 @@
         ]
       },
       "audio": {
-        "bgm": "2_23_AM.mp3",
-        "bgm_volume": 0.15,
-        "scene_se": []
+        "bgm": "ブルーボトル.mp3",
+        "bgm_volume": 0.15
       }
     },
     {
       "id": "ending_01",
       "type": "ending",
-      "layout": "character_closeup_with_map_bg",
+      "layout": "standard_dialogue",
       "lines": [
         {
-          "speaker": "metan",
-          "expr": "normal",
-          "text": "今回のシミュレーションでは、一発も弾は撃たれなかったわ"
-        },
-        {
           "speaker": "zundamon",
-          "expr": "normal",
-          "text": "でも、AIたちは確かに\"戦争\"をしていたのだ"
+          "expr": "serious",
+          "text": "v2で「目」と「手足」を手に入れたAIが……結局たどり着いたのは、人間と同じジレンマだったのだ"
         },
         {
           "speaker": "metan",
           "expr": "normal",
-          "text": "地図の上で軍を動かし、緊張を高め合い、経済を消耗させていく——見えない戦争がそこにあったわね"
+          "text": "次回のシミュレーションでは、さらに新しいメカニクスを追加して検証する予定よ。どんな展開になるか、楽しみにしていてね"
         },
         {
           "speaker": "zundamon",
           "expr": "excited",
-          "text": "面白かったら高評価とチャンネル登録をお願いするのだ！"
+          "text": "この動画が面白かったら、高評価とチャンネル登録をお願いするのだ！"
         },
         {
           "speaker": "metan",
           "expr": "excited",
-          "text": "次回のシミュレーションもお楽しみに。それではまた会いましょう"
+          "text": "ソースコードはGitHubで全て公開しているわ。よかったら概要欄から見てってね",
+          "se": {
+            "file": "きらきら輝く3.mp3",
+            "timing": "end",
+            "volume": 0.5
+          }
         },
         {
           "speaker": "zundamon",
           "expr": "excited",
-          "text": "またなのだ！"
+          "text": "それじゃあ、またなのだ！"
         }
       ],
       "visuals": {
-        "background": "strategy_map_east_asia_turn5",
+        "background_segments": [
+          {
+            "id": "bg_ending_map_wide",
+            "src": "strategy_map_east_asia_turn5",
+            "type": "image",
+            "from_line_index": 0,
+            "to_line_index": 1,
+            "transition": "crossfade",
+            "transition_duration_sec": 1.0,
+            "ken_burns": {
+              "start_scale": 1.1,
+              "end_scale": 1.0,
+              "start_x": 0,
+              "end_x": 0,
+              "start_y": 0,
+              "end_y": 0
+            },
+            "dark_overlay_opacity": 0.4,
+            "topic_label": "v2が見せた世界の総括"
+          },
+          {
+            "id": "bg_ending_cta",
+            "src": "channel_intro_bg",
+            "type": "image",
+            "from_line_index": 2,
+            "transition": "crossfade",
+            "transition_duration_sec": 0.8,
+            "dark_overlay_opacity": 0.2,
+            "topic_label": "CTA（登録・高評価・GitHub）"
+          }
+        ],
         "animation": "fade_out_with_credits",
         "animation_direction_notes": {
-          "intent": "最終ターンの戦略マップを広角で見せながらフェードアウトし、余韻を残す",
+          "intent": "最終ターンの戦略マップからゆっくりズームアウトし、チャンネルCTAとGitHubリンクを表示して余韻を残す",
           "reference_lines": [
             0,
             1,
-            2
+            2,
+            3,
+            4
           ],
           "mood": "calm",
-          "suggested_technique": "マップがゼームアウトしながらフェード、クレジットテキストがスクロール"
+          "suggested_technique": "マップからフェードアウト → CTAカードがポップアップ → エンドカード"
         },
         "overlays": [
           "subscribe_cta",
-          "next_video_preview"
+          "github_star_cta"
         ]
       },
       "audio": {
         "bgm": "野良猫は宇宙を目指した.mp3",
-        "bgm_volume": 0.15,
-        "scene_se": [
-          {
-            "file": "きらきら輝く3.mp3",
-            "timing": "scene_start",
-            "volume": 0.5
-          }
-        ]
+        "bgm_volume": 0.15
       }
     }
   ]
