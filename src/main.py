@@ -188,7 +188,7 @@ def initialize_world(data_dir: str = None) -> WorldState:
 
     world = WorldState(
         turn=1,
-        year=2026,
+        year=1942,
         quarter=1,
         countries=countries,
         relations=relations,

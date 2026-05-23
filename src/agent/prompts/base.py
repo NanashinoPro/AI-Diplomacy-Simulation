@@ -261,7 +261,7 @@ def build_common_context(country_name: str, country_state: CountryState, world_s
         for i, turn_news in enumerate(past_news):
             t = world_state.turn - len(past_news) + i
             if t > 0:
-                y = 2025 + (t - 1) // 4
+                y = 1941 + (t - 1) // 4
                 q = ((t - 1) % 4) + 1
                 news_info += f"【{y} Q{q}】\n"
             else:
