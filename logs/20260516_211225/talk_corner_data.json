@@ -1,0 +1,178 @@
+{
+  "metadata": {
+    "session_id": "20260516_211225",
+    "topic_category": "日常トーク",
+    "topic_name": "AIシミュレーションを作り始めたきっかけ"
+  },
+  "scenes": [
+    {
+      "id": "talk_01",
+      "type": "talk_corner",
+      "layout": "talk",
+      "lines": [
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "さて、ここからはトークコーナーなのだ！ 今日のシミュレーション、すごい展開だったのだ",
+          "voice_file": "voices/talk_01_0.wav",
+          "duration_sec": 5.141,
+          "start_sec": 0.0
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "そうね。でも今日は、シミュレーションの中身じゃなくて——このプロジェクトが始まったきっかけの話をしてみましょうか",
+          "voice_file": "voices/talk_01_1.wav",
+          "duration_sec": 5.792,
+          "start_sec": 5.141
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "おお〜！ そもそもなんでこのシミュレーションって作られたのだ？",
+          "voice_file": "voices/talk_01_2.wav",
+          "duration_sec": 3.392,
+          "start_sec": 10.933
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "きっかけは、イギリスのキングスカレッジ・ロンドンが出した論文だったそうよ。エーアイに外交シナリオをプレイさせたら、95パーセントの確率で核兵器を使用したっていう研究があったの",
+          "voice_file": "voices/talk_01_3.wav",
+          "duration_sec": 10.219,
+          "start_sec": 14.325
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "surprise",
+          "text": "95パーセント!? それはヤバいのだ……",
+          "voice_file": "voices/talk_01_4.wav",
+          "duration_sec": 2.72,
+          "start_sec": 24.544
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "もともとそのシミュレーション自体が戦争を誘発しやすい設計だったっていう面もあるんだけど——開発者はそれを読んで、「怖い」じゃなくて「面白い」と感じたらしいわ",
+          "voice_file": "voices/talk_01_5.wav",
+          "duration_sec": 9.099,
+          "start_sec": 27.264
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "「面白い」って感じるところが、うちのボスらしいのだ",
+          "voice_file": "voices/talk_01_6.wav",
+          "duration_sec": 3.659,
+          "start_sec": 36.363
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "大学時代にエージェントベースモデルっていう、個々のエージェントの振る舞いから全体の動きを見る研究に触れていたそうなの。だからエルエルエムとエージェントベースモデルを組み合わせたら、国がどう進化していくか見られるんじゃないかって——そこが繋がったのね",
+          "voice_file": "voices/talk_01_7.wav",
+          "duration_sec": 12.533,
+          "start_sec": 40.021
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "じゃあ、将来的には未来予測とかもできるようになるのだ？",
+          "voice_file": "voices/talk_01_8.wav",
+          "duration_sec": 3.797,
+          "start_sec": 52.555
+        },
+        {
+          "speaker": "metan",
+          "expr": "serious",
+          "text": "……正直、それはかなり難しいって言っていたわね。実際に作ってみて痛感したそうよ。経済も軍事も説明変数が膨大で——完全な未来予測なんて、エフジーオーのカルデアスみたいなものだって",
+          "voice_file": "voices/talk_01_9.wav",
+          "duration_sec": 11.104,
+          "start_sec": 56.352
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "sad",
+          "text": "カルデアス……確かにあれはフィクションなのだ",
+          "voice_file": "voices/talk_01_10.wav",
+          "duration_sec": 2.677,
+          "start_sec": 67.456
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "それに、今使っているエーアイは平和的な外交を目指すように設計されているから、実際の人間の判断とはかなり違う部分もあるの。ファインチューニングもしていない状態だしね",
+          "voice_file": "voices/talk_01_11.wav",
+          "duration_sec": 9.547,
+          "start_sec": 70.133
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "normal",
+          "text": "でも、ブイツーで安全保障ジレンマが勝手に出てきたのだ。それってすごいことなのでは？",
+          "voice_file": "voices/talk_01_12.wav",
+          "duration_sec": 5.408,
+          "start_sec": 79.68
+        },
+        {
+          "speaker": "metan",
+          "expr": "normal",
+          "text": "そうなのよ。完璧な予測装置は無理でも、「こういう構造のとき、こういうパターンに陥りやすい」っていう知見を引き出すツールとしてなら、十分に価値がある。大事なのは、どういう目標を持ってシミュレーションを作っていくか——そこだって言っていたわ",
+          "voice_file": "voices/talk_01_13.wav",
+          "duration_sec": 13.536,
+          "start_sec": 85.088
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "このチャンネルの挑戦はまだまだ続くのだ！ みんなも応援よろしくなのだ！",
+          "voice_file": "voices/talk_01_14.wav",
+          "duration_sec": 4.277,
+          "start_sec": 98.624
+        },
+        {
+          "speaker": "metan",
+          "expr": "excited",
+          "text": "チャンネル登録と高評価、よろしくね。それじゃあ、またね",
+          "voice_file": "voices/talk_01_15.wav",
+          "duration_sec": 3.552,
+          "start_sec": 102.901
+        },
+        {
+          "speaker": "zundamon",
+          "expr": "excited",
+          "text": "またなのだ〜！",
+          "voice_file": "voices/talk_01_16.wav",
+          "duration_sec": 0.821,
+          "start_sec": 106.453
+        }
+      ],
+      "visuals": {
+        "background_segments": [
+          {
+            "id": "talk_bg_01",
+            "src": "backgrounds/talk_corner/talk_corner_bg.mp4",
+            "type": "video",
+            "from_line_index": 0,
+            "transition": "cut",
+            "dark_overlay_opacity": 0.3,
+            "topic_label": "トークコーナー"
+          }
+        ],
+        "animation": "none",
+        "animation_direction_notes": {
+          "intent": "落ち着いた対談の雰囲気",
+          "reference_lines": [],
+          "mood": "relaxed",
+          "suggested_technique": "none"
+        },
+        "overlays": []
+      },
+      "audio": {
+        "bgm": "かえるのピアノ.mp3",
+        "bgm_volume": 0.12
+      },
+      "total_duration_sec": 107.275
+    }
+  ]
+}
