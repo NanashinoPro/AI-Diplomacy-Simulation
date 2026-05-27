@@ -20,7 +20,7 @@ def _safe_float(value: str, default: float) -> float:
     except (ValueError, TypeError):
         return default
 
-def initialize_world(data_dir: str = None) -> WorldState:
+def initialize_world(data_dir: str = None, start_year: int = 1942) -> WorldState:
     """初期の歴史的状況をCSV(initial_stats.csv, initial_relations.csv)から読み込んでWorldStateを返す"""
     import csv
     base_data_dir = data_dir if data_dir else os.path.join(os.path.dirname(__file__), "..", "data")
@@ -188,7 +188,7 @@ def initialize_world(data_dir: str = None) -> WorldState:
 
     world = WorldState(
         turn=1,
-        year=1942,
+        year=start_year,
         quarter=1,
         countries=countries,
         relations=relations,
@@ -374,6 +374,8 @@ def main():
                         help="カスタムデータディレクトリ（例: data/test でtest_stats.csv/test_relations.csvを使用）")
     parser.add_argument("--scenario", type=str, default=None,
                         help="シナリオJSONファイルのパス。T0開始前に初期イベントを注入する（例: scenarios/nk_nuclear_strike.json）")
+    parser.add_argument("--year", type=int, default=1942, dest="start_year",
+                        help="シミュレーション開始年（デフォルト: 1942。現代シナリオでは2026等を指定）")
     args = parser.parse_args()
     
     # バリデーション: --resume-turn は --resume と併用必須
@@ -468,7 +470,7 @@ def main():
     else:
         # システム初期化
         data_dir = os.path.join(os.path.dirname(__file__), "..", args.data_dir) if args.data_dir else None
-        world_state = initialize_world(data_dir=data_dir)
+        world_state = initialize_world(data_dir=data_dir, start_year=args.start_year)
         logger = SimulationLogger()
         logger.sys_log(f"[Reproducibility] 乱数シード: {current_seed}")
 

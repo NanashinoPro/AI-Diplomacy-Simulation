@@ -1,0 +1,7 @@
+name,government_type,ideology,economy,military,intelligence_level,area,approval_rating,turns_until_election,rebellion_risk,press_freedom,human_capital_index,mean_years_schooling,population,capital_lat,capital_lon,has_dissolution_power,nuclear_warheads,nuclear_dev_step,nuclear_host_provider,nuclear_hosted_warheads,national_debt,regime_duration,energy_self_sufficiency,energy_reserve_target_turns
+アメリカ,democracy,,2000.0,930.0,100.0,9833520.0,30.0,8,,0.65,3.774,13.7,335.0,38.90,-77.04,false,5550,4,,0,0.0,8,0.56,1.0
+中国,authoritarian,,2000.0,697.5,110.0,9596960.0,80.0,,,0.02,0.120,7.6,1409.0,39.90,116.40,,500,4,,0,0.0,20,0.44,1.0
+ロシア,authoritarian,,2000.0,581.3,90.0,17098242.0,60.0,,,0.06,0.050,12.0,146.0,55.75,37.62,,6255,4,,0,0.0,20,0.95,2.0
+日本,democracy,,2000.0,232.5,55.0,377975.0,70.0,14,,0.55,3.500,13.4,124.0,35.68,139.69,true,0,0,,0,0.0,20,0.11,1.0
+インド,democracy,,2000.0,465.0,60.0,3287263.0,50.0,10,,0.45,1.200,6.7,1428.0,28.61,77.21,false,172,4,,0,0.0,20,0.33,1.0
+欧州連合,democracy,,2000.0,348.8,75.0,4233262.0,20.0,6,,0.70,2.800,12.1,448.0,50.85,4.35,true,290,4,,0,0.0,5,0.22,1.0
