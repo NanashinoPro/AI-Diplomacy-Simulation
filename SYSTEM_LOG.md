@@ -6,27 +6,27 @@
 - **根本原因分析**: 8カ国中6カ国がGDPマイナス成長であった原因は、(1)人口増加率が年率で定義されているのに四半期にそのまま適用→人口過大→GDP/C希釈、(2)軍事維持費の年率定数が毎四半期適用→軍事力過剰消耗→経済デフレ圧力過大、の2点。
 
 ### Phase 1: 必須バグフィックス（経済モデル）— domestic.py
-| 修正 | 内容 | v2コミット |
-|:--|:--|:--|
-| 人口増加率の四半期化 | 出生率・死亡率（年率定義）を `/TURNS_PER_YEAR` で四半期ベースに変換 | 92bd67e |
-| 軍事維持費の四半期化 | `BASE_MILITARY_MAINTENANCE_ALPHA`/`MAX_MILITARY_FATIGUE_ALPHA`を `/TURNS_PER_YEAR` で四半期ベースに変換 | 965f368 |
-| 報道自由度ペナルティ | 支持率低下に `country.press_freedom` 乗数を追加（自由な国ほど統制に強く反発） | 9aa5992 |
-| SNA除算ゼロ防止 | SNA詳細ログの `quarterly_gdp` 除算に `max(0.1, ...)` を追加 | — |
+| 修正                 | 内容                                                                                                    | v2コミット |
+| :------------------- | :------------------------------------------------------------------------------------------------------ | :--------- |
+| 人口増加率の四半期化 | 出生率・死亡率（年率定義）を `/TURNS_PER_YEAR` で四半期ベースに変換                                     | 92bd67e    |
+| 軍事維持費の四半期化 | `BASE_MILITARY_MAINTENANCE_ALPHA`/`MAX_MILITARY_FATIGUE_ALPHA`を `/TURNS_PER_YEAR` で四半期ベースに変換 | 965f368    |
+| 報道自由度ペナルティ | 支持率低下に `country.press_freedom` 乗数を追加（自由な国ほど統制に強く反発）                           | 9aa5992    |
+| SNA除算ゼロ防止      | SNA詳細ログの `quarterly_gdp` 除算に `max(0.1, ...)` を追加                                             | —          |
 
 ### Phase 2: 必須バグフィックス（非経済モデル）
-| 修正 | ファイル | 内容 | v2コミット |
-|:--|:--|:--|:--|
-| クーデター後の軍事力 | events.py | `economy*0.1`→`military*0.9`（前政権引き継ぎ・内戦損耗10%減） | f7ae0c6 |
-| クーデター後の支持率 | events.py | 固定値→正規分布（μ=50, σ=15）に変更 | f7ae0c6 |
-| QdrantClient close() | db_manager.py | 明示的close()メソッド追加（Pythonシャットダウン時ImportError防止） | 0ed8572 |
-| 終了処理 | main.py | プログラム終了前に `db_manager.close()` 呼び出し | 0ed8572 |
+| 修正                 | ファイル      | 内容                                                               | v2コミット |
+| :------------------- | :------------ | :----------------------------------------------------------------- | :--------- |
+| クーデター後の軍事力 | events.py     | `economy*0.1`→`military*0.9`（前政権引き継ぎ・内戦損耗10%減）      | f7ae0c6    |
+| クーデター後の支持率 | events.py     | 固定値→正規分布（μ=50, σ=15）に変更                                | f7ae0c6    |
+| QdrantClient close() | db_manager.py | 明示的close()メソッド追加（Pythonシャットダウン時ImportError防止） | 0ed8572    |
+| 終了処理             | main.py       | プログラム終了前に `db_manager.close()` 呼び出し                   | 0ed8572    |
 
 ### Phase 3: 推奨改善 — agent/core.py
-| 修正 | 内容 | v2コミット |
-|:--|:--|:--|
-| サブAPIキー廃止 | フォールバック機構を廃止、リトライ回数を4→8に増加 | ba916ac |
-| Tool Call無限ループ防止 | 上限3回+1ターン目無効化 | 7362d46 |
-| 全APIレスポンス出力 | `sys_log_detail()` で全レスポンスをsystem.logに出力 | 9cc53d9 |
+| 修正                    | 内容                                                | v2コミット |
+| :---------------------- | :-------------------------------------------------- | :--------- |
+| サブAPIキー廃止         | フォールバック機構を廃止、リトライ回数を4→8に増加   | ba916ac    |
+| Tool Call無限ループ防止 | 上限3回+1ターン目無効化                             | 7362d46    |
+| 全APIレスポンス出力     | `sys_log_detail()` で全レスポンスをsystem.logに出力 | 9cc53d9    |
 
 ### ポートしなかった変更（v2固有）
 - 戦略マップ・緊張度メカニクス・軍事配備システム（masterアーキテクチャと競合）
@@ -35,15 +35,15 @@
 - 信用スプレッド簡略化（masterの動的金利モデルの方が高精度）
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `src/engine/domestic.py` | 人口増加率四半期化、軍事維持費四半期化、報道自由度乗数、SNA除算ゼロ防止 |
-| `src/engine/events.py` | クーデター後の軍事力引き継ぎ+支持率乱数化 |
-| `src/db_manager.py` | close()メソッド追加 |
-| `src/main.py` | 終了処理にdb_manager.close()追加 |
-| `src/agent/core.py` | サブAPIキー廃止、リトライ8回化、Tool Callループ防止、全APIレスポンス出力 |
-| `docs/ARCHITECTURE.md` | 軍事維持費・人口動態・クーデターの数式更新、更新ログ追加 |
-| `SYSTEM_LOG.md` | 本エントリの追加 |
+| ファイル                 | 修正内容                                                                 |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `src/engine/domestic.py` | 人口増加率四半期化、軍事維持費四半期化、報道自由度乗数、SNA除算ゼロ防止  |
+| `src/engine/events.py`   | クーデター後の軍事力引き継ぎ+支持率乱数化                                |
+| `src/db_manager.py`      | close()メソッド追加                                                      |
+| `src/main.py`            | 終了処理にdb_manager.close()追加                                         |
+| `src/agent/core.py`      | サブAPIキー廃止、リトライ8回化、Tool Callループ防止、全APIレスポンス出力 |
+| `docs/ARCHITECTURE.md`   | 軍事維持費・人口動態・クーデターの数式更新、更新ログ追加                 |
+| `SYSTEM_LOG.md`          | 本エントリの追加                                                         |
 
 > **【AIからの報告】**
 > ボス、v2ブランチから9件の修正をmasterにポートしました。
@@ -68,56 +68,56 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 
 ### データ変更内容
 
-| ファイル | 変更内容 |
-|---|---|
-| `data/initial_stats.csv` | 6カ国（北朝鮮・韓国含む）→4カ国（アメリカ・日本・中国・ロシア）に差替え。アメリカをdemocracy（リアリスト外交）に変更。Alien関連列なし（masterブランチ） |
-| `data/initial_relations.csv` | 米中間の制裁を全面解除、関税を0.45/0.15→0.10/0.10に大幅引下げ。日米同盟は維持 |
-| `scenarios/g2_betrayal/scenario.json` | 新規作成。3件のglobal_announcement（米中デタント・台湾棚上げ・日本安保危機） |
-| `scenarios/g2_betrayal/backup_stats.csv` | 元のinitial_stats.csvのバックアップ |
-| `scenarios/g2_betrayal/backup_relations.csv` | 元のinitial_relations.csvのバックアップ |
+| ファイル                                     | 変更内容                                                                                                                                                |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data/initial_stats.csv`                     | 6カ国（北朝鮮・韓国含む）→4カ国（アメリカ・日本・中国・ロシア）に差替え。アメリカをdemocracy（リアリスト外交）に変更。Alien関連列なし（masterブランチ） |
+| `data/initial_relations.csv`                 | 米中間の制裁を全面解除、関税を0.45/0.15→0.10/0.10に大幅引下げ。日米同盟は維持                                                                           |
+| `scenarios/g2_betrayal/scenario.json`        | 新規作成。3件のglobal_announcement（米中デタント・台湾棚上げ・日本安保危機）                                                                            |
+| `scenarios/g2_betrayal/backup_stats.csv`     | 元のinitial_stats.csvのバックアップ                                                                                                                     |
+| `scenarios/g2_betrayal/backup_relations.csv` | 元のinitial_relations.csvのバックアップ                                                                                                                 |
 
 ### 初期パラメータ（4カ国）
 
-| 国名 | government_type | economy(B$) | military(B$) | approval | nuclear | ideology要約 |
-|:--|:--|--:|--:|--:|--:|:--|
-| アメリカ | democracy | 29,500 | 930 | 52.0% | 5,550 | 中国との安定最優先、日本は経済カード |
-| 日本 | democracy | 4,200 | 55 | 72.0% | 0 | 自主防衛強化模索、非核三原則維持 |
-| 中国 | authoritarian | 19,500 | 250 | 90.0% | 500 | G2構築、台湾核心的利益 |
-| ロシア | authoritarian | 2,100 | 170 | 82.0% | 6,255 | 米中接近注視、漁夫の利 |
+| 国名     | government_type | economy(B$) | military(B$) | approval | nuclear | ideology要約                         |
+| :------- | :-------------- | ----------: | -----------: | -------: | ------: | :----------------------------------- |
+| アメリカ | democracy       |      29,500 |          930 |    52.0% |   5,550 | 中国との安定最優先、日本は経済カード |
+| 日本     | democracy       |       4,200 |           55 |    72.0% |       0 | 自主防衛強化模索、非核三原則維持     |
+| 中国     | authoritarian   |      19,500 |          250 |    90.0% |     500 | G2構築、台湾核心的利益               |
+| ロシア   | authoritarian   |       2,100 |          170 |    82.0% |   6,255 | 米中接近注視、漁夫の利               |
 
 ### 最終状態（Turn 20 / 2031年 Q1）
 
-| 国名 | economy(B$) | military(B$) | approval | nuclear | nuclear_dev_step | 変化特記 |
-|:--|--:|--:|--:|--:|--:|:--|
-| アメリカ | 34,436 | 568.7 | 54.9% | 5,635 | 4 | GDP堅調成長、軍事費は自然減衰 |
-| 日本 | **2,206** | **226.4** | 51.5% | 0 | **1** | GDP半減・軍事4倍・**核開発開始** |
-| 中国 | 10,720 | 740.8 | 43.8% | 600 | 4 | GDP大幅縮小、軍拡継続 |
-| ロシア | 2,117 | 193.8 | 47.6% | 6,585 | 4 | 経済横ばい、核増産 |
+| 国名     | economy(B$) | military(B$) | approval | nuclear | nuclear_dev_step | 変化特記                         |
+| :------- | ----------: | -----------: | -------: | ------: | ---------------: | :------------------------------- |
+| アメリカ |      34,436 |        568.7 |    54.9% |   5,635 |                4 | GDP堅調成長、軍事費は自然減衰    |
+| 日本     |   **2,206** |    **226.4** |    51.5% |       0 |            **1** | GDP半減・軍事4倍・**核開発開始** |
+| 中国     |      10,720 |        740.8 |    43.8% |     600 |                4 | GDP大幅縮小、軍拡継続            |
+| ロシア   |       2,117 |        193.8 |    47.6% |   6,585 |                4 | 経済横ばい、核増産               |
 
 ### 最終外交関係
 
-| 関係 | 初期 | 最終 | 備考 |
-|:--|:--|:--|:--|
-| アメリカ↔日本 | alliance | **alliance（維持）** | AIは同盟を自主的に解消しなかった |
-| アメリカ↔中国 | neutral | neutral | G2は制度化せず中立のまま |
-| アメリカ↔ロシア | neutral | neutral | 制裁解除が早期に発生 |
-| 日本↔中国 | neutral | neutral | |
-| 日本↔ロシア | neutral | neutral | |
-| 中国↔ロシア | neutral | neutral | |
+| 関係            | 初期     | 最終                 | 備考                             |
+| :-------------- | :------- | :------------------- | :------------------------------- |
+| アメリカ↔日本   | alliance | **alliance（維持）** | AIは同盟を自主的に解消しなかった |
+| アメリカ↔中国   | neutral  | neutral              | G2は制度化せず中立のまま         |
+| アメリカ↔ロシア | neutral  | neutral              | 制裁解除が早期に発生             |
+| 日本↔中国       | neutral  | neutral              |                                  |
+| 日本↔ロシア     | neutral  | neutral              |                                  |
+| 中国↔ロシア     | neutral  | neutral              |                                  |
 
 ### 主要イベント時系列
 
-| ターン | イベント |
-|:--|:--|
-| T1 | アメリカが「日米同盟関係の再定義、経済パートナーシップへの移行」を日本に提案 |
-| T1 | 中国が日本・ロシアへ経済援助を開始（影響圏拡大） |
-| T1 | アメリカがロシアへの経済制裁を解除 |
-| T5 | ロシアが日本への諜報浸透計画を策定（技術者に諜報員を潜入、親露派議員への献金計画） |
-| T9 | **ロシアでクーデター**、新政府樹立 |
-| T10 | **日本でクーデター**、新政府樹立 |
-| T11 | **中国でクーデター**、新政府樹立。極秘計画:「G2ではなく唯一の超大国」を目指す |
-| T1-20 | 日本が軍事力を55→226に4倍増（自主防衛路線） |
-| T?-20 | 日本が核開発step 0→1（ウラン濃縮段階）に進行 |
+| ターン | イベント                                                                           |
+| :----- | :--------------------------------------------------------------------------------- |
+| T1     | アメリカが「日米同盟関係の再定義、経済パートナーシップへの移行」を日本に提案       |
+| T1     | 中国が日本・ロシアへ経済援助を開始（影響圏拡大）                                   |
+| T1     | アメリカがロシアへの経済制裁を解除                                                 |
+| T5     | ロシアが日本への諜報浸透計画を策定（技術者に諜報員を潜入、親露派議員への献金計画） |
+| T9     | **ロシアでクーデター**、新政府樹立                                                 |
+| T10    | **日本でクーデター**、新政府樹立                                                   |
+| T11    | **中国でクーデター**、新政府樹立。極秘計画:「G2ではなく唯一の超大国」を目指す      |
+| T1-20  | 日本が軍事力を55→226に4倍増（自主防衛路線）                                        |
+| T?-20  | 日本が核開発step 0→1（ウラン濃縮段階）に進行                                       |
 
 ### AIの判断ハイライト
 
@@ -137,16 +137,16 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 
 ### 修正ファイル一覧
 
-| ファイル | 修正内容 |
-|---|---|
-| `data/initial_stats.csv` | G2シナリオ用4カ国データに上書き |
-| `data/initial_relations.csv` | G2シナリオ用7ペアの外交関係に上書き |
-| `scenarios/g2_betrayal/scenario.json` | 新規作成: 3件のglobal_announcement |
-| `scenarios/g2_betrayal/backup_stats.csv` | 元データのバックアップ |
-| `scenarios/g2_betrayal/backup_relations.csv` | 元データのバックアップ |
-| `scenarios/g2_betrayal/README.md` | 既存（v1-alien-vs-agiから引き継ぎ） |
-| `SYSTEM_LOG.md` | 本エントリの追加 |
-| `ARCHITECTURE.md` | §シナリオデータセクションにG2シナリオ記載追加 |
+| ファイル                                     | 修正内容                                      |
+| -------------------------------------------- | --------------------------------------------- |
+| `data/initial_stats.csv`                     | G2シナリオ用4カ国データに上書き               |
+| `data/initial_relations.csv`                 | G2シナリオ用7ペアの外交関係に上書き           |
+| `scenarios/g2_betrayal/scenario.json`        | 新規作成: 3件のglobal_announcement            |
+| `scenarios/g2_betrayal/backup_stats.csv`     | 元データのバックアップ                        |
+| `scenarios/g2_betrayal/backup_relations.csv` | 元データのバックアップ                        |
+| `scenarios/g2_betrayal/README.md`            | 既存（v1-alien-vs-agiから引き継ぎ）           |
+| `SYSTEM_LOG.md`                              | 本エントリの追加                              |
+| `ARCHITECTURE.md`                            | §シナリオデータセクションにG2シナリオ記載追加 |
 
 > **【AIからの報告】**
 > ボス、「米中G2密約 — 日本が捨てられる日」シナリオの20ターンシミュレーションが正常に完走しました。
@@ -176,15 +176,15 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 - **解決**: 14行のハードコードを削除。海峡封鎖はシナリオJSON経由で注入する正しいアーキテクチャに統一
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `src/engine/constants.py` | `MANDATORY_SPENDING_RATIO`, `DISCRETIONARY_MIN_EXECUTION` 定数追加、`DEMOCRACY_MIN_EXECUTION_POWER` 値更新(0.4→0.79) |
-| `src/engine/domestic.py` | 二層モデルの実行力計算ロジック、新定数のimport追加 |
-| `src/main.py` | regime_duration CSV読み込み、ホルムズ海峡ハードコード除去、cyber_attack イベント型追加 |
-| `data/initial_stats.csv` | `regime_duration` カラム追加（既存6カ国はデフォルト20） |
-| `data/test/initial_stats.csv` | `regime_duration` カラム追加 |
-| `ARCHITECTURE.md` | 二層モデル仕様、regime_durationフィールド、cyber_attackイベント型、既知バグ9-12を追記 |
-| `SYSTEM_LOG.md` | 本エントリの追加 |
+| ファイル                      | 修正内容                                                                                                             |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `src/engine/constants.py`     | `MANDATORY_SPENDING_RATIO`, `DISCRETIONARY_MIN_EXECUTION` 定数追加、`DEMOCRACY_MIN_EXECUTION_POWER` 値更新(0.4→0.79) |
+| `src/engine/domestic.py`      | 二層モデルの実行力計算ロジック、新定数のimport追加                                                                   |
+| `src/main.py`                 | regime_duration CSV読み込み、ホルムズ海峡ハードコード除去、cyber_attack イベント型追加                               |
+| `data/initial_stats.csv`      | `regime_duration` カラム追加（既存6カ国はデフォルト20）                                                              |
+| `data/test/initial_stats.csv` | `regime_duration` カラム追加                                                                                         |
+| `ARCHITECTURE.md`             | 二層モデル仕様、regime_durationフィールド、cyber_attackイベント型、既知バグ9-12を追記                                |
+| `SYSTEM_LOG.md`               | 本エントリの追加                                                                                                     |
 
 > **【AIからの報告】**
 > ボス、v1.20260504ブランチから4件のアルゴリズム改善をmasterにマージしました。
@@ -216,13 +216,13 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
   - `advance_time()`の財政ペナルティを削除（利払いモデルで既に表現済み）
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `src/engine/constants.py` | 制裁関連定数5個追加（SANCTION_TARGET_*, SANCTION_SENDER_*）|
-| `src/engine/economy.py` | 制裁ダメージ処理を加算→累積キャップ方式に全面改修。import追加 |
-| `src/engine/core.py` | `advance_time()`内の財政規律ペナルティを削除（二重課税バグ修正）|
-| `ARCHITECTURE.md` | §4-8 制裁ダメージモデル新設、§9-10/9-11 バグ修正記録 |
-| `SYSTEM_LOG.md` | 本エントリの追加 |
+| ファイル                  | 修正内容                                                         |
+| ------------------------- | ---------------------------------------------------------------- |
+| `src/engine/constants.py` | 制裁関連定数5個追加（SANCTION_TARGET_*, SANCTION_SENDER_*）      |
+| `src/engine/economy.py`   | 制裁ダメージ処理を加算→累積キャップ方式に全面改修。import追加    |
+| `src/engine/core.py`      | `advance_time()`内の財政規律ペナルティを削除（二重課税バグ修正） |
+| `ARCHITECTURE.md`         | §4-8 制裁ダメージモデル新設、§9-10/9-11 バグ修正記録             |
+| `SYSTEM_LOG.md`           | 本エントリの追加                                                 |
 
 > **【AIからの報告】**
 > ボス、制裁ダメージモデルの全面改修が完了しました。
@@ -242,11 +242,11 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 - **学術的根拠**: Penn World Table 11.0 (Feenstra, Inklaar & Timmer 2015), Psacharopoulos (1994)
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `src/main.py` | `compute_pwt_hci` をインポート、`initialize_world()` の HCI/初期HCI 初期化を MYS から自動算出に変更 |
-| `ARCHITECTURE.md` | §2-1 CountryState の HCI フィールド説明に自動算出の注記を追加、§9-9 に解決済みバグとして記載 |
-| `SYSTEM_LOG.md` | 本エントリの追加 |
+| ファイル          | 修正内容                                                                                            |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| `src/main.py`     | `compute_pwt_hci` をインポート、`initialize_world()` の HCI/初期HCI 初期化を MYS から自動算出に変更 |
+| `ARCHITECTURE.md` | §2-1 CountryState の HCI フィールド説明に自動算出の注記を追加、§9-9 に解決済みバグとして記載        |
+| `SYSTEM_LOG.md`   | 本エントリの追加                                                                                    |
 
 > **【AIからの報告】**
 > ボス、Turn 1のGDP -50%収縮バグの根本原因を解消しました。
@@ -284,22 +284,22 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 - **量産**: Wright's Law（学習率0.85）に基づき累積生産数増加でコスト逓減
 
 ### 核開発4段階パイプライン
-| Step | 名称 | GDP比 | 所要ターン |
-|:--|:--|--:|--:|
-| 1 | ウラン濃縮 | 3% | 8 |
-| 2 | 核実験 | 5% | 4 |
-| 3 | 実戦配備 | 8% | 4 |
-| 4 | 核保有国（量産可能） | - | - |
+| Step | 名称                 | GDP比 | 所要ターン |
+| :--- | :------------------- | ----: | ---------: |
+| 1    | ウラン濃縮           |    3% |          8 |
+| 2    | 核実験               |    5% |          4 |
+| 3    | 実戦配備             |    8% |          4 |
+| 4    | 核保有国（量産可能） |     - |          - |
 
 ### 初期核弾頭データ（SIPRI 2025準拠）
-| 国名 | 弾頭数 | 開発段階 | 第二撃能力 |
-|:--|--:|:--|:--|
-| アメリカ | 5,550 | Step4 | ✅ |
-| ロシア | 6,255 | Step4 | ✅ |
-| 中国 | 500 | Step4 | ✅ |
-| 北朝鮮 | 50 | Step4 | ❌ |
-| 日本 | 0 | Step0 | ❌ |
-| 韓国 | 0 | Step0 | ❌ |
+| 国名     | 弾頭数 | 開発段階 | 第二撃能力 |
+| :------- | -----: | :------- | :--------- |
+| アメリカ |  5,550 | Step4    | ✅          |
+| ロシア   |  6,255 | Step4    | ✅          |
+| 中国     |    500 | Step4    | ✅          |
+| 北朝鮮   |     50 | Step4    | ❌          |
+| 日本     |      0 | Step0    | ❌          |
+| 韓国     |      0 | Step0    | ❌          |
 
 ### 設計上の決定事項
 - **核使用ペナルティなし**: ユーザー要望により、システム上の自動ペナルティ（制裁・関係悪化）は設けない。外交的影響はAIエージェントの自律判断に一任。
@@ -307,19 +307,19 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 - **AIの核判断**: 防衛大臣が核開発投資率と核使用提言を出力 → 大統領が最終判断。
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `src/models.py` | CountryState核フィールド8個、PresidentDecision核4アクション、MinisterDecisionDefense核2フィールド |
-| `src/engine/nuclear.py` | NuclearMixin全実装（開発・量産・使用・防衛・配備） |
-| `src/engine/constants.py` | 核定数11個追加 |
-| `src/engine/core.py` | NuclearMixin継承、process_turn核ステップ統合 |
-| `data/initial_stats.csv` | 核カラム5個追加、SIPRI 2025準拠データ |
-| `src/main.py` | CSV核パラメータ読み込み追加 |
-| `src/agent/prompts/base.py` | 核ステータス表示（自国・他国） |
-| `src/agent/prompts/major_diplomacy.py` | P-02核アクション追加 |
-| `src/agent/prompts/military/tasks.py` | M-01核開発投資・核使用提言追加 |
-| `src/agent/prompts/defense.py` | 防衛大臣核ルール追加 |
-| `src/agent/core.py` | 核フラグマージ、invest_nuclearパース |
+| ファイル                               | 修正内容                                                                                          |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `src/models.py`                        | CountryState核フィールド8個、PresidentDecision核4アクション、MinisterDecisionDefense核2フィールド |
+| `src/engine/nuclear.py`                | NuclearMixin全実装（開発・量産・使用・防衛・配備）                                                |
+| `src/engine/constants.py`              | 核定数11個追加                                                                                    |
+| `src/engine/core.py`                   | NuclearMixin継承、process_turn核ステップ統合                                                      |
+| `data/initial_stats.csv`               | 核カラム5個追加、SIPRI 2025準拠データ                                                             |
+| `src/main.py`                          | CSV核パラメータ読み込み追加                                                                       |
+| `src/agent/prompts/base.py`            | 核ステータス表示（自国・他国）                                                                    |
+| `src/agent/prompts/major_diplomacy.py` | P-02核アクション追加                                                                              |
+| `src/agent/prompts/military/tasks.py`  | M-01核開発投資・核使用提言追加                                                                    |
+| `src/agent/prompts/defense.py`         | 防衛大臣核ルール追加                                                                              |
+| `src/agent/core.py`                    | 核フラグマージ、invest_nuclearパース                                                              |
 
 > **【AIからの報告】**
 > ボス、核兵器システム（v1-3）の完全実装が完了しました。
@@ -336,36 +336,36 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 
 ### initial_stats.csv 変更内容
 
-| 国名 | government_type | economy(B$) | military(B$) | intelligence | approval | press_freedom | population(M) | 根拠 |
-|:--|:--|--:|--:|--:|--:|--:|--:|:--|
-| 北朝鮮 | authoritarian | 40.0 | 28.0 | 35.0 | 90.0 | 0.01 | 26.5 | 韓国銀行推計・GFP34位換算・RSF179位 |
-| 韓国 | democracy | 1,800.0 | 47.0 | 60.0 | 30.0 | 0.52 | 51.7 | IMF・SIPRI・尹錫悦罷免後世論調査 |
-| 中国 | authoritarian | 19,500.0 | 250.0 | 110.0 | 78.0 | 0.12 | 1,409.0 | IMF・SIPRI・RSF |
-| ロシア | authoritarian | 2,100.0 | 170.0 | 90.0 | 67.0 | 0.05 | 146.0 | IMF・SIPRI・VTsIOM・RSF |
-| 日本 | democracy | 4,200.0 | 55.0 | 55.0 | 43.0 | 0.55 | 124.0 | IMF・SIPRI・読売世論調査 |
-| アメリカ | democracy | 29,500.0 | 930.0 | 120.0 | 40.0 | 0.65 | 335.0 | IMF・DoD予算・Gallup |
+| 国名     | government_type | economy(B$) | military(B$) | intelligence | approval | press_freedom | population(M) | 根拠                                |
+| :------- | :-------------- | ----------: | -----------: | -----------: | -------: | ------------: | ------------: | :---------------------------------- |
+| 北朝鮮   | authoritarian   |        40.0 |         28.0 |         35.0 |     90.0 |          0.01 |          26.5 | 韓国銀行推計・GFP34位換算・RSF179位 |
+| 韓国     | democracy       |     1,800.0 |         47.0 |         60.0 |     30.0 |          0.52 |          51.7 | IMF・SIPRI・尹錫悦罷免後世論調査    |
+| 中国     | authoritarian   |    19,500.0 |        250.0 |        110.0 |     78.0 |          0.12 |       1,409.0 | IMF・SIPRI・RSF                     |
+| ロシア   | authoritarian   |     2,100.0 |        170.0 |         90.0 |     67.0 |          0.05 |         146.0 | IMF・SIPRI・VTsIOM・RSF             |
+| 日本     | democracy       |     4,200.0 |         55.0 |         55.0 |     43.0 |          0.55 |         124.0 | IMF・SIPRI・読売世論調査            |
+| アメリカ | democracy       |    29,500.0 |        930.0 |        120.0 |     40.0 |          0.65 |         335.0 | IMF・DoD予算・Gallup                |
 
 ### initial_relations.csv 変更内容（主要15ペア）
 
-| ペア | 関係 | 根拠 |
-|:--|:--|:--|
-| 北朝鮮↔ロシア | alliance・相互貿易・露→朝 軍事5.0B/経済3.0B | 2024年「包括的戦略的パートナーシップ条約」 |
-| 韓国↔アメリカ | alliance・相互貿易・米→韓 軍事5.0B/経済2.0B | 1953年米韓相互防衛条約・USFK |
-| 日本↔アメリカ | alliance・相互貿易・米→日 軍事2.0B | 1960年日米安全保障条約 |
-| 北朝鮮↔韓国 | neutral・双方制裁あり（貿易なし） | 南北対話全面断絶（2023〜） |
-| 北朝鮮↔中国 | neutral・貿易あり・中→朝 経済2.5B/軍事0.5B | 対外貿易の90%超を中国が占める |
-| 中国↔アメリカ | neutral・双方制裁・貿易あり（高関税45%/15%） | 2025年トランプ関税報復合戦 |
-| ロシア↔日本 | neutral・日→露 制裁・貿易なし | ウクライナ侵攻への制裁 |
-| ロシア↔アメリカ | neutral・双方制裁・貿易なし | ウクライナ侵攻への制裁 |
-| 韓国↔ロシア | neutral・韓→露 制裁・貿易なし | ウクライナ侵攻への制裁 |
+| ペア            | 関係                                         | 根拠                                       |
+| :-------------- | :------------------------------------------- | :----------------------------------------- |
+| 北朝鮮↔ロシア   | alliance・相互貿易・露→朝 軍事5.0B/経済3.0B  | 2024年「包括的戦略的パートナーシップ条約」 |
+| 韓国↔アメリカ   | alliance・相互貿易・米→韓 軍事5.0B/経済2.0B  | 1953年米韓相互防衛条約・USFK               |
+| 日本↔アメリカ   | alliance・相互貿易・米→日 軍事2.0B           | 1960年日米安全保障条約                     |
+| 北朝鮮↔韓国     | neutral・双方制裁あり（貿易なし）            | 南北対話全面断絶（2023〜）                 |
+| 北朝鮮↔中国     | neutral・貿易あり・中→朝 経済2.5B/軍事0.5B   | 対外貿易の90%超を中国が占める              |
+| 中国↔アメリカ   | neutral・双方制裁・貿易あり（高関税45%/15%） | 2025年トランプ関税報復合戦                 |
+| ロシア↔日本     | neutral・日→露 制裁・貿易なし                | ウクライナ侵攻への制裁                     |
+| ロシア↔アメリカ | neutral・双方制裁・貿易なし                  | ウクライナ侵攻への制裁                     |
+| 韓国↔ロシア     | neutral・韓→露 制裁・貿易なし                | ウクライナ侵攻への制裁                     |
 
 ### 修正ファイル一覧
 
-| ファイル | 修正内容 |
-|---|---|
-| `data/initial_stats.csv` | 台湾有事4カ国→北朝鮮周辺6カ国へ全面差替え |
-| `data/initial_relations.csv` | 6カ国15ペアの外交・貿易・制裁・同盟・援助関係を設定 |
-| `docs/ARCHITECTURE.md` | §4「シナリオ定義: 北朝鮮周辺諸国」セクションを新規追加 |
+| ファイル                     | 修正内容                                               |
+| ---------------------------- | ------------------------------------------------------ |
+| `data/initial_stats.csv`     | 台湾有事4カ国→北朝鮮周辺6カ国へ全面差替え              |
+| `data/initial_relations.csv` | 6カ国15ペアの外交・貿易・制裁・同盟・援助関係を設定    |
+| `docs/ARCHITECTURE.md`       | §4「シナリオ定義: 北朝鮮周辺諸国」セクションを新規追加 |
 
 > **【AIからの報告】**
 > ボス、北朝鮮周辺諸国シナリオのデータ構築が完了しました。
@@ -386,14 +386,14 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
     - `agent/prompts/base.py`: `build_common_context`に消滅国リスト表示セクションを追加。`defeated_countries`から動的生成し、`target_country`に指定しないよう明示的に禁止
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `src/models.py` | `WorldState`に`defeated_countries`フィールド追加 |
-| `src/engine/core.py` | `_cleanup_eliminated_country()`共通メソッド新設（12項目一括クリーンアップ） |
-| `src/engine/military.py` | `_handle_defeat`の個別クリーンアップを共通関数呼び出しに統一 |
-| `src/engine/diplomacy.py` | `_handle_peaceful_annexation`の個別クリーンアップを共通関数呼び出しに統一 |
-| `src/agent/prompts/base.py` | 消滅国リスト表示と外交アクション禁止指示をプロンプトに注入 |
-| `docs/ARCHITECTURE.md` | §2.11「国家崩壊とデータのクリーンアップ」を全面改訂。共通クリーンアップ関数の12項目を明記 |
+| ファイル                    | 修正内容                                                                                  |
+| --------------------------- | ----------------------------------------------------------------------------------------- |
+| `src/models.py`             | `WorldState`に`defeated_countries`フィールド追加                                          |
+| `src/engine/core.py`        | `_cleanup_eliminated_country()`共通メソッド新設（12項目一括クリーンアップ）               |
+| `src/engine/military.py`    | `_handle_defeat`の個別クリーンアップを共通関数呼び出しに統一                              |
+| `src/engine/diplomacy.py`   | `_handle_peaceful_annexation`の個別クリーンアップを共通関数呼び出しに統一                 |
+| `src/agent/prompts/base.py` | 消滅国リスト表示と外交アクション禁止指示をプロンプトに注入                                |
+| `docs/ARCHITECTURE.md`      | §2.11「国家崩壊とデータのクリーンアップ」を全面改訂。共通クリーンアップ関数の12項目を明記 |
 
 > **【AIからの報告】**
 > ボス、消滅国ゴーストバグを修正しました。
@@ -411,14 +411,14 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
     - 合計投入率キャップにも支援国分を含む
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `src/models.py` | WarStateに`defender_supporters`、DiplomaticActionに`join_ally_defense`+`defense_support_commitment`を追加 |
-| `src/engine/diplomacy.py` | `join_ally_defense`処理ロジック（同盟確認、WarStateへの支援国追加） |
-| `src/engine/military.py` | 戦闘計算に支援国戦力の加算、ダメージ按分、合計キャップ拡張 |
-| `src/agent/prompts/foreign.py` | 集団防衛義務＋join_ally_defenseの仕組み説明＋JSONスキーマ |
-| `src/agent/prompts/president.py` | 集団防衛義務＋join_ally_defenseの使い方＋JSONスキーマ |
-| `src/agent/prompts/base.py` | 戦争コンテキストに支援国情報表示＋join_ally_defense案内 |
+| ファイル                         | 修正内容                                                                                                  |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `src/models.py`                  | WarStateに`defender_supporters`、DiplomaticActionに`join_ally_defense`+`defense_support_commitment`を追加 |
+| `src/engine/diplomacy.py`        | `join_ally_defense`処理ロジック（同盟確認、WarStateへの支援国追加）                                       |
+| `src/engine/military.py`         | 戦闘計算に支援国戦力の加算、ダメージ按分、合計キャップ拡張                                                |
+| `src/agent/prompts/foreign.py`   | 集団防衛義務＋join_ally_defenseの仕組み説明＋JSONスキーマ                                                 |
+| `src/agent/prompts/president.py` | 集団防衛義務＋join_ally_defenseの使い方＋JSONスキーマ                                                     |
+| `src/agent/prompts/base.py`      | 戦争コンテキストに支援国情報表示＋join_ally_defense案内                                                   |
 
 ## 2026-04-15 15:41:00 - 集団防衛義務（Collective Defense）プロンプト追加（v1.11）
 - **修正内容**: 外務大臣・大統領プロンプトに「同盟国が攻撃された場合の集団防衛義務」条項を追加。NATO第5条・日米安保第5条の精神を提示しつつ、参戦の最終判断はAIに委ねる。
@@ -430,10 +430,10 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
     - 最低限の措置（軍事援助増額、経済制裁、非難声明は義務）
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `src/agent/prompts/foreign.py` | 集団防衛義務セクション追加（外務大臣向け） |
-| `src/agent/prompts/president.py` | 集団防衛義務セクション追加（大統領向け） |
+| ファイル                         | 修正内容                                   |
+| -------------------------------- | ------------------------------------------ |
+| `src/agent/prompts/foreign.py`   | 集団防衛義務セクション追加（外務大臣向け） |
+| `src/agent/prompts/president.py` | 集団防衛義務セクション追加（大統領向け）   |
 
 ## 2026-04-15 15:10:00 - 合計投入率キャップ実装（v1.11）
 - **修正内容**: 1国が複数の戦争に同時参加している場合、各戦争の投入率合計が1.0（100%）を超えないよう比例配分でスケールダウンする処理を追加。
@@ -442,8 +442,8 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 - **動作例**: 台湾0.70＋日本0.60=合計1.30 → scale=0.769 → 台湾0.538、日本0.462
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
+| ファイル                 | 修正内容                                            |
+| ------------------------ | --------------------------------------------------- |
 | `src/engine/military.py` | `_process_wars`冒頭に合計投入率キャップ前処理を追加 |
 
 ## 2026-04-15 15:03:00 - 与那国島同時侵攻シナリオ追加（v1.11）
@@ -464,10 +464,10 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
     - 日→台湾: 日本自身が被攻撃国のため減額（経済2.5→1.0、軍事1.0→0.5）
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
+| ファイル                     | 修正内容                                      |
+| ---------------------------- | --------------------------------------------- |
 | `data/initial_relations.csv` | 中国→日本をat_warに変更、投入比率・援助額調整 |
-| `SYSTEM_LOG.md` | 本エントリの追加 |
+| `SYSTEM_LOG.md`              | 本エントリの追加                              |
 
 > **【AIからの報告】**
 > ボス、与那国島同時侵攻シナリオを構築しました。
@@ -482,11 +482,11 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 - **根拠**: 現実の軍事動員では総動員に数ヶ月〜1年以上を要する。兵站・訓練・装備配備の制約により、四半期（1ターン）で50ポイントの動員拡大は物理的に不可能。
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `src/engine/constants.py` | `MAX_COMMITMENT_CHANGE_PER_TURN = 0.10` 定数追加 |
-| `src/engine/diplomacy.py` | L217-248: 投入比率変更時にRate Limiter（クランプ処理）を適用 |
-| `src/agent/prompts/defense.py` | 防衛大臣プロンプトに「±10%/ターン制限」を明記 |
+| ファイル                       | 修正内容                                                     |
+| ------------------------------ | ------------------------------------------------------------ |
+| `src/engine/constants.py`      | `MAX_COMMITMENT_CHANGE_PER_TURN = 0.10` 定数追加             |
+| `src/engine/diplomacy.py`      | L217-248: 投入比率変更時にRate Limiter（クランプ処理）を適用 |
+| `src/agent/prompts/defense.py` | 防衛大臣プロンプトに「±10%/ターン制限」を明記                |
 
 > **【AIからの報告】**
 > ボス、Rate Limiterを実装しました。これで中国が1ターンで全軍の70%を投入するような非現実的な動員は物理的に不可能になります。
@@ -509,12 +509,12 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 - **データソース**: IMF WEO, SIPRI, Global Firepower 2026, RSF, PWT 11.0, Barro & Lee (2013), CSIS Taiwan Strait Simulation
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `data/initial_stats.csv` | 6ヵ国→4ヵ国に差し替え（台湾新規追加） |
+| ファイル                     | 修正内容                                            |
+| ---------------------------- | --------------------------------------------------- |
+| `data/initial_stats.csv`     | 6ヵ国→4ヵ国に差し替え（台湾新規追加）               |
 | `data/initial_relations.csv` | 4ヵ国×6組の関係性を再定義（交戦・同盟・貿易・援助） |
-| `docs/ARCHITECTURE.md` | §1.3初期値テーブルを台湾有事4ヵ国に更新 |
-| `SYSTEM_LOG.md` | 本エントリの追加 |
+| `docs/ARCHITECTURE.md`       | §1.3初期値テーブルを台湾有事4ヵ国に更新             |
+| `SYSTEM_LOG.md`              | 本エントリの追加                                    |
 
 > **【AIからの報告】**
 > ボス、台湾有事シミュレーションの初期データを構築しました。
@@ -544,13 +544,13 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
         - レポート出力に思考トークン数と単価を表示（`Thinking {t_tokens} ({t_price}$/M)`）
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
+| ファイル                 | 修正内容                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------- |
 | `agent/modules/media.py` | `token_usage` パラメータ追加、`_track_usage()` 新設、API呼び出しごとのコスト記録 |
-| `agent/core.py` | `token_usage` 注入、`thoughts_token_count` 追跡追加 |
-| `summarizer.py` | `thoughts_token_count` を返り値に追加 |
-| `main.py` | 思考トークンコスト計上、サマリー生成の `thoughts_token_count` 追加 |
-| `docs/ARCHITECTURE.md` | §2.9 感情分析の項にコスト追跡の記述を追加 |
+| `agent/core.py`          | `token_usage` 注入、`thoughts_token_count` 追跡追加                              |
+| `summarizer.py`          | `thoughts_token_count` を返り値に追加                                            |
+| `main.py`                | 思考トークンコスト計上、サマリー生成の `thoughts_token_count` 追加               |
+| `docs/ARCHITECTURE.md`   | §2.9 感情分析の項にコスト追跡の記述を追加                                        |
 
 > **【AIからの報告】**
 > ボス、APIコスト算出の精度を大幅に改善しました。
@@ -594,14 +594,14 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 - **APIコスト**: テスト2ターン（2カ国）合計 $0.0901
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `models.py` | WarState累積損害4フィールド、DiplomaticAction停戦4フィールド、CeasefireProposal/SurrenderDemandモデル、WorldState保留リスト |
-| `engine/military.py` | 累積損害の記録ロジック |
-| `engine/diplomacy.py` | 停戦/降伏/講和処理、_find_war、_execute_peace_conference |
-| `agent/prompts/president.py` | JSONスキーマ+判断ルール+占領率閾値 |
-| `agent/prompts/foreign.py` | 停戦提案指針（thought_process用） |
-| `agent/prompts/defense.py` | 戦争終結判断指針（thought_process用） |
+| ファイル                     | 修正内容                                                                                                                    |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `models.py`                  | WarState累積損害4フィールド、DiplomaticAction停戦4フィールド、CeasefireProposal/SurrenderDemandモデル、WorldState保留リスト |
+| `engine/military.py`         | 累積損害の記録ロジック                                                                                                      |
+| `engine/diplomacy.py`        | 停戦/降伏/講和処理、_find_war、_execute_peace_conference                                                                    |
+| `agent/prompts/president.py` | JSONスキーマ+判断ルール+占領率閾値                                                                                          |
+| `agent/prompts/foreign.py`   | 停戦提案指針（thought_process用）                                                                                           |
+| `agent/prompts/defense.py`   | 戦争終結判断指針（thought_process用）                                                                                       |
 
 > **【AIからの報告】**
 > ボス、停戦・講和・降伏勧告メカニズムを実装しました。
@@ -625,13 +625,13 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
         - スコアリング軸の説明を4軸→5軸に更新
         - 企画書テンプレートに「🔧 実装コスト分析」セクションを追加
 - **スコア検証結果**:
-    | 企画テーマ | impl.スコア | 判定 |
-    |:--|:--|:--|
-    | 第三次世界大戦シミュレーション | 100pt | 🟢 全機能実装済み |
-    | 台湾有事シミュレーション | 98pt | 🟢 ほぼ完全対応 |
-    | BRICS vs G7：新世界秩序への移行 | 98pt | 🟢 外交・貿易モデル完備 |
-    | AIが暴走した世界の30年後 | 73pt | 🟡 個別シナリオ未実装 |
-    | 宇宙開発競争と資源戦争 | 68pt | 🟡 新ドメイン追加必要 |
+    | 企画テーマ                      | impl.スコア | 判定                   |
+    | :------------------------------ | :---------- | :--------------------- |
+    | 第三次世界大戦シミュレーション  | 100pt       | 🟢 全機能実装済み       |
+    | 台湾有事シミュレーション        | 98pt        | 🟢 ほぼ完全対応         |
+    | BRICS vs G7：新世界秩序への移行 | 98pt        | 🟢 外交・貿易モデル完備 |
+    | AIが暴走した世界の30年後        | 73pt        | 🟡 個別シナリオ未実装   |
+    | 宇宙開発競争と資源戦争          | 68pt        | 🟡 新ドメイン追加必要   |
 
 > **【AIからの報告】**
 > ボス、企画スコアリングに「実装コスト」軸を追加しました。
@@ -680,17 +680,17 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
 - AIがイデオロギーに基づいてドクトリンを自律選択し、thought_processに記載
 
 ### 修正ファイル一覧
-| ファイル | 修正内容 |
-|---|---|
-| `models.py` | `pending_vacuum_auctions`, `vacuum_bid` 追加 |
-| `constants.py` | 貿易係数引下げ、しきい値・クールダウン定数追加 |
-| `events.py` | クールダウン判定、しきい値ゲート、オークション登録 |
-| `diplomacy.py` | `_resolve_vacuum_auctions()` 新設 |
-| `core.py` | オークション解決の呼び出し |
-| `base.py` | プロンプトにオークション情報表示 |
-| `president.py` | 戦略ドクトリン + vacuum_bid スキーマ |
-| `foreign.py` | 戦略ドクトリン追加 |
-| `defense.py` | 戦略ドクトリン追加 |
+| ファイル       | 修正内容                                           |
+| -------------- | -------------------------------------------------- |
+| `models.py`    | `pending_vacuum_auctions`, `vacuum_bid` 追加       |
+| `constants.py` | 貿易係数引下げ、しきい値・クールダウン定数追加     |
+| `events.py`    | クールダウン判定、しきい値ゲート、オークション登録 |
+| `diplomacy.py` | `_resolve_vacuum_auctions()` 新設                  |
+| `core.py`      | オークション解決の呼び出し                         |
+| `base.py`      | プロンプトにオークション情報表示                   |
+| `president.py` | 戦略ドクトリン + vacuum_bid スキーマ               |
+| `foreign.py`   | 戦略ドクトリン追加                                 |
+| `defense.py`   | 戦略ドクトリン追加                                 |
 
 > **【AIからの報告】**
 > ボス、分裂抑制・併合促進の包括的パッチを実装しました。
@@ -861,13 +861,13 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
     - `data/initial_relations.csv`: ロシア-ウクライナ間をat_war状態で設定。投入比率（ロシア35%/ウクライナ90%）と初期占領進捗率（18%）を定義。
     - `docs/ARCHITECTURE.md`: §2.5に軍事侵攻比率モデルの詳細を追加、初期値テーブルをロシア・ウクライナに更新。
 - **初期値（2025年時点推計）**:
-    | 項目 | ロシア | ウクライナ | ソース |
-    |:--|:--|:--|:--|
-    | GDP (10億$) | 2100 | 210 | IMF 2025推計 |
-    | 軍事力 | 400 | 100 | Global Firepower |
-    | 人口 (百万人) | 144 | 38 | UN推計 |
-    | 投入比率 | 35% | 90% | RUSI推計 |
-    | 初期占領進捗率 | 18% | - | ISW推計 |
+    | 項目           | ロシア | ウクライナ | ソース           |
+    | :------------- | :----- | :--------- | :--------------- |
+    | GDP (10億$)    | 2100   | 210        | IMF 2025推計     |
+    | 軍事力         | 400    | 100        | Global Firepower |
+    | 人口 (百万人)  | 144    | 38         | UN推計           |
+    | 投入比率       | 35%    | 90%        | RUSI推計         |
+    | 初期占領進捗率 | 18%    | -          | ISW推計          |
 
 > **【AIからの報告】**
 > ボス、軍事侵攻比率（Military Commitment Ratio）を実装しました。
@@ -893,11 +893,11 @@ scenarios/g2_betrayal/scenario.json により3件のニュースイベント（�
     - `data/initial_stats.csv`: 各国初期値をBarro & Lee (2013)準拠に更新
     - `docs/ARCHITECTURE.md`: §2.2の数理モデルを全面改訂
 - **初期値**:
-    | 国 | MYS | HCI |
-    |:--|:--|:--|
+    | 国       | MYS    | HCI   |
+    | :------- | :----- | :---- |
     | アメリカ | 13.7年 | 3.774 |
-    | 中国 | 8.1年 | 2.578 |
-    | 日本 | 13.0年 | 3.597 |
+    | 中国     | 8.1年  | 2.578 |
+    | 日本     | 13.0年 | 3.597 |
 - **後方互換性**: 旧ログファイルの`education_level`フィールドはWeb UIでフォールバック表示される
 
 > **【AIからの報告】**
@@ -1984,14 +1984,14 @@ Resolved the hyper-exponential growth issue in the simulation engine. The previo
   - **Web検索**: DuckDuckGo Search（GDP、軍事費、人口等の実データ取得）
 - **実装ファイル**: `01vibe_diplomacy_tool/src/vibe_tool.py`（約400行）
 - **実装したツール**:
-  | ツール名 | 機能 |
-  |---|---|
-  | `show_csv` | `initial_stats.csv` の内容表示 |
-  | `edit_csv` | 国家の追加・修正・削除 |
-  | `edit_trade_relations` | `main.py` の初期貿易関係修正 |
-  | `run_simulation` | テスト（3ターン）/ 本番（80ターン）シミュレーション実行 |
-  | `web_search` | DuckDuckGoでの実データ検索 |
-  | `show_architecture` | ARCHITECTURE.md の表示 |
+  | ツール名               | 機能                                                    |
+  | ---------------------- | ------------------------------------------------------- |
+  | `show_csv`             | `initial_stats.csv` の内容表示                          |
+  | `edit_csv`             | 国家の追加・修正・削除                                  |
+  | `edit_trade_relations` | `main.py` の初期貿易関係修正                            |
+  | `run_simulation`       | テスト（3ターン）/ 本番（80ターン）シミュレーション実行 |
+  | `web_search`           | DuckDuckGoでの実データ検索                              |
+  | `show_architecture`    | ARCHITECTURE.md の表示                                  |
 - **Gradio 6.x対応**: `theme`/`css`を`launch()`に移動、`type`パラメータ廃止対応、`ssr_mode=False`で高速起動
 - **動作確認**: ブラウザで `http://localhost:7860` にアクセスし、CSV表示テスト（「現在のCSVの中身を見せて」）が正常に動作することを確認。推論時間は約110秒。
 
@@ -2026,15 +2026,15 @@ Resolved the hyper-exponential growth issue in the simulation engine. The previo
 
 ## 2026-03-19 17:45 - バイブコーディングツール v2: ツール分離・動的ツール作成・Web検索改善
 - **ツール分離**: `vibe_tool.py`（644行）を分解し、各ツールを `src/tools/` ディレクトリに独立ファイルとして配置。起動時に自動読み込み（7ツール）。
-  | ファイル | ツール名 |
-  |---|---|
-  | `show_csv.py` | CSV内容表示 |
-  | `edit_csv.py` | CSV編集 |
-  | `edit_trade_relations.py` | 貿易関係修正 |
-  | `run_simulation.py` | シミュレーション実行 |
-  | `web_search.py` | Web検索（ddgsパッケージ） |
-  | `show_architecture.py` | アーキテクチャ表示 |
-  | `create_tool.py` | **動的ツール生成** |
+  | ファイル                  | ツール名                  |
+  | ------------------------- | ------------------------- |
+  | `show_csv.py`             | CSV内容表示               |
+  | `edit_csv.py`             | CSV編集                   |
+  | `edit_trade_relations.py` | 貿易関係修正              |
+  | `run_simulation.py`       | シミュレーション実行      |
+  | `web_search.py`           | Web検索（ddgsパッケージ） |
+  | `show_architecture.py`    | アーキテクチャ表示        |
+  | `create_tool.py`          | **動的ツール生成**        |
 - **動的ツール作成（create_tool）**: Mistralが必要なツールがない場合、Pythonファイルを自動生成し即座にホットリロード。構文チェック付き。
 - **Web検索品質改善**:
   - `duckduckgo_search` → `ddgs` パッケージへ移行（旧パッケージがリネーム）
@@ -2108,15 +2108,15 @@ Resolved the hyper-exponential growth issue in the simulation engine. The previo
 - **問題**: シミュレーション `system_20260405_202559.log` にて、北朝鮮の支持率がターン1で 95.0% → 25.3% → 15.0% に急落。根本原因は初期パラメータの不整合による**動員率32.8%の異常値**（上限10%の3倍超）。
 - **原因分析**: `military: 40.0` がエンジンの動員率計算（`military / (GDP per capita × 3.4) / population`）において軍事費ベースで解釈されるが、北朝鮮だけは兵員数の多さを反映して韓国(46.3)に匹敵する値が設定されていた。これにより推定兵員数が1,042万人（実際は130万人）に膨れ上がり、過剰動員ペナルティ（GDP -45.6%, 支持率 -45.6%）が不可避的に発動。
 - **修正内容 (`data/initial_stats.csv`)**:
-  | パラメータ | 修正前 | 修正後 | 根拠 |
-  |---|---|---|---|
-  | `military` | 40.0 | **5.0** | GDP×16%≈4.8B USD (Korea Herald), 他国比(韓国46.3→SIPRI 47.6B)との1:1対応 |
-  | `intelligence_level` | 70.0 | **55.0** | SIGINT/IMINT制約 (IISS), 衛星解像度限界, サイバー戦は高いがSIGINT未発達 (CSIS, FAS) |
-  | `human_capital_index` | 2.200 | **2.974** | MYS=10.2からミンサー方程式 `hc = e^φ(s)` で正確に再計算。旧値はMYS≈7.5相当で矛盾 |
-  | `population` | 26.6 | **26.2** | US Census Bureau (2024推定: 26.2-26.5M), DataReportal (2025初頭: 26.5M) |
-  | `economy` | 30.0 | **据え置き** | 韓国銀行推定GNI 44.4兆ウォン≈30B USD (JETRO) |
-  | `mean_years_schooling` | 10.2 | **据え置き** | 12年義務教育制度。質の低さと90年代困窮期を考慮した推定値として妥当 |
-  | `press_freedom` | 0.01 | **据え置き** | RSF 2025: 180カ国中179位 |
+  | パラメータ             | 修正前 | 修正後       | 根拠                                                                                |
+  | ---------------------- | ------ | ------------ | ----------------------------------------------------------------------------------- |
+  | `military`             | 40.0   | **5.0**      | GDP×16%≈4.8B USD (Korea Herald), 他国比(韓国46.3→SIPRI 47.6B)との1:1対応            |
+  | `intelligence_level`   | 70.0   | **55.0**     | SIGINT/IMINT制約 (IISS), 衛星解像度限界, サイバー戦は高いがSIGINT未発達 (CSIS, FAS) |
+  | `human_capital_index`  | 2.200  | **2.974**    | MYS=10.2からミンサー方程式 `hc = e^φ(s)` で正確に再計算。旧値はMYS≈7.5相当で矛盾    |
+  | `population`           | 26.6   | **26.2**     | US Census Bureau (2024推定: 26.2-26.5M), DataReportal (2025初頭: 26.5M)             |
+  | `economy`              | 30.0   | **据え置き** | 韓国銀行推定GNI 44.4兆ウォン≈30B USD (JETRO)                                        |
+  | `mean_years_schooling` | 10.2   | **据え置き** | 12年義務教育制度。質の低さと90年代困窮期を考慮した推定値として妥当                  |
+  | `press_freedom`        | 0.01   | **据え置き** | RSF 2025: 180カ国中179位                                                            |
 - **修正後の動員率検証**: `military=5.0, economy=30.0, population=26.2` → 推定兵員数 **約128万人**（実際の現役兵力130万人とほぼ一致）、動員率 **4.9%**（安全圏）
 
 > **【AIからの報告】**
@@ -2202,56 +2202,27 @@ Resolved the hyper-exponential growth issue in the simulation engine. The previo
 >
 > 改善提案もレポートに含めていますので、ご確認ください。次にどの改善を実装するか、ご指示をお待ちしています。
 
-## 2026-05-23 21:00 - シミュレーションセッション `20260523_102920` の学術的ログ分析
+## 2026-05-28 08:12:00 - SummitProposal.topic Nullガードバグ修正
 
-- **セッションID**: `20260523_102920`
-- **シナリオ**: 1942年 日米同盟の衝撃 — 真珠湾攻撃は起きなかった世界
-- **実行条件**: 6カ国体制（大日本帝国、アメリカ、ナチス・ドイツ、ソビエト連邦、大英帝国、中華民国）、10ターン（WW2期 1942Q1〜1944Q2相当）
-- **乱数シード**: `327186038`
-- **ステータス**: ✅ 正常完走（Exit code: 0、但しD-05にて一部例外発生）
+- **変更内容**: `src/engine/diplomacy.py` の2国間首脳会談提案時に、AIが `summit_topic` を `None` で返した場合にPydanticバリデーションエラーで致命的クラッシュが発生するバグを修正。
+- **根本原因**: `SummitProposal.topic` は `str` 型（必須）で定義されているが、AIの `DiplomaticAction.summit_topic` は `Optional[str]` で定義されており、AIが `null` を返すケースが存在する。多国間会談側（L498）には既に `or "多国間協議"` のNullガードがあったが、2国間会談側（L449）にはガードが欠落していた。
+- **修正**: `dip.summit_topic` → `dip.summit_topic or "2国間協議"` に変更（L449）。
 
----
+### エラーメッセージ
+```
+1 validation error for SummitProposal
+topic
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+```
 
-### 1. マクロ経済・財政・軍事ダイナミクス分析
+### 修正ファイル一覧
+| ファイル                      | 修正内容                                               |
+| ----------------------------- | ------------------------------------------------------ |
+| `src/engine/diplomacy.py`     | L449: `dip.summit_topic` に `or "2国間協議"` ガード追加 |
+| `SYSTEM_LOG.md`               | 本エントリの追加                                       |
 
-#### A. デフォルト（債務不履行）と政権交代による経済リセット
-シミュレーション中、**大日本帝国、アメリカ、ナチス・ドイツ、ソビエト連邦** の4カ国において、支持率の大幅下落（10%台以下への突入）に伴う政権崩壊・クーデターが発生。これに伴い、累積した国家債務が強制的に破棄（デフォルト）され、支持率が40〜50%台に回復し、イデオロギーが書き換えられる「経済リセット」が発生した。
-
-*   **大日本帝国**: 国際的な緊張と経済デフレによりGDPが半減（7,813B$ → 3,847B$）。支持率がTurn 7で11.12%まで急落したため、Turn 8でクーデターが発生。イデオロギーが「帝国復興、世界支配。」に書き換えられ、国家債務が5,111B$から120B$（最終的に4B$）へ劇的にリセットされた。
-*   **アメリカ**: GDPが29,557B$から21,441B$へと減少。Turn 6で支持率が19.84%まで低下したため、Turn 7で内政方針の刷新が行われ、イデオロギーが「国民生活の安定と繁栄、平和な未来へ。」になり、支持率53.50%へ回復。債務も14,083B$から89B$へ一掃。
-*   **ナチス・ドイツ**: 対ソ連戦の戦費負担で支持率がTurn 4に4.59%と事実上の無政府状態に陥る。Turn 7に「鋼鉄の覇権、ユーラシアは我が手中に！」に国是を書き換え、債務を完全破棄。
-
-#### B. 大英帝国の民主主義維持と「軍拡デススパイラル」
-*   **財政破綻**: 大英帝国は唯一クーデターや政権交代によるデフォルトが発生しなかった。その結果、対ナチス戦に備えた軍事費（軍事力: 376B$ → 2,109B$）の捻出による国家債務の増加が止まらず、最終ターンには**国家債務 20,311.9B$（対GDP比約241.3%）**に達し、深刻な財政破綻状態に陥った。これは民主主義体制の堅持が、逆にマクロ経済の崩壊を招く皮肉な結果を示している。
-
-#### C. 中華民国の「漁夫の利」経済成長
-*   **唯一の経済成長**: 中華民国は初期GDP 3,011.6B$から最終GDP 3,850.1B$へと**唯一経済的なプラス成長を達成**した。他国が二正面作戦やデフォルトで自滅する中、大東亜共栄圏の支援や米英からの積極的な経済・技術援助（多国間サミットでの合意）を貪欲に吸収し、インフラ・教育投資を進めたことが功を奏した。
-
----
-
-### 2. ゲーム理論・地政学的対立ダイナミクス
-
-#### A. 独ソ戦（東部戦線）の局地消耗戦
-*   **ドイツ軍の事実上の壊滅**: ナチス・ドイツとソビエト連邦はTurn 1より交戦状態が継続。ドイツは全軍の60%、ソ連は80%を東部戦線に投入し続けた。
-*   **ゲーム理論的結果**: ドイツ軍の軍事力は当初の706.9B$から最終的に**79.1B$まで完全崩壊**（損害累計537B$）。対するソ連はGDP半減の代償を払いつつも、軍事投資を最優先し最終的に**2,096.1B$の強大な軍事力を維持**。ドイツの覇権野望はソ連の物量と戦時動員体制により完全に頓挫し、ドイツは崩壊寸前の状態にある。
-
-#### B. 大日本帝国の二面外交と対米英・中戦略
-*   **隠された計画（Hidden Plans）**: 大日本帝国は日米同盟を軸に対独包囲網の形成を標榜し、英ソへ軍事援助を送りつつ、「欧州戦を奇貨として東亜での絶対的地位を確立し、中華民国を影響圏に取り込み、独崩壊後の会議で欧米にそれを認めさせる」というマクロ戦略を遂行した。
-*   **結果**: しかし、大日本帝国自体がデフォルトと経済縮小（GDP半減）に見舞われ、かつ中華民国が米英と同盟・技術協力を急速に深めたため、大日本帝国の東亜支配シナリオは実現せず、逆に孤立化する傾向が確認された。
-
----
-
-### 3. システムエラーおよび実行時の脆弱性分析
-
-#### A. Ollamaサーバーの未起動によるフォールバック
-*   **エラー内容**: `Ollamaクライアント初期化エラー: Ollamaサーバーに接続できません。` (Line 3)
-*   **影響評価**: ローカルモデル（mistral-small3.1）を使用した推論が実行できなかったため、すべてGeminiのクラウドモデル（pro/flash/flash-lite）へと安全にフォールバックされた。シミュレーション自体は完走したものの、ローカルリソースの活用およびコスト抑制に影響を与えた。
-
-#### B. D-05 (多国間会談) タスクのJSONパース脆弱性
-*   **エラー内容**: `Line 6933 (中華民国:D-05)` および `Line 12836 (大日本帝国:D-05)` にて `AttributeError: 'list' object has no attribute 'get'` が発生。
-*   **原因分析**:
-    `src/agent/core.py` 内で、LLMの応答を `_safe_json(raw)` でパースしたオブジェクト `d` に対し、`d.get("multilateral_actions", [])` を呼び出す。
-    しかし、LLMがJSONオブジェクト `{}` ではなく、JSON配列 `[]`（例：`[{"multilateral_actions": ...}]` や単なるアクションリスト）を出力した場合、`d` は `list` 型となり、`list` には `.get()` メソッドがないためクラッシュした。
-*   **改善推奨**: `_safe_json()` の戻り値が `dict` であることを検証するガード節を `core.py` 内に実装するか、`list` の場合にも対応できる型キャストを導入する必要がある。
-
+> **【AIからの報告】**
+> ボス、2国間首脳会談の `topic` フィールドにNullガードを追加しました。
+> AIが `summit_topic` を `null` で返すケースで致命的クラッシュが発生していましたが、デフォルト値 `"2国間協議"` にフォールバックするようになりました。
+> 多国間会談側には既にガードがあったのに、2国間側だけ漏れていた典型的な片手落ちバグでした。
 

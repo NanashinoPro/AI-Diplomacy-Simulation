@@ -446,7 +446,7 @@ class DiplomacyMixin:
             # 首脳会談の提案
             if dip.propose_summit:
                 is_private_summit = getattr(dip, 'is_private', False)
-                self.state.pending_summits.append(SummitProposal(proposer=country_name, target=target_name, topic=dip.summit_topic, is_private=is_private_summit))
+                self.state.pending_summits.append(SummitProposal(proposer=country_name, target=target_name, topic=dip.summit_topic or "2国間協議", is_private=is_private_summit))
                 if is_private_summit:
                     self.sys_logs_this_turn.append(f"[非公開会談提案] {country_name} -> {target_name}: {dip.summit_topic}")
                     if target_name in self.state.countries:
